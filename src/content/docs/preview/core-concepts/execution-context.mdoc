@@ -93,12 +93,12 @@ message has a result type and you abort before the main handler, you must supply
 ```csharp
 public sealed class RejectUnauthorized : ICommandPreInterceptor<CreateProduct>
 {
-    public ValueTask<object> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
     {
         if (!_user.CanCreateProducts)
             context.Abort(Guid.Empty);   // result required: the pipeline still owes one
 
-        return ValueTask.FromResult<object>(command);
+        return ValueTask.FromResult(command);
     }
 }
 ```

@@ -21,10 +21,10 @@ public sealed record Heartbeat()               : ICommand;      // not audited
 
 public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
 {
-    public ValueTask<object> HandleAsync(IAuditedCommand command, IExecutionContext context)
+    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, IExecutionContext context)
     {
         _audit.Log(command);
-        return ValueTask.FromResult<object>(command);
+        return ValueTask.FromResult(command);
     }
 }
 ```
