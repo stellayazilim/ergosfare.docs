@@ -39,7 +39,7 @@ public sealed class ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand
     public ValidateCommands(IEnumerable<IValidator<TCommand>> validators)
         => _validators = validators;
 
-    public async ValueTask<object> HandleAsync(TCommand command, IExecutionContext context)
+    public async ValueTask<TCommand> HandleAsync(TCommand command, IExecutionContext context)
     {
         foreach (var validator in _validators)
         {
@@ -73,12 +73,12 @@ public sealed class RequirePermission : ICommandPreInterceptor<DeleteProduct>
 
     public RequirePermission(ICurrentUser user) => _user = user;
 
-    public ValueTask<object> HandleAsync(DeleteProduct command, IExecutionContext context)
+    public ValueTask<DeleteProduct> HandleAsync(DeleteProduct command, IExecutionContext context)
     {
         if (!_user.Can("products:delete"))
             context.Abort();
 
-        return ValueTask.FromResult<object>(command);
+        return ValueTask.FromResult(command);
     }
 }
 ```
@@ -112,11 +112,11 @@ Read it back with `context.Get<Tenant>("tenant")`, or `TryGet` when absence is p
 
 ## Rewriting the message
 
-Use the two-parameter form when you actually replace the message and want the result typed.
-`TModified` must derive from `TCommand`:
+A pre-interceptor has no result to carry, so the single-parameter form returns the command
+type directly — rewriting is just returning a new instance:
 
 ```csharp
-public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct, CreateProduct>
+public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
 {
     public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
         => ValueTask.FromResult(command with { Name = command.Name.Trim() });
@@ -125,6 +125,9 @@ public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct, Create
 
 The handler receives the trimmed record. So does every pre-interceptor after this one — the
 stage is a chain, each link seeing the previous link's output.
+
+Reach for the two-parameter form only when you return a *different*, derived command type;
+`TModified` must derive from `TCommand`.
 
 ## Ordering
 
@@ -148,8 +151,13 @@ full ordering rules and for restricting interceptors to a subset of dispatches.
 | Interface | `HandleAsync` |
 |---|---|
 | `ICommandPreInterceptor` | `ValueTask<object>(ICommand, IExecutionContext)` |
-| `ICommandPreInterceptor<TCommand>` | `ValueTask<object>(TCommand, IExecutionContext)` |
+| `ICommandPreInterceptor<TCommand>` | `ValueTask<TCommand>(TCommand, IExecutionContext)` |
 | `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, IExecutionContext)` |
+
+The non-generic form intercepts any command, so it returns `object`. The single-parameter
+form knows the command type and returns it — a pre-interceptor carries no result, so the
+message is the only thing there is to return. The two-parameter form returns a different,
+derived type.
 
 Queries and events offer the same three shapes as `IQueryPreInterceptor…` and
 `IEventPreInterceptor…`.

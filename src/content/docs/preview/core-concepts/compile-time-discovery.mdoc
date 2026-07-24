@@ -117,6 +117,24 @@ To turn reference scanning off for a project:
 </PropertyGroup>
 ```
 
+### Assemblies under the `Stella.Ergosfare.*` prefix
+
+Reference scanning skips assemblies whose name begins with `Stella.Ergosfare` — that prefix
+is the library's own, and its contract interfaces (`ICommandHandler<T>` and friends) inherit
+the module markers, so scanning them would register the framework's own types. If you
+deliberately name an application assembly under that prefix, opt it back in:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorForceScanReferences>true</ErgosfareSourceGeneratorForceScanReferences>
+</PropertyGroup>
+```
+
+The property is baked into the assembly as
+`[assembly: AssemblyMetadata("ErgosfareSourceGeneratorForceScanReferences", "true")]`, which
+the generator reads per referenced assembly. Only assemblies that set it are force-included,
+so the library's own contracts are never scanned — even though they share the prefix.
+
 ## Diagnostics
 
 The generator refuses to silently diverge from what runtime scanning would have registered.
