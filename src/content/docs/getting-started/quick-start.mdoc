@@ -1,0 +1,157 @@
+---
+title: Quick start
+description: A command, a query and an event wired end to end on the stable v1 line.
+---
+
+## Step 1 — Install
+
+```bash
+dotnet add package Stella.Ergosfare
+```
+
+## Step 2 — Declare a command and its handler
+
+```csharp
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+
+public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+{
+    private readonly IProductStore _store;
+
+    public CreateProductHandler(IProductStore store) => _store = store;
+
+    public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+}
+```
+
+Use `ICommand` (and `ICommandHandler<TCommand>`) when the command produces no result.
+
+The cancellation token arrives on the **context**, not as a separate parameter.
+
+## Step 3 — Declare a query and its handler
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+
+public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
+{
+    private readonly IProductStore _store;
+
+    public GetProductHandler(IProductStore store) => _store = store;
+
+    public Task<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+        => _store.FindAsync(query.Id, context.CancellationToken);
+}
+```
+
+## Step 4 — Declare an event and its handlers
+
+An event is broadcast, so any number of handlers may react:
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+
+public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+
+public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
+{
+    public Task HandleAsync(ProductCreated @event, IExecutionContext context)
+        => _mailer.SendAsync(@event.Name, context.CancellationToken);
+}
+```
+
+{% aside type="note" %}
+On v1, event handlers are matched by the **exact** event type. A handler declared against a
+base type or interface does not receive derived events — that changed in
+[v2](/ergosfare.docs/preview/core-components/event/event-definition).
+{% /aside %}
+
+## Step 5 — Register everything
+
+```csharp
+using System.Reflection;
+using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+var assembly = Assembly.GetExecutingAssembly();
+
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterFromAssembly(assembly))
+    .AddQueryModule(q => q.RegisterFromAssembly(assembly))
+    .AddEventModule(e => e.RegisterFromAssembly(assembly)));
+```
+
+`RegisterFromAssembly` reflects over the assembly at startup and registers every handler and
+interceptor it finds. You can also register individually:
+
+```csharp
+.AddCommandModule(c => c
+    .Register<CreateProductHandler>()
+    .Register(typeof(LogCommands)))
+```
+
+{% aside type="tip" %}
+This startup scan is what v2 replaces with a source generator, which also makes Native AOT
+work. See [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+{% /aside %}
+
+## Step 6 — Dispatch
+
+Inject the mediator for the module you need — they are separate on purpose:
+
+```csharp
+app.MapPost("/products", async (
+    CreateProduct command,
+    ICommandMediator commands,
+    IEventMediator events) =>
+{
+    var id = await commands.SendAsync(command);
+    await events.PublishAsync(new ProductCreated(id, command.Name));
+    return Results.Created($"/products/{id}", id);
+});
+
+app.MapGet("/products/{id:guid}", async (Guid id, IQueryMediator queries) =>
+{
+    var product = await queries.QueryAsync(new GetProduct(id));
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+```
+
+| Module | Interface | Call |
+|---|---|---|
+| Commands | `ICommandMediator` | `SendAsync(command)` |
+| Queries | `IQueryMediator` | `QueryAsync(query)`, `StreamAsync(streamQuery)` |
+| Events | `IEventMediator` | `PublishAsync(@event)` |
+
+## Step 7 — Add a cross-cutting concern
+
+```csharp
+public sealed class LogCommands : ICommandPreInterceptor
+{
+    private readonly ILogger<LogCommands> _logger;
+
+    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
+
+    public Task<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        return Task.FromResult<object>(command);
+    }
+}
+```
+
+`RegisterFromAssembly` picks it up along with the handlers. A pre-interceptor returns the
+message rather than `void`, because it may rewrite it — returning it unchanged is the
+pass-through case.
+
+Next: [Core concepts](/ergosfare.docs/core-concepts) and
+[Interceptors](/ergosfare.docs/interceptors).

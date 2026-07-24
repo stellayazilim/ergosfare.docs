@@ -1,0 +1,61 @@
+---
+title: Ergosfare
+description: A source-generated, high-performance mediator for CQRS-style messaging in .NET — commands, queries and events over one pipeline model.
+template: splash
+hero:
+  tagline: A source-generated mediator for .NET. All dispatch-shape work happens at compile time — never per dispatch.
+  image:
+    file: ../../../assets/ergosfare.svg
+  actions:
+    - text: Get started
+      link: /ergosfare.docs/preview/getting-started/introduction
+      icon: right-arrow
+      variant: minimal
+    - text: API reference
+      link: /ergosfare.docs/preview/api
+      icon: open-book
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { StarField } from "../../../components/constellation/starfield.tsx"
+
+<div className="pt-20 pb-16 sm:pt-32 sm:pb-20 lg:py-20">
+  <div className="relative">
+    <StarField client:only className="-top-48 -right-44" />
+  </div>
+
+<CardGrid stagger>
+  <Card title="Compile-time registration" icon="seti:c-sharp">
+    A Roslyn generator discovers handlers in your compilation *and* in referenced assemblies,
+    pre-computes their descriptors, and emits `RegisterGenerated()`. A library's handlers
+    register with no registration code in the library.
+  </Card>
+
+  <Card title="Reflection-free dispatch" icon="rocket">
+    Generated dispatch roots close executor generics at compile time; pipeline plans pre-close
+    generic handler types. No `MakeGenericType`, no registry scan, no `AsyncLocal` on the hot
+    path.
+  </Card>
+
+  <Card title="Allocation you can account for" icon="approve-check">
+    Pooled execution contexts and a `ValueTask`-first surface: 100k sequential dispatches
+    allocate 2.3 MB, against MediatR's 18.3 MB for the same loop.
+  </Card>
+
+  <Card title="Nested dispatch, safely" icon="layers">
+    `context.CreateScope()` gives a handler an isolated child context with inherited
+    cancellation — the pattern ambient-state mediators cannot offer safely.
+  </Card>
+
+  <Card title="Native AOT and trimming" icon="setting">
+    Every construct referenced statically via `typeof`; dispatch roots anchor every generic
+    instantiation, `record struct` messages included.
+  </Card>
+
+  <Card title="Modular" icon="puzzle-piece">
+    Commands, Queries and Events are independent packages over a shared core. `IModule` is a
+    real extension point — the shipped modules use it too.
+  </Card>
+</CardGrid>
+</div>

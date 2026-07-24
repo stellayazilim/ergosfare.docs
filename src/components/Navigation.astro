@@ -1,21 +1,44 @@
 ---
+import type { StarlightRouteData } from "@astrojs/starlight/route-data"
 import { NormalizePathPosix } from "../utils/NormalizePath"
+import { versionOfHref, versionOfRouteId } from "../utils/versions"
 import SidebarGroup from "./SidebarGroup.astro"
 import SidebarLink from "./SidebarLink.astro";
+
+type Entry = StarlightRouteData['sidebar'][number]
+
 const sidebar = Astro.locals.starlightRoute.sidebar;
 const pathname = NormalizePathPosix(Astro.locals.starlightRoute.id);
 
+// Starlight resolves one global sidebar, but this site documents two lines. Find
+// the first link under each top-level entry and keep only the entries belonging
+// to the line the reader is on — otherwise every page would list both the stable
+// and the preview trees.
+function firstHref(entry: Entry): string | undefined {
+  if (entry.type === "link") return entry.href
+  for (const child of entry.entries) {
+    const href = firstHref(child)
+    if (href) return href
+  }
+  return undefined
+}
 
+const currentVersion = versionOfRouteId(Astro.locals.starlightRoute.id)
+const visible = sidebar.filter((entry) => {
+  const href = firstHref(entry)
+  // An entry we cannot place shows on both lines rather than disappearing.
+  return href === undefined || versionOfHref(href) === currentVersion
+})
 ---
 
 {  !["", "/", "tr"].some( x => x == pathname) &&
   <nav class="text-base lg:text-sm ">
   <ul role="list" class="space-y-9">
-    {sidebar.map((section) => (
-      <li> 
+    {visible.map((section) => (
+      <li>
         {
-          section.type === "group" ? 
-            <SidebarGroup {...section} depth={0} />:  
+          section.type === "group" ?
+            <SidebarGroup {...section} depth={0} />:
             <SidebarLink {...section} depth={0} />
         }
       </li>
@@ -23,5 +46,3 @@ const pathname = NormalizePathPosix(Astro.locals.starlightRoute.id);
   </ul>
 </nav>
 }
-
-

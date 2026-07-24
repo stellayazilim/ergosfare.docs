@@ -1,0 +1,140 @@
+---
+title: Native AOT and trimming
+description: What makes Ergosfare AOT-complete, which APIs forfeit that, and how to check your own application.
+---
+
+Ergosfare is built to work under Native AOT and aggressive trimming — provided every
+registration goes through the source generator. The libraries are marked
+`IsAotCompatible`, and the reflective registration paths are annotated honestly so the
+compiler warns you when you step off the safe path.
+
+## What makes it work
+
+**Every construct is referenced statically.** Generated registration names each handler,
+interceptor and message via `typeof`, so the trimmer can see them and keeps them.
+
+**Dispatch roots anchor generic instantiations.** For every dispatchable message the
+generator emits:
+
+```csharp
+GeneratedDispatchRoots.AddMessage<CreateProduct>();
+GeneratedDispatchRoots.AddResult<CreateProduct, Guid>();
+```
+
+These give the AOT compiler a static instantiation of every closed generic the runtime will
+need. Without them, the runtime would reach for `MakeGenericType`, which cannot work when
+there is no JIT.
+
+**Value-type messages are covered.** This is the part shared generic code cannot do. Reference
+types share a single canonical instantiation, so a runtime can often get away with
+constructing them dynamically; `record struct` and `struct` messages each need their own
+compiled instantiation. Dispatch roots provide them:
+
+```csharp
+public readonly record struct Ping(long Sequence) : ICommand;   // works under AOT
+```
+
+**Descriptors are pre-computed.** Registration does not reflect over handler types to work
+out what they implement — the generator already did.
+
+## Setting it up
+
+```bash
+dotnet add package Stella.Ergosfare --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+```xml
+<PropertyGroup>
+  <PublishAot>true</PublishAot>
+  <TrimMode>full</TrimMode>
+</PropertyGroup>
+```
+
+```csharp
+using Stella.Ergosfare.Generated;
+
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
+```
+
+Then publish and read the warnings:
+
+```bash
+dotnet publish -c Release -r win-x64
+```
+
+A clean publish is the check. Ergosfare's own surface should contribute nothing.
+
+## What forfeits it
+
+**`RegisterFromAssembly(...)`** is annotated `[RequiresUnreferencedCode]`. It discovers types
+by reflection, which the trimmer cannot follow:
+
+```
+IL2026: Assembly scanning discovers types via reflection; trimming may remove them.
+```
+
+The warning is the point — the API is usable, and it tells you what you are giving up.
+Replace it with `RegisterGenerated()` for anything you compile yourself.
+
+**Open generic handlers and interceptors.** A type like
+`ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` cannot be closed at compile
+time by the generator, so it goes through the runtime fallback. If you need one in an AOT
+build, register the closed forms explicitly:
+
+```csharp
+.AddCommandModule(c => c
+    .RegisterGenerated()
+    .Register<ValidateCommands<CreateProduct>>()
+    .Register<ValidateCommands<DeleteProduct>>())
+```
+
+**Genuine runtime plugins.** Assemblies loaded with `Assembly.LoadFrom` at runtime are
+outside AOT's model entirely — there is no compiled code for types the publish step never
+saw.
+
+## Generator diagnostics matter more here
+
+Under AOT a handler that silently fails to register does not fall back to anything. Treat
+these as errors:
+
+| ID | Meaning |
+|---|---|
+| `ERGOSG001` | A registrable type in this compilation is not accessible from generated registration code. |
+| `ERGOSG002` | A registrable type in a referenced assembly is not visible to generated code — usually an internal type without `InternalsVisibleTo`. |
+
+```xml
+<PropertyGroup>
+  <WarningsAsErrors>$(WarningsAsErrors);ERGOSG001;ERGOSG002</WarningsAsErrors>
+</PropertyGroup>
+```
+
+## Cross-assembly under AOT
+
+Reference scanning works under AOT — the generator resolves handlers in referenced assemblies
+at compile time and names them statically in the consuming application's generated code. A
+library ships handlers with no registration code and no AOT annotations of its own.
+
+If you disabled it:
+
+```xml
+<ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+```
+
+then those handlers are not registered at all, in any build configuration.
+
+## Verifying registration
+
+Read the generated file. It is plain C#:
+
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
+
+If a handler is not named in there, it will not be registered — under AOT or otherwise. That
+file is the ground truth for what your application dispatches.
+
+Next: [Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).

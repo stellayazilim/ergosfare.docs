@@ -4,6 +4,10 @@ on:
   push:
     branches: ["main"]   # Deploy only when main branch is updated
   workflow_dispatch:      # Allow manual trigger
+  repository_dispatch:
+    # Sent by stellayazilim/ergosfare when the public API surface changes, so the
+    # generated API Reference does not go stale between docs commits.
+    types: [api-changed]
 
 permissions:
   contents: read
@@ -17,6 +21,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Mapped to an env var so steps can branch on its presence — the `secrets`
+      # context is not available in `if:` conditions, but `env` is.
+      ERGOSFARE_API_TOKEN: ${{ secrets.ERGOSFARE_API_TOKEN }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -24,22 +32,42 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          # 22 for `tsx` and the generator scripts; Starlight itself is happy on 20.
+          node-version: 22
           cache: "npm"
 
       - name: Install dependencies
         run: npm install --frozen-lockfile
 
+      - name: Generate API reference
+        # Optional. With a token, the generator dispatches api_reference.yml in
+        # the Ergosfare repo and converts the ManagedReference artifact into
+        # Starlight pages. Without one, the site still deploys — just without the
+        # generated API reference, and the MCP catalog without its api collection.
+        if: env.ERGOSFARE_API_TOKEN != ''
+        run: npm run gen_api_ref
+        env:
+          GH_TOKEN: ${{ env.ERGOSFARE_API_TOKEN }}
+
+      - name: Note skipped API reference
+        if: env.ERGOSFARE_API_TOKEN == ''
+        run: |
+          echo "::warning::ERGOSFARE_API_TOKEN not set — deploying without the generated"
+          echo "::warning::API reference. Add a PAT with Actions read+write on"
+          echo "::warning::stellayazilim/ergosfare as ERGOSFARE_API_TOKEN to enable it."
+
       - name: Build Astro site
         run: npm run build
+
+      - name: Generate no Jekyll file
+        # Must precede the upload: Astro emits `_astro/`, and anything added
+        # after the artifact is packed never reaches Pages.
+        run: echo "" > ./docs/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./docs  # Astro outputs to docs/
-
-      - name: Generate no Jekyll file
-        run: echo "" > ./docs/.nojekyll
 
   deploy:
     runs-on: ubuntu-latest

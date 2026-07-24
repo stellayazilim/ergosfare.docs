@@ -12,6 +12,8 @@ export interface Props extends SideBarGroup {
 
 const { label, entries, type, depth, collapsed } = Astro.props
 
+const firstLink = (entries.find(e => e.type === "link") as SidebarLink | undefined)?.href
+
 ---
 
 
@@ -26,11 +28,8 @@ const { label, entries, type, depth, collapsed } = Astro.props
       
     ]}>
       
-      <a href={(entries[0] as SidebarLink)?.href}>
-        {label}
-
-    
-      </a> 
+      {/* A group whose first entry is itself a group has no page to link to. */}
+      {firstLink ? <a href={firstLink}>{label}</a> : <span>{label}</span>}
 
       <button class="sidebar-collapse-btn"> <Icon  name="right-caret" class="sidebar-caret" /></button>
     </h2>
@@ -43,10 +42,12 @@ const { label, entries, type, depth, collapsed } = Astro.props
           collapsed && "hidden"
       ]}>
 
-      { !collapsed && type == "group" && entries.map(entry => {
-          return entry.type == "group" ? <Astro.self {...entry} depth={depth + 1} />: 
+      {/* Entries are always rendered, even when collapsed — the collapse button
+          toggles visibility client-side and has nothing to reveal otherwise. */}
+      { type == "group" && entries.map(entry => {
+          return entry.type == "group" ? <Astro.self {...entry} depth={depth + 1} />:
           <li class="relative"> <SidebarLink  depth={depth + 1} {...entry as SidebarLink} /> </li>
-      })} 
+      })}
 
     </ul>
   </sidebar-persister> 
@@ -64,14 +65,18 @@ const { label, entries, type, depth, collapsed } = Astro.props
   }
   class SidebarPersister extends HTMLElement {
 
-  collapseItem = this.querySelector("ul") as HTMLUListElement
-  collapseBtn: HTMLButtonElement = this.querySelector(".sidebar-collapse-btn") as  HTMLButtonElement 
+  // `querySelector` from the host element reaches into nested groups too, so
+  // scope both lookups to this group's own heading/list.
+  collapseItem = this.querySelector(":scope > ul") as HTMLUListElement
+  collapseBtn: HTMLButtonElement = this.querySelector(":scope > h2 .sidebar-collapse-btn") as HTMLButtonElement
   label: string = this.dataset.label || ""
-  collapsed: boolean = Boolean()
+  collapsed: boolean = this.dataset.collapsed === "true"
+  onToggle = this.toggle.bind(this)
+
   constructor() {
     super();
   }
-  
+
   set SidebarStatus(value: ISidebarStatus) {
     sessionStorage.setItem("sidebar", JSON.stringify(
       {...this.SidebarStatus, ...value}
@@ -79,45 +84,51 @@ const { label, entries, type, depth, collapsed } = Astro.props
   }
 
   get SidebarStatus(): ISidebarStatus {
-    return JSON.parse(sessionStorage.getItem("sidebar") as string) as ISidebarStatus
+    // Nothing stored yet on the first page view of a session; without this
+    // fallback every read below is a null dereference.
+    try {
+      return JSON.parse(sessionStorage.getItem("sidebar") || "{}") as ISidebarStatus
+    } catch {
+      return {}
+    }
   }
 
-
-
   connectedCallback() {
-    
-    this.collapseBtn.addEventListener("click", this.toggle.bind(this))
+    if (!this.collapseItem || !this.collapseBtn) return
 
-    if (!this.SidebarStatus[this.label]) {
-      this.SidebarStatus = {
-        ...this.SidebarStatus,
-        [this.label]: { collapsed: this.collapsed }
-      };
+    this.collapseBtn.addEventListener("click", this.onToggle)
+
+    // A state the reader chose wins over the config default; otherwise seed the
+    // store with the default so it persists across navigations.
+    const stored = this.SidebarStatus[this.label]
+    if (stored) {
+      this.collapsed = stored.collapsed
+    } else {
+      this.SidebarStatus = { [this.label]: { collapsed: this.collapsed } }
     }
 
-
     autoAnimate(this.collapseItem)
-    this.collapseItem.style.display = this.collapsed ? "none" : "block";
+    this.render()
   }
 
   disconnectedCallback() {
-      this.collapseBtn.removeEventListener("click", this.toggle)
+      this.collapseBtn?.removeEventListener("click", this.onToggle)
   }
 
-  toggle() {
-
-      this.SidebarStatus = {
-        ...this.SidebarStatus,
-        [this.label]: { collapsed: !this.collapsed }
-      }
-
-      this.collapsed = !this.collapsed
-      this.collapseItem.style.display = this.collapsed ? "none": "block"
-      const caret = this.querySelector(".sidebar-caret") as HTMLElement;
+  render() {
+      this.collapseItem.classList.toggle("hidden", this.collapsed)
+      this.collapseItem.style.display = this.collapsed ? "none" : "block"
+      const caret = this.querySelector(":scope > h2 .sidebar-caret") as HTMLElement | null;
       if (caret) {
         caret.style.transform = this.collapsed ? "rotate(0deg)" : "rotate(90deg)";
         caret.style.transition = "transform 0.2s ease";
       }
+  }
+
+  toggle() {
+      this.collapsed = !this.collapsed
+      this.SidebarStatus = { [this.label]: { collapsed: this.collapsed } }
+      this.render()
   }
 
 

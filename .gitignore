@@ -21,3 +21,16 @@ pnpm-debug.log*
 .DS_Store
 
 /docs/
+
+# API reference — regenerated from the Ergosfare sources by `npm run gen_api_ref`
+# on every build, once per documented line. Committing it would mean reviewing
+# ~330 machine-written files whenever a doc comment changes.
+.api-cache/
+/src/content/docs/api/
+/src/content/docs/preview/api/
+/src/generated/
+
+# Machine-readable catalog for the MCP server. Generated alongside the pages and
+# copied into the build by Astro, so it ships as a static asset without ever
+# being committed.
+/public/api-catalog.json

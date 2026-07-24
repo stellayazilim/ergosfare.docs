@@ -1,0 +1,129 @@
+---
+title: Defining a command handler
+description: ICommandHandler, ValueTask returns, dependency injection, and the one handler per command rule.
+---
+
+A command handler implements `ICommandHandler<TCommand, TResult>` — or
+`ICommandHandler<TCommand>` when the command produces nothing.
+
+```csharp
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+{
+    private readonly IProductStore _store;
+
+    public CreateProductHandler(IProductStore store) => _store = store;
+
+    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+}
+```
+
+No attribute, no registration call. The source generator finds it.
+
+## `ValueTask`, not `Task`
+
+The whole surface is `ValueTask`-first. A handler that completes synchronously allocates
+nothing — no `Task` object, no async state machine:
+
+```csharp
+public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    => ValueTask.FromResult(Guid.NewGuid());          // zero allocations
+```
+
+Mark the method `async` only when you actually await:
+
+```csharp
+public async ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+{
+    var id = await _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+    await _outbox.QueueAsync(id, context.CancellationToken);
+    return id;
+}
+```
+
+{% aside type="caution" %}
+Never await a `ValueTask` twice, and never store one. That is a `ValueTask` rule, not an
+Ergosfare rule, but it bites more often here because the whole surface returns them.
+{% /aside %}
+
+## The context parameter
+
+There is no `CancellationToken` parameter. It arrives on the context:
+
+```csharp
+context.CancellationToken
+```
+
+The context also carries the per-dispatch item bag, `Abort()`, and `CreateScope()` for
+[nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch). It deliberately exposes no
+service provider — dependencies belong in the constructor.
+
+See [Execution context](/ergosfare.docs/preview/core-concepts/execution-context), including the rule
+that a pooled context must not outlive its dispatch.
+
+## Dependency injection and lifetimes
+
+Handlers are resolved from the **calling DI scope** on every dispatch, so constructor
+injection works exactly as it does anywhere else. The lifetime is whatever you registered:
+
+| Registration | Per dispatch |
+|---|---|
+| Singleton | Container-cached; one instance for the process |
+| Scoped | One instance per DI scope |
+| Transient | A new instance every dispatch |
+
+A transient handler allocating once per dispatch is not a leak — it is what a transient
+registration declares. For dispatch-heavy loops inside one scope, register the handler as a
+singleton or call `ForceMemoizedHandlers()` — see
+[Configuring Ergosfare](/ergosfare.docs/preview/getting-started/configuring#handler-lifetimes).
+
+## One handler per command
+
+A command has exactly one main handler. Registering two for the same command type is a
+configuration error, and the runtime raises `MultipleHandlerFoundException` at dispatch.
+
+If you want several things to happen, that is what
+[events](/ergosfare.docs/preview/core-components/event/event-definition) are for: publish one after
+the command succeeds, and let any number of handlers react.
+
+## Commands without a result
+
+```csharp
+public sealed record DeleteProduct(Guid Id) : ICommand;
+
+public sealed class DeleteProductHandler : ICommandHandler<DeleteProduct>
+{
+    private readonly IProductStore _store;
+
+    public DeleteProductHandler(IProductStore store) => _store = store;
+
+    public ValueTask HandleAsync(DeleteProduct command, IExecutionContext context)
+        => _store.RemoveAsync(command.Id, context.CancellationToken);
+}
+```
+
+## Handling a base type
+
+Because the message type parameter is contravariant (`in TCommand`), a handler can be
+declared against a base type or interface. For *commands* this is rarely what you want —
+one handler per command is the rule, and a base-type handler competes with the specific
+one. Covariant matching earns its keep for
+[interceptors](/ergosfare.docs/preview/core-concepts/interceptors) and for
+[event handlers](/ergosfare.docs/preview/core-components/event/event-handler).
+
+## Failure
+
+Throw. There is no result code to return and no need for one:
+
+- [Exception interceptors](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors)
+  can translate the exception or supply a fallback result.
+- [Final interceptors](/ergosfare.docs/preview/cross-cutting-concerns/final-interceptors) run either
+  way, so cleanup is safe.
+
+To end the pipeline *without* an exception, call `context.Abort()` — supplying a result if
+the command declares one.
+
+Next: [Defining a query](/ergosfare.docs/preview/core-components/query/query-definition).

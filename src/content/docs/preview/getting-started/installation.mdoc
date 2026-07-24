@@ -1,0 +1,100 @@
+---
+title: Installation
+description: Which Ergosfare packages you need, and why the source generator is a separate one.
+---
+
+Ergosfare v2 ships as pre-release packages on nuget.org. Every install needs the
+`--prerelease` flag until the v2 line goes stable.
+
+## The short version
+
+For an application:
+
+```bash
+dotnet add package Stella.Ergosfare --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+`Stella.Ergosfare` is a convenience bundle that pulls in the Commands, Queries and Events
+modules with their DI extensions. `Stella.Ergosfare.SourceGenerator` is what produces
+`RegisterGenerated()`.
+
+{% aside type="caution" %}
+The source generator is a **separate package on purpose**. Without it there is no
+`RegisterGenerated()` and you fall back to `RegisterFromAssembly(...)`, which scans at
+runtime. Everything still works, but you lose compile-time registration and the AOT
+guarantees that come with it.
+{% /aside %}
+
+## Requirements
+
+- **.NET 9.0 or .NET 10.0.** The libraries multi-target `net9.0;net10.0`.
+- **C# `latest`.** The generated registration code is deliberately conservative, but the
+  abstractions use current language features.
+
+## Picking packages deliberately
+
+The umbrella package is convenient, not required. Each module is independent:
+
+| Package | What it gives you |
+|---|---|
+| `Stella.Ergosfare` | Umbrella — Commands + Queries + Events + DI extensions |
+| `Stella.Ergosfare.SourceGenerator` | Compile-time discovery, `RegisterGenerated()`, dispatch roots |
+| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, attributes, handler contracts |
+| `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptors |
+| `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handlers and interceptors |
+| `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptors |
+| `Stella.Ergosfare.Core` | Runtime: registry, pipeline plans, dispatch |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, module builders |
+
+### Library that only declares messages and handlers
+
+Reference just the abstractions. This keeps the library free of the runtime and of any DI
+container dependency:
+
+```bash
+dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+```
+
+The library needs **no registration code**. When an application that references it runs the
+source generator, the generator walks referenced assemblies and registers those handlers
+through the application's own `RegisterGenerated()`. See
+[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+
+### Application that only uses commands
+
+```bash
+dotnet add package Stella.Ergosfare.Commands --prerelease
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+## Verifying the generator is running
+
+The generator writes a single file into your compilation. After a build you can find it at:
+
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
+
+Open it and you should see an `internal static class ErgosfareGeneratedRegistrations` in
+namespace `Stella.Ergosfare.Generated`. If `RegisterGenerated()` does not resolve in your
+startup code, the usual cause is a missing using:
+
+```csharp
+using Stella.Ergosfare.Generated;
+```
+
+## Reference scanning
+
+By default the generator also inspects referenced assemblies so that handlers shipped by
+libraries register automatically. To turn that off for a project:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+</PropertyGroup>
+```
+
+Next: [Quick start](/ergosfare.docs/preview/getting-started/quick-start) wires up a command, a query
+and an event in one file.

@@ -5,6 +5,7 @@ import Search from "@astrojs/starlight/components/Search.astro"
 import Logo from "./Logo.astro"
 import LanguageSelect from "@astrojs/starlight/components/LanguageSelect.astro"
 import MobileNavigation from "./MobileNavigation.astro"
+import VersionSelect from "./VersionSelect.astro"
 ---
 
  <header
@@ -30,6 +31,7 @@ import MobileNavigation from "./MobileNavigation.astro"
   </div>
   <div class="relative flex justify-end gap-6 sm:gap-8  items-center">
         <ThemeSelector />
+        <VersionSelect />
         <LanguageSelect />
 
         <a href="https://stellayazilim.github.io/ergosfare.changelog" class="group" aria-label="changelog">

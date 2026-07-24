@@ -1,0 +1,99 @@
+---
+title: Kurulum
+description: Hangi Ergosfare paketlerine ihtiyacınız var ve kaynak üreteci neden ayrı bir paket.
+---
+
+Ergosfare v2, nuget.org üzerinde ön-sürüm paketleri olarak yayınlanıyor. v2 hattı kararlı hale
+gelene kadar her kurulum `--prerelease` bayrağına ihtiyaç duyar.
+
+## Kısa yol
+
+Bir uygulama için:
+
+```bash
+dotnet add package Stella.Ergosfare --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+`Stella.Ergosfare`, Command, Query ve Event modüllerini DI uzantılarıyla birlikte getiren bir
+kolaylık paketidir. `Stella.Ergosfare.SourceGenerator` ise `RegisterGenerated()` metodunu üreten
+pakettir.
+
+{% aside type="caution" %}
+Kaynak üreteci **bilinçli olarak ayrı bir pakettir**. O olmadan `RegisterGenerated()` da olmaz
+ve çalışma zamanında tarama yapan `RegisterFromAssembly(...)` yoluna düşersiniz. Her şey yine
+çalışır, ama derleme zamanı kaydını ve onunla gelen AOT garantilerini kaybedersiniz.
+{% /aside %}
+
+## Gereksinimler
+
+- **.NET 9.0 veya .NET 10.0.** Kütüphaneler `net9.0;net10.0` hedefliyor.
+- **C# `latest`.** Üretilen kayıt kodu bilinçli olarak muhafazakârdır, ancak soyutlamalar güncel
+  dil özelliklerini kullanır.
+
+## Paketleri bilinçli seçmek
+
+Şemsiye paket kolaylıktır, zorunluluk değil. Her modül bağımsızdır:
+
+| Paket | Ne veriyor |
+|---|---|
+| `Stella.Ergosfare` | Şemsiye — Command + Query + Event + DI uzantıları |
+| `Stella.Ergosfare.SourceGenerator` | Derleme zamanı keşif, `RegisterGenerated()`, dispatch root'ları |
+| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, attribute'lar, handler sözleşmeleri |
+| `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptor'ları |
+| `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handler ve interceptor'ları |
+| `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptor'ları |
+| `Stella.Ergosfare.Core` | Çalışma zamanı: registry, pipeline planları, dispatch |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, modül builder'ları |
+
+### Yalnızca mesaj ve handler tanımlayan kütüphane
+
+Sadece abstractions paketine referans verin. Böylece kütüphane çalışma zamanından ve herhangi
+bir DI container bağımlılığından uzak kalır:
+
+```bash
+dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+```
+
+Kütüphanenin **hiç kayıt koduna ihtiyacı yoktur**. Ona referans veren bir uygulama kaynak
+üretecini çalıştırdığında, üreteç referans verilen assembly'leri gezer ve o handler'ları
+uygulamanın kendi `RegisterGenerated()` çağrısı üzerinden kaydeder. Bkz.
+[Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+
+### Yalnızca command kullanan uygulama
+
+```bash
+dotnet add package Stella.Ergosfare.Commands --prerelease
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+## Üretecin çalıştığını doğrulama
+
+Üreteç derlemenize tek bir dosya yazar. Bir build'den sonra şurada bulabilirsiniz:
+
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
+
+Dosyayı açtığınızda `Stella.Ergosfare.Generated` namespace'i içinde
+`internal static class ErgosfareGeneratedRegistrations` görmelisiniz. Başlangıç kodunuzda
+`RegisterGenerated()` çözülmüyorsa, sebep neredeyse her zaman eksik bir using'dir:
+
+```csharp
+using Stella.Ergosfare.Generated;
+```
+
+## Referans taraması
+
+Üreteç varsayılan olarak referans verilen assembly'leri de inceler, böylece kütüphanelerin
+gönderdiği handler'lar otomatik kaydolur. Bir proje için kapatmak isterseniz:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+</PropertyGroup>
+```
+
+Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — bir command, bir
+query ve bir event'i tek dosyada bağlıyor.

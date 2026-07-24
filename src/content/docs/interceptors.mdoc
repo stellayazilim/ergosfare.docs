@@ -1,0 +1,158 @@
+---
+title: Interceptors
+description: The pre, post, exception and final pipeline stages on the stable v1 line.
+---
+
+Interceptors attach cross-cutting concerns to a dispatch without handlers knowing about
+them. They are registered exactly like handlers — `RegisterFromAssembly` finds them — and
+run as part of the same pipeline.
+
+```
+pre*  →  main handler  →  post*        →  final*
+                       ↘  exception*  ↗
+```
+
+- **pre** runs before the handler and may rewrite the message or abort.
+- **post** runs after a successful handler and may rewrite the result.
+- **exception** runs when something threw, and may supply a result instead.
+- **final** always runs last, on success and on failure alike.
+
+Within a stage: direct registrations first, then covariant ones, each ordered by `[Weight]`
+descending.
+
+## Pre-interceptors
+
+Returns the message the next stage will see:
+
+```csharp
+public sealed class Authorize : ICommandPreInterceptor<DeleteProduct>
+{
+    private readonly ICurrentUser _user;
+
+    public Authorize(ICurrentUser user) => _user = user;
+
+    public Task<object> HandleAsync(DeleteProduct command, IExecutionContext context)
+    {
+        if (!_user.Can("products:delete"))
+            context.Abort();
+
+        return Task.FromResult<object>(command);
+    }
+}
+```
+
+Validation, authorization, logging and context enrichment all belong here. Throwing sends
+control to the exception stage; `context.Abort()` ends the pipeline cleanly.
+
+## Post-interceptors
+
+Receives the result and returns what the caller gets:
+
+```csharp
+public sealed class AuditCreation : ICommandPostInterceptor<CreateProduct, Guid>
+{
+    public Task<Guid> HandleAsync(CreateProduct command, Guid result, IExecutionContext context)
+    {
+        _audit.Record("product.created", result);
+        return Task.FromResult(result);
+    }
+}
+```
+
+Post-interceptors run **only on success** — not after a throw, not after an abort.
+
+## Exception interceptors
+
+Receives the message, whatever result existed, and the exception:
+
+```csharp
+public sealed class TranslateNotFound : IQueryExceptionInterceptor<GetProduct, Product?>
+{
+    public Task<Product?> HandleAsync(
+        GetProduct query, Product? result, Exception exception, IExecutionContext context)
+    {
+        if (exception is KeyNotFoundException)
+            return Task.FromResult<Product?>(null);
+
+        throw exception;      // not ours — let it propagate
+    }
+}
+```
+
+Returning a value marks the exception handled. Rethrow what you do not own — a blanket
+interceptor that swallows everything hides real bugs.
+
+## Final interceptors
+
+Always run, whatever happened, and cannot change anything:
+
+```csharp
+public sealed class RecordDuration : ICommandFinalInterceptor
+{
+    public Task HandleAsync(
+        ICommand command, object? result, Exception? exception, IExecutionContext context)
+    {
+        if (context.TryGet<long>("started", out var started))
+            _metrics.Record(command.GetType().Name, Stopwatch.GetElapsedTime(started));
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+Both `result` and `exception` are nullable because exactly one of them is meaningful on any
+given run. This is the stage for cleanup, metrics and audit trails.
+
+## Arities
+
+Each stage comes in several forms, trading breadth for type safety:
+
+| Form | Applies to |
+|---|---|
+| `ICommandPreInterceptor` | every command in the module |
+| `ICommandPreInterceptor<TCommand>` | one command type or hierarchy |
+| `ICommandPreInterceptor<TCommand, TModified>` | typed rewriting |
+
+Post and exception interceptors additionally have a three-parameter
+`<TCommand, TResult, TModifiedResult>` form.
+
+{% aside type="note" %}
+Those three-parameter interfaces are **deprecated since v1.4.0 and removed in v2**, where the
+two-parameter typed interfaces expose the typed `HandleAsync` directly. Prefer the
+two-parameter form in new code. See
+[the migration guide](/ergosfare.docs/preview/migration/v1-to-v2).
+{% /aside %}
+
+Queries and events offer the same stages as `IQueryPreInterceptor…` and
+`IEventPreInterceptor…`. The [API reference](/ergosfare.docs/api) carries the exact signature
+for every one.
+
+## Ordering
+
+`[Weight(n)]` orders interceptors within a stage, higher first:
+
+```csharp
+[Weight(200)] public sealed class Authorize : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(100)] public sealed class Validate  : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(10)]  public sealed class Log       : ICommandPreInterceptor<DeleteProduct> { … }
+```
+
+Weight orders within a directness group — a high-weight interceptor registered against
+`ICommand` still runs after an unweighted one registered against `DeleteProduct`.
+
+`[Group("audit")]` scopes an interceptor to dispatches that ask for it:
+
+```csharp
+var settings = new CommandMediationSettings();
+settings.Filters.Groups = ["audit"];
+
+await commands.SendAsync(new DeleteProduct(id), settings);
+```
+
+An empty filter — the default — runs everything registered.
+
+---
+
+The [v2 interceptor documentation](/ergosfare.docs/preview/core-concepts/interceptors) covers
+the same four stages in more depth, and adds `[ExcludeFromPipeline]` for keeping high-volume
+messages out of covariantly matched interceptors.

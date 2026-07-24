@@ -1,0 +1,92 @@
+---
+/**
+ * Switches between the documented lines — v1 stable at the site root, v2 preview
+ * under /preview.
+ *
+ * Styled after Starlight's own LanguageSelect so the two sit together in the
+ * header without looking bolted on.
+ *
+ * The two lines do not share a page set, so each option carries both the
+ * equivalent URL and that line's landing page. The equivalent is tried first and
+ * the landing page is the fallback, which keeps the switcher from stranding a
+ * reader on a 404 when a page exists on one line only.
+ */
+import { DOCS_VERSIONS, switchVersionPath, versionOfRouteId } from "../utils/versions"
+
+const base = import.meta.env.BASE_URL
+const route = Astro.locals.starlightRoute
+const current = versionOfRouteId(route.id)
+const isTurkish = route.locale === "tr"
+
+const localePrefix = isTurkish ? "/tr" : ""
+const trimmedBase = base.replace(/\/$/, "")
+
+// Built with string concatenation rather than a nested template literal: Astro's
+// frontmatter scanner loses track of backticks nested inside `${…}` and reports
+// the resulting parse failure somewhere else entirely.
+const options = DOCS_VERSIONS.map((version) => {
+  const versionSegment = version.segment ? "/" + version.segment : ""
+  return {
+    id: version.id,
+    label: isTurkish ? version.labelTr : version.label,
+    href: switchVersionPath(Astro.url.pathname, version.id, base),
+    fallback: trimmedBase + localePrefix + versionSegment + "/",
+    selected: version.id === current,
+  }
+})
+---
+
+<version-select class="relative flex items-center">
+  <label class="sr-only" for="version-select">
+    {isTurkish ? "Sürüm" : "Version"}
+  </label>
+  <select
+    id="version-select"
+    class:list={[
+      "cursor-pointer appearance-none rounded-lg border border-slate-300 bg-transparent",
+      "py-1 pr-6 pl-2 text-sm text-slate-600 hover:text-slate-900",
+      "dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+    ]}
+  >
+    {options.map((option) => (
+      <option value={option.href} data-fallback={option.fallback} selected={option.selected}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+  <svg
+    aria-hidden="true"
+    class="pointer-events-none absolute right-1.5 h-3 w-3 fill-slate-400"
+    viewBox="0 0 10 6"
+  >
+    <path d="M0 0l5 6 5-6z" />
+  </svg>
+</version-select>
+
+<script>
+  class VersionSwitcher extends HTMLElement {
+    connectedCallback() {
+      const select = this.querySelector("select");
+      if (!select) return;
+
+      select.addEventListener("change", () => {
+        const option = select.selectedOptions[0];
+        const href = select.value;
+        const fallback = (option && option.dataset.fallback) || href;
+
+        fetch(href, { method: "HEAD" })
+          .then((response) => {
+            window.location.href = response.ok ? href : fallback;
+          })
+          .catch(() => {
+            // Offline or blocked: try the page anyway rather than refusing to move.
+            window.location.href = href;
+          });
+      });
+    }
+  }
+
+  if (!customElements.get("version-select")) {
+    customElements.define("version-select", VersionSwitcher);
+  }
+</script>

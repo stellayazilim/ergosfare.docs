@@ -1,0 +1,98 @@
+---
+title: Defining a command
+description: ICommand and ICommand<TResult> — when a command returns something, and when it should not.
+---
+
+A command is a message that asks the system to *do* something. Declaring one means
+implementing a marker interface — there is no base class and nothing to override.
+
+```csharp
+using Stella.Ergosfare.Commands.Abstractions;
+
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+```
+
+That is the entire definition. The source generator finds it at compile time and includes it
+in `RegisterGenerated()`.
+
+## Two shapes
+
+| Interface | Handler contract | Mediator returns |
+|---|---|---|
+| `ICommand` | `ICommandHandler<TCommand>` | `ValueTask` |
+| `ICommand<TResult>` | `ICommandHandler<TCommand, TResult>` | `ValueTask<TResult>` |
+
+```csharp
+public sealed record DeleteProduct(Guid Id) : ICommand;              // no result
+public sealed record CreateProduct(string Name) : ICommand<Guid>;    // returns the new id
+```
+
+Prefer `ICommand` when there is genuinely nothing to return. Returning `bool` for "it worked"
+is noise — a failed command should throw, and the exception stage decides what the caller
+sees.
+
+## Records, not classes
+
+Commands are data. `record` gives you value equality, a readable constructor, and `with`
+expressions — which matter because
+[pre-interceptors can rewrite a message](/ergosfare.docs/preview/cross-cutting-concerns/pre-interceptors#rewriting-the-message):
+
+```csharp
+public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+    => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+```
+
+`sealed` is worth the keystrokes too. An unsealed command participates in covariant matching
+as a base type, which is occasionally what you want and usually a surprise.
+
+`record struct` works and is fully supported, including under Native AOT — the generator
+emits a dispatch root for it, which is what shared generic code cannot provide.
+
+## Marker interfaces for cross-cutting behaviour
+
+Because interceptors [match covariantly](/ergosfare.docs/preview/core-concepts/polymorphism), an
+interface on a group of commands is how you attach behaviour to all of them at once:
+
+```csharp
+public interface IAuditedCommand : ICommand;
+
+public sealed record CreateProduct(string Name) : IAuditedCommand;
+public sealed record DeleteProduct(Guid Id)     : IAuditedCommand;
+```
+
+One `ICommandPreInterceptor<IAuditedCommand>` now covers both, and every audited command
+added later.
+
+## Where commands live
+
+A command usually belongs next to the code that handles it, but it does not have to. A
+library can declare commands and handlers with no registration code at all — the consuming
+application's generated registration picks them up across the assembly boundary. Such a
+library needs only:
+
+```bash
+dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+```
+
+See [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery#cross-assembly-discovery).
+
+## Controlling registration
+
+- `[DiscoveryKey("…")]` gates the command out of default discovery until a registration call
+  selects its key — see [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys).
+- `[ExcludeFromDiscovery]` removes it from automatic registration entirely.
+- `[ExcludeFromPipeline]` keeps it out of covariantly matched interceptors — see
+  [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## Sending one
+
+```csharp
+var id = await _commands.SendAsync(new CreateProduct("Laptop", 999m));
+await _commands.SendAsync(new DeleteProduct(id));
+```
+
+Both overloads accept an optional `CommandMediationSettings` and a `CancellationToken`, or an
+`IExecutionContext` when you are
+[dispatching from inside a handler](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+
+Next: [Defining a command handler](/ergosfare.docs/preview/core-components/command/command-handler).

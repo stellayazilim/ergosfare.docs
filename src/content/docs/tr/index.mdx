@@ -1,25 +1,65 @@
 ---
-title: Ergosfare'ye hoş geldıniz
-description: Get started building your event driven app with `Ergosfare`.
+title: Ergosfare
+description: .NET'te CQRS tarzı mesajlaşma için modüler bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
 template: splash
 hero:
-  tagline: "`Ergosfare` ile olay tabanlı uyğulamalarınızı oluşturun."
+  tagline: .NET'te CQRS tarzı mesajlaşma için modüler bir mediator. Aktif geliştirme v2 preview hattında yapılıyor.
   image:
     file: ../../../assets/ergosfare.svg
   actions:
-    - text: Dökümantasyon
-      link: /ergosfare.docs/tr/getting-started/introduction/
+    - text: v2 preview ile başla
+      link: /ergosfare.docs/tr/preview/getting-started/introduction
       icon: right-arrow
+      variant: primary
+    - text: v1 stable dokümanları
+      link: /ergosfare.docs/tr/getting-started/introduction
+      icon: document
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import { StarField } from "../../../components/constellation/starfield.tsx"
 
-<CardGrid stagger> 
-	<Card title="Reflection-Free" icon="zap"> 
-  Ergosfare ile reflection kullanımı minimize edilmiştir. Bu sayede derleme ve çalışma zamanı performansı artar, AOT derlemeleriyle hızlı başlatma ve düşük bellek kullanımı sağlanır. 
-</Card>
-	<Card title="Polimorfik Dispatcher" icon="layers"> Handler yönlendirmelerini esnek şekilde yönetin. Kontravarans, kovaryans ve generik tip desteğiyle güçlü ve genişletilebilir bir sistem kurun. </Card>
-	<Card title="CQRS Modüler Yapı" icon="grid"> Command, Query ve Event katmanları birbirinden ayrıdır. Bu sayede her modül bağımsız olarak yönetilebilir. </Card> 
-	<Card title="Craftable Mimari" icon="puzzle-piece"> Plugin'ler birinci sınıf vatandaş. İhtiyacınıza göre özelleştirilmiş modüller oluşturabilirsiniz. </Card> 
+<div className="pt-20 pb-16 sm:pt-32 sm:pb-20 lg:py-20">
+  <div className="relative">
+    <StarField client:only className="-top-48 -right-44" />
+  </div>
+
+<CardGrid stagger>
+  <Card title="Tek kütüphane, iki hat" icon="seti:c-sharp">
+    **v1 stable**, düz bir `dotnet add package` ile geleni. **v2 preview** ise aktif hat —
+    aynı kavramlar, çok daha hızlı bir uygulama ve stable'a yakın.
+    [Karşılaştır](/ergosfare.docs/tr/getting-started/introduction#v1-ve-v2-fark%C4%B1).
+  </Card>
+
+  <Card title="Derleme zamanı kayıt" icon="rocket">
+    v2'de bir Roslyn üreteci handler'ları hem sizin derlemenizde *hem de* referans verilen
+    assembly'lerde bulur ve kaydı sizin için üretir — başlangıçta assembly taraması yok,
+    reflection yok.
+    [Devamı](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+  </Card>
+
+  <Card title="Hesabı verilebilir allocation" icon="approve-check">
+    v2'nin havuzlanmış execution context'leri ve `ValueTask` öncelikli yüzeyi, 100 bin ardışık
+    dispatch'i 2.3 MB'a indiriyor — aynı döngüde MediatR'ın 18.3 MB'ına karşılık.
+    [Ölçümler](/ergosfare.docs/tr/preview/advanced/performance).
+  </Card>
+
+  <Card title="Interceptor pipeline'ı" icon="layers">
+    Loglama, doğrulama, yetkilendirme ve temizlik için pre, post, exception ve final
+    aşamaları — handler'lara dokunmadan takılır ve tip hiyerarşisi boyunca kovaryant eşleşir.
+  </Card>
+
+  <Card title="Native AOT ve trimming" icon="setting">
+    v2 her yapıyı statik olarak referanslar ve `record struct` mesajlar dahil her generic
+    örneklemeyi sabitler.
+    [Nasıl çalışıyor](/ergosfare.docs/tr/preview/advanced/aot-and-trimming).
+  </Card>
+
+  <Card title="Modüler" icon="puzzle-piece">
+    Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. Sadece
+    kullandığınız modülleri kaydedin — ve her bileşene yalnızca ihtiyacı olan mediator
+    arayüzünü verin.
+  </Card>
 </CardGrid>
+</div>

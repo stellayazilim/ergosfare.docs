@@ -1,0 +1,150 @@
+---
+title: Modules and plugins
+description: IModule is the extension point the Command, Query and Event modules themselves use — and the way to add your own.
+---
+
+Ergosfare's core knows about messages, handlers, interceptors and pipeline plans. It knows
+nothing about *commands*, *queries* or *events*. Those three are **modules** built on the same
+extension point you can use yourself.
+
+That is not a metaphor. `AddCommandModule` is four lines:
+
+```csharp
+public static IModuleRegistry AddCommandModule(
+    this IModuleRegistry moduleRegistry,
+    Action<CommandModuleBuilder> builderAction)
+{
+    moduleRegistry.Register(new CommandModule(builderAction));
+    return moduleRegistry;
+}
+```
+
+## The contract
+
+A module is anything implementing `IModule`:
+
+```csharp
+public interface IModule
+{
+    void Build(IModuleConfiguration configuration);
+}
+```
+
+`Build` runs once, at registration time. It receives everything a module needs:
+
+```csharp
+public interface IModuleConfiguration
+{
+    IServiceCollection Services { get; }        // register your own services
+    IMessageRegistry MessageRegistry { get; }   // register messages, handlers, interceptors
+}
+```
+
+Here is the whole command module:
+
+```csharp
+internal class CommandModule : IModule
+{
+    private readonly Action<CommandModuleBuilder> _builder;
+
+    public CommandModule(Action<CommandModuleBuilder> builder) => _builder = builder;
+
+    public void Build(IModuleConfiguration configuration)
+    {
+        _builder(new CommandModuleBuilder(configuration.MessageRegistry));
+
+        configuration.Services.TryAddScoped<ICommandMediator, CommandMediator>();
+    }
+}
+```
+
+Two responsibilities: run the user's registration lambda against a builder, and add the
+module's own facade to DI. `TryAddScoped` rather than `AddScoped`, so registering a module
+twice is harmless.
+
+## Writing your own module
+
+The case for a custom module is a *new message shape* — something that is not a command, a
+query or an event, but wants the same pipeline, the same interceptor stages and the same
+compile-time discovery.
+
+```csharp
+public sealed class SagaModule : IModule
+{
+    private readonly Action<SagaModuleBuilder> _builder;
+
+    public SagaModule(Action<SagaModuleBuilder> builder) => _builder = builder;
+
+    public void Build(IModuleConfiguration configuration)
+    {
+        _builder(new SagaModuleBuilder(configuration.MessageRegistry));
+
+        configuration.Services.TryAddScoped<ISagaMediator, SagaMediator>();
+    }
+}
+
+public static class SagaModuleRegistryExtensions
+{
+    public static IModuleRegistry AddSagaModule(
+        this IModuleRegistry registry, Action<SagaModuleBuilder> builderAction)
+    {
+        registry.Register(new SagaModule(builderAction));
+        return registry;
+    }
+}
+```
+
+Used exactly like the built-in modules:
+
+```csharp
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddSagaModule(s => s.RegisterFromAssembly(typeof(MySaga).Assembly)));
+```
+
+{% aside type="caution" %}
+The source generator only emits `RegisterGenerated()` for the three built-in module builders.
+A custom module has to feed the registry itself — through explicit `Register<T>()` calls, its
+own `RegisterFromAssembly`, or `RegisterDescriptors(...)` if you pre-compute descriptors
+yourself.
+{% /aside %}
+
+## Module builders
+
+Every builder implements the same three entry points:
+
+```csharp
+public interface IModuleBuilder
+{
+    IModuleBuilder Register<T>();
+    IModuleBuilder Register(Type type);
+    IModuleBuilder RegisterFromAssembly(Assembly assembly);
+}
+```
+
+The concrete builders add module-specific overloads on top — `CommandModuleBuilder` returns
+`CommandModuleBuilder` from each call so chains stay typed, and adds
+`RegisterDescriptors(IEnumerable<IHandlerDescriptor>)`, which is what generated registration
+uses to hand over pre-computed descriptors without reflection.
+
+## Only take what you need
+
+Because the modules are independent, an application that never publishes events never
+registers the event module, never resolves `IEventMediator`, and never carries its assembly:
+
+```csharp
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated()));   // that's it
+```
+
+The same applies at the package level — see
+[Installation](/ergosfare.docs/preview/getting-started/installation).
+
+## The core module
+
+`AddCoreModule` registers messages, handlers and interceptors that are not tied to any of the
+three built-in shapes. It is rarely needed directly; the built-in modules already configure
+what the runtime requires.
+
+Next: [Modules and extensions](/ergosfare.docs/preview/core-components/modules-extensions) walks
+through the shipped modules in detail.

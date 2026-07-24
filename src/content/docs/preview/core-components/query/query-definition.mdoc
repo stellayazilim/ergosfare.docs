@@ -1,0 +1,81 @@
+---
+title: Defining a query
+description: IQuery<TResult> for a single result, IStreamQuery<TResult> for a stream — and why queries always return something.
+---
+
+A query asks the system for data. Unlike a command, it **always** produces a result — there
+is no result-less query interface, because a query that returns nothing has nothing to say.
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+```
+
+## Two shapes
+
+| Interface | Handler contract | Mediator call | Returns |
+|---|---|---|---|
+| `IQuery<TResult>` | `IQueryHandler<TQuery, TResult>` | `QueryAsync` | `ValueTask<TResult>` |
+| `IStreamQuery<TResult>` | `IStreamQueryHandler<TQuery, TResult>` | `StreamAsync` | `IAsyncEnumerable<TResult>` |
+
+```csharp
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+public sealed record StreamProducts(int PageSize) : IStreamQuery<Product>;
+```
+
+Use `IStreamQuery<TResult>` when the result set is large enough that materialising it costs
+more than you want to pay, or when the consumer can start work before the last row arrives.
+
+## Nullability is part of the contract
+
+`IQuery<Product?>` and `IQuery<Product>` say different things. The first admits "not found"
+as a normal outcome; the second promises a result and should throw when it cannot deliver
+one. Pick deliberately — the handler signature follows from it, and so does what callers have
+to write.
+
+## Records, sealed, and marker interfaces
+
+The same guidance as for [commands](/ergosfare.docs/preview/core-components/command/command-definition)
+applies:
+
+- `record` for value equality and `with` expressions, which
+  [pre-interceptors](/ergosfare.docs/preview/cross-cutting-concerns/pre-interceptors) use to rewrite.
+- `sealed` unless you intend the query to be a covariant base.
+- A shared interface when you want one interceptor to cover a family:
+
+```csharp
+public interface ICacheableQuery : IQuery;
+
+public sealed record GetProduct(Guid Id) : ICacheableQuery, IQuery<Product?>;
+```
+
+One `IQueryPreInterceptor<ICacheableQuery>` can then serve every cacheable query.
+
+## Queries should not mutate
+
+Nothing in the framework enforces this — the separation is yours to keep. What the framework
+does give you is a mediator per module: a component that takes `IQueryMediator` and not
+`ICommandMediator` *cannot* send commands. Injecting the narrow interface is the enforcement
+mechanism.
+
+## Controlling registration
+
+`[DiscoveryKey]`, `[ExcludeFromDiscovery]` and `[ExcludeFromPipeline]` work on queries
+exactly as on commands. See [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys)
+and [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## Dispatching one
+
+```csharp
+var product  = await _queries.QueryAsync(new GetProduct(id));
+
+await foreach (var p in _queries.StreamAsync(new StreamProducts(100)))
+    Console.WriteLine(p.Name);
+```
+
+Both take an optional `QueryMediationSettings` and a `CancellationToken`, and `QueryAsync`
+has an `IExecutionContext` overload for
+[nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+
+Next: [Defining a query handler](/ergosfare.docs/preview/core-components/query/query-handler).

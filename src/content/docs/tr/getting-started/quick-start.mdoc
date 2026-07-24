@@ -1,0 +1,157 @@
+---
+title: Hızlı başlangıç
+description: Kararlı v1 hattında uçtan uca bağlanmış bir command, query ve event.
+---
+
+## Adım 1 — Kurulum
+
+```bash
+dotnet add package Stella.Ergosfare
+```
+
+## Adım 2 — Bir command ve handler'ı tanımlayın
+
+```csharp
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+
+public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+{
+    private readonly IProductStore _store;
+
+    public CreateProductHandler(IProductStore store) => _store = store;
+
+    public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+}
+```
+
+Command sonuç üretmiyorsa `ICommand` (ve `ICommandHandler<TCommand>`) kullanın.
+
+İptal token'ı ayrı bir parametre olarak değil, **context üzerinden** gelir.
+
+## Adım 3 — Bir query ve handler'ı tanımlayın
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+
+public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
+{
+    private readonly IProductStore _store;
+
+    public GetProductHandler(IProductStore store) => _store = store;
+
+    public Task<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+        => _store.FindAsync(query.Id, context.CancellationToken);
+}
+```
+
+## Adım 4 — Bir event ve handler'larını tanımlayın
+
+Event yayınlanır, yani herhangi bir sayıda handler tepki verebilir:
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+
+public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+
+public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
+{
+    public Task HandleAsync(ProductCreated @event, IExecutionContext context)
+        => _mailer.SendAsync(@event.Name, context.CancellationToken);
+}
+```
+
+{% aside type="note" %}
+v1'de event handler'ları **tam** event tipine göre eşleşir. Bir base tip veya arayüz için
+tanımlanmış handler, türetilmiş event'leri almaz — bu
+[v2'de değişti](/ergosfare.docs/tr/preview/core-components/event/event-definition).
+{% /aside %}
+
+## Adım 5 — Hepsini kaydedin
+
+```csharp
+using System.Reflection;
+using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+var assembly = Assembly.GetExecutingAssembly();
+
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterFromAssembly(assembly))
+    .AddQueryModule(q => q.RegisterFromAssembly(assembly))
+    .AddEventModule(e => e.RegisterFromAssembly(assembly)));
+```
+
+`RegisterFromAssembly` başlangıçta assembly üzerinde reflection yapar ve bulduğu her handler
+ile interceptor'ı kaydeder. Tek tek de kaydedebilirsiniz:
+
+```csharp
+.AddCommandModule(c => c
+    .Register<CreateProductHandler>()
+    .Register(typeof(LogCommands)))
+```
+
+{% aside type="tip" %}
+v2 bu başlangıç taramasını bir kaynak üreteciyle değiştiriyor; Native AOT'u çalışır kılan da
+bu. Bkz. [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+{% /aside %}
+
+## Adım 6 — Dispatch edin
+
+İhtiyacınız olan modülün mediator'ünü inject edin — ayrı olmaları bilinçlidir:
+
+```csharp
+app.MapPost("/products", async (
+    CreateProduct command,
+    ICommandMediator commands,
+    IEventMediator events) =>
+{
+    var id = await commands.SendAsync(command);
+    await events.PublishAsync(new ProductCreated(id, command.Name));
+    return Results.Created($"/products/{id}", id);
+});
+
+app.MapGet("/products/{id:guid}", async (Guid id, IQueryMediator queries) =>
+{
+    var product = await queries.QueryAsync(new GetProduct(id));
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+```
+
+| Modül | Arayüz | Çağrı |
+|---|---|---|
+| Command | `ICommandMediator` | `SendAsync(command)` |
+| Query | `IQueryMediator` | `QueryAsync(query)`, `StreamAsync(streamQuery)` |
+| Event | `IEventMediator` | `PublishAsync(@event)` |
+
+## Adım 7 — Bir cross-cutting concern ekleyin
+
+```csharp
+public sealed class LogCommands : ICommandPreInterceptor
+{
+    private readonly ILogger<LogCommands> _logger;
+
+    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
+
+    public Task<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _logger.LogInformation("Dispatch ediliyor: {Command}", command.GetType().Name);
+        return Task.FromResult<object>(command);
+    }
+}
+```
+
+`RegisterFromAssembly` bunu handler'larla birlikte alır. Bir pre-interceptor `void` yerine
+mesajı döndürür, çünkü onu yeniden yazma hakkı vardır — değiştirmeden döndürmek geçiş
+durumudur.
+
+Sırada: [Temel kavramlar](/ergosfare.docs/tr/core-concepts) ve
+[Interceptorlar](/ergosfare.docs/tr/interceptors).

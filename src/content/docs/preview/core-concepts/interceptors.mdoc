@@ -1,0 +1,186 @@
+---
+title: Interceptors
+description: The four pipeline stages — pre, post, exception and final — how they compose, and the three arities each one comes in.
+---
+
+Interceptors are how cross-cutting concerns attach to a dispatch without handlers knowing
+about them. They are discovered and registered exactly like handlers, and they run as part of
+the same pre-built pipeline plan.
+
+There are **four stages**:
+
+```
+pre*  →  main handler  →  post*        →  final*
+                       ↘  exception*  ↗
+```
+
+- **pre** runs before the handler and may **rewrite the message**.
+- **post** runs after a successful handler and may **rewrite the result**.
+- **exception** runs when the handler or an interceptor threw, and may **supply a result**.
+- **final** always runs last, on success and on failure alike.
+
+Within a stage, order is `[Weight]`-descending, direct registrations before covariant ones.
+See [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## Pre-interceptors
+
+A pre-interceptor returns the message that the next stage will see. Returning the input
+unchanged is the pass-through case:
+
+```csharp
+public sealed class LogCommands : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Three arities are available, trading breadth for type safety:
+
+| Interface | `HandleAsync` signature | Use when |
+|---|---|---|
+| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, IExecutionContext)` | Applies to every command |
+| `ICommandPreInterceptor<TCommand>` | `ValueTask<object>(TCommand, IExecutionContext)` | Applies to one command type or hierarchy |
+| `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, IExecutionContext)` | You actually rewrite the message and want it typed |
+
+In the two-parameter form, `TModified` must derive from `TCommand`. It exists for rewriting,
+so if you are only observing, use the one-parameter form:
+
+```csharp
+public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct, CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+        => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+}
+```
+
+## Post-interceptors
+
+A post-interceptor receives the result and returns the result the caller will get:
+
+```csharp
+public sealed class StampProduct : ICommandPostInterceptor<CreateProduct, Guid>
+{
+    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, IExecutionContext context)
+    {
+        _audit.Record(command.Name, result);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+| Interface | `HandleAsync` signature |
+|---|---|
+| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, IExecutionContext)` |
+| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, IExecutionContext)` |
+| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, IExecutionContext)` |
+
+Post-interceptors do **not** run when the pipeline threw. That is what the exception stage is
+for.
+
+## Exception interceptors
+
+```csharp
+public sealed class SwallowNotFound : ICommandExceptionInterceptor<GetOrCreate, Guid>
+{
+    public ValueTask<Guid?> HandleAsync(
+        GetOrCreate command, Guid? result, Exception exception, IExecutionContext context)
+    {
+        if (exception is not KeyNotFoundException)
+            throw exception;                 // not ours — let it propagate
+
+        return ValueTask.FromResult<Guid?>(Guid.Empty);
+    }
+}
+```
+
+The interceptor receives whatever result had been produced so far (often `null`) and the
+exception. Returning a value satisfies the caller; rethrowing lets the exception propagate.
+
+## Final interceptors
+
+Final interceptors always run — success, failure, or abort — which makes them the right place
+for cleanup, metrics and audit trails. They cannot change anything:
+
+```csharp
+public sealed class RecordDuration : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(
+        ICommand command, object? result, Exception? exception, IExecutionContext context)
+    {
+        if (context.TryGet<long>("started", out var started))
+            _metrics.Record(command.GetType().Name, Stopwatch.GetElapsedTime(started), exception);
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Note the signature: both `result` and `exception` are nullable, because exactly one of them
+is meaningful on any given run.
+
+## Coverage across modules
+
+Every module offers all four stages, but not every arity exists everywhere — events have no
+typed result, so their post and exception interceptors receive a `ValueTask` rather than a
+result value.
+
+| Stage | Commands | Queries | Events |
+|---|---|---|---|
+| Pre | `ICommandPreInterceptor` `<TCommand>` `<TCommand, TModified>` | `IQueryPreInterceptor` `<TQuery>` `<TQuery, TModified>` | `IEventPreInterceptor` `<TEvent>` `<TEvent, TModified>` |
+| Post | `ICommandPostInterceptor` `<TCommand>` `<TCommand, TResult>` | `IQueryPostInterceptor` `<TQuery>` `<TQuery, TResult>` | `IEventPostInterceptor` `<TEvent>` |
+| Exception | `ICommandExceptionInterceptor` `<TCommand>` `<TCommand, TResult>` | `IQueryExceptionInterceptor` `<TQuery, TResult>` | `IEventExceptionInterceptor` `<TEvent>` |
+| Final | `ICommandFinalInterceptor` `<TCommand>` `<TCommand, TResult>` | `IQueryFinalInterceptor` `<TQuery, TResult>` | `IEventFinalInterceptor` `<TEvent>` |
+
+The [API reference](/ergosfare.docs/preview/api) carries the exact signature for each one.
+
+## Covariant matching
+
+An interceptor registered against a base type or interface applies to **every assignable
+message**. This is the main reason to prefer a marker interface over a base class:
+
+```csharp
+public interface IAuditedCommand : ICommand;
+
+public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
+{
+    public ValueTask<object> HandleAsync(IAuditedCommand command, IExecutionContext context)
+    {
+        _audit.Log(command);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Every command implementing `IAuditedCommand` now goes through `AuditTrail`, with no
+registration per command.
+
+Within a stage, interceptors registered for the message type itself run **before** covariantly
+matched ones. See [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism).
+
+## Opting a message out
+
+`[ExcludeFromPipeline]` on a *message* removes it from covariantly matched interceptors —
+useful for a high-volume message you do not want the blanket logging interceptor to touch:
+
+```csharp
+[ExcludeFromPipeline]
+public sealed record Heartbeat : ICommand;
+
+[ExcludeFromPipeline("logging")]     // or just one group
+public sealed record Tick : ICommand;
+```
+
+Interceptors registered for the message type *itself* always run — they were written for that
+message deliberately. Main handlers are never affected.
+
+## What interceptors are not
+
+They are not handlers. An interceptor does not perform the operation; it observes, enriches,
+short-circuits or cleans up around it. If a piece of logic is the point of the message, it
+belongs in the handler.
+
+Next: [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism).

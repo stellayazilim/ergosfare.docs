@@ -1,0 +1,155 @@
+---
+title: Core concepts
+description: Messages, handlers, the execution context and covariant matching on the stable v1 line.
+---
+
+Everything in Ergosfare is a **message** dispatched through a **pipeline** to one or more
+**handlers**, with an **execution context** travelling alongside.
+
+## Messages
+
+Three shapes, one per module:
+
+| Interface | Meaning | Handlers | Result |
+|---|---|---|---|
+| `ICommand`, `ICommand<TResult>` | do this | exactly one | optional |
+| `IQuery<TResult>`, `IStreamQuery<TResult>` | tell me this | exactly one | always |
+| `IEvent` | this happened | zero or more | none |
+
+Declaring one means implementing a marker interface — no base class, nothing to override:
+
+```csharp
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+```
+
+Use `record` — commands and queries are data, and value equality plus `with` expressions are
+what pre-interceptors need in order to rewrite a message. Use `sealed` unless you intend the
+type to be a covariant base.
+
+## Handlers
+
+A handler implements the contract for its module and returns `Task`:
+
+```csharp
+public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+{
+    private readonly IProductStore _store;
+
+    public CreateProductHandler(IProductStore store) => _store = store;
+
+    public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+}
+```
+
+| Module | Contract |
+|---|---|
+| Commands | `ICommandHandler<TCommand>`, `ICommandHandler<TCommand, TResult>` |
+| Queries | `IQueryHandler<TQuery, TResult>`, `IStreamQueryHandler<TQuery, TResult>` |
+| Events | `IEventHandler<TEvent>` |
+
+Commands and queries have **exactly one** main handler; registering two raises
+`MultipleHandlerFoundException` at dispatch. Events broadcast to all of theirs.
+
+Handlers resolve from the **calling DI scope** on every dispatch, so constructor injection
+works normally and the lifetime is whatever you registered — singleton, scoped or transient.
+
+{% aside type="note" %}
+v2 moves this whole surface to `ValueTask`, so a synchronously completing handler allocates
+nothing. See [the v2 migration guide](/ergosfare.docs/preview/migration/v1-to-v2).
+{% /aside %}
+
+## The execution context
+
+`IExecutionContext` travels with a dispatch and carries the cancellation token, a key/value
+bag scoped to that dispatch, and `Abort()`:
+
+```csharp
+public interface IExecutionContext
+{
+    CancellationToken CancellationToken { get; }
+    IDictionary<object, object?> Items { get; }
+
+    void Set(string key, object item);
+    bool Has(string key);
+    T Get<T>(string key) where T : notnull;
+    bool TryGet<T>(string key, out T item);
+
+    void Abort(object? messageResult = null);
+}
+```
+
+A pre-interceptor can stash something the handler and later stages read back:
+
+```csharp
+context.Set("tenant", tenantId);
+// …later
+var tenant = context.Get<string>("tenant");
+```
+
+`Get<T>` throws when the key is absent or the type is wrong; use `TryGet<T>` when absence is
+expected.
+
+`Abort()` ends the pipeline immediately. If the message declares a result, supply one —
+nothing downstream will:
+
+```csharp
+context.Abort(Guid.Empty);
+```
+
+### Ambient access
+
+v1 also exposes the context statically through `AmbientExecutionContext`, backed by an
+`AsyncLocal`:
+
+```csharp
+AmbientExecutionContext.IsEnabled = true;
+var current = AmbientExecutionContext.Current;
+```
+
+{% aside type="caution" %}
+`AmbientExecutionContext` is **deprecated since v1.2.0 and removed in v2**. Prefer the
+`IExecutionContext` parameter that every handler and interceptor already receives — pass it
+down to helpers rather than reaching for the ambient value. Code that avoids it now needs no
+changes when you move to v2.
+{% /aside %}
+
+## Covariant matching
+
+An interceptor registered against a base type or interface applies to **every assignable
+message**, which is how one registration covers a family:
+
+```csharp
+public interface IAuditedCommand : ICommand;
+
+public sealed record CreateProduct(string Name) : IAuditedCommand;
+public sealed record DeleteProduct(Guid Id)     : IAuditedCommand;
+
+public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand> { … }
+```
+
+Within a stage, interceptors registered for the message's own type run **before** covariantly
+matched ones, and `[Weight]` orders within each of those two groups (higher first).
+
+On v1 this applies to **interceptors only**. Event *handlers* must name the exact event type;
+covariant handler delivery arrived in
+[v2](/ergosfare.docs/preview/core-concepts/polymorphism).
+
+## Modules
+
+Commands, Queries and Events are independent modules over a shared core, each registered
+separately:
+
+```csharp
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterFromAssembly(assembly))
+    .AddQueryModule(q => q.RegisterFromAssembly(assembly)));
+```
+
+Register only what you use. There is no single `IMediator`: a component takes
+`ICommandMediator`, `IQueryMediator` or `IEventMediator`, and the type system keeps a
+read-only component from sending commands.
+
+Next: [Interceptors](/ergosfare.docs/interceptors).

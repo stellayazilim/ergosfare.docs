@@ -1,0 +1,179 @@
+---
+title: Quick start
+description: A command, a query and an event wired end to end with source-generated registration.
+---
+
+This walks through a minimal but complete setup: one command, one query, one event, and the
+startup code that registers all of them without a single hand-written registration call.
+
+## Step 1 — Install
+
+```bash
+dotnet add package Stella.Ergosfare --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+## Step 2 — Declare a command and its handler
+
+A command is a message that *does* something. It may or may not produce a result; use
+`ICommand<TResult>` when it does.
+
+```csharp
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+
+public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+{
+    private readonly IProductStore _store;
+
+    public CreateProductHandler(IProductStore store) => _store = store;
+
+    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+}
+```
+
+Two things worth noticing:
+
+- The handler returns **`ValueTask<TResult>`**. A handler that completes synchronously
+  allocates nothing.
+- The cancellation token arrives on the **context**, not as a separate parameter. There is
+  no way to forget to thread it through.
+
+## Step 3 — Declare a query and its handler
+
+A query *asks* something and always produces a result.
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+
+public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+
+public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
+{
+    private readonly IProductStore _store;
+
+    public GetProductHandler(IProductStore store) => _store = store;
+
+    public ValueTask<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+        => _store.FindAsync(query.Id, context.CancellationToken);
+}
+```
+
+## Step 4 — Declare an event and its handlers
+
+An event is broadcast: every matching handler runs, and there may be none.
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+
+public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+
+public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
+{
+    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+        => _mailer.SendAsync(@event.Name, context.CancellationToken);
+}
+
+public sealed class UpdateSearchIndex : IEventHandler<ProductCreated>
+{
+    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+        => _index.AddAsync(@event.Id, @event.Name, context.CancellationToken);
+}
+```
+
+## Step 5 — Register everything
+
+```csharp
+using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Generated;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
+```
+
+That is the whole registration. `RegisterGenerated()` does not exist in any NuGet package —
+the source generator emits it into *your* compilation, already containing every handler it
+found. Add a handler anywhere in the project and the next build picks it up.
+
+{% aside type="tip" %}
+`using Stella.Ergosfare.Generated;` is required — that is the namespace the generator emits
+into. A missing `RegisterGenerated()` is almost always a missing using.
+{% /aside %}
+
+## Step 6 — Dispatch
+
+Inject the mediator interface for the module you need. They are separate on purpose: a
+component that only reads does not get the ability to send commands.
+
+```csharp
+app.MapPost("/products", async (
+    CreateProduct command,
+    ICommandMediator commands,
+    IEventMediator events) =>
+{
+    var id = await commands.SendAsync(command);
+    await events.PublishAsync(new ProductCreated(id, command.Name));
+    return Results.Created($"/products/{id}", id);
+});
+
+app.MapGet("/products/{id:guid}", async (Guid id, IQueryMediator queries) =>
+{
+    var product = await queries.QueryAsync(new GetProduct(id));
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
+```
+
+| Module | Interface | Call |
+|---|---|---|
+| Commands | `ICommandMediator` | `SendAsync(command)` |
+| Queries | `IQueryMediator` | `QueryAsync(query)`, `StreamAsync(streamQuery)` |
+| Events | `IEventMediator` | `PublishAsync(@event)` |
+
+## Step 7 — Add a cross-cutting concern
+
+Interceptors attach to the pipeline without touching handlers. A pre-interceptor registered
+against a base type or interface applies to every message assignable to it:
+
+```csharp
+using Stella.Ergosfare.Core.Abstractions.Attributes;
+
+[Weight(100)]                                  // higher weight runs earlier
+public sealed class LogCommands : ICommandPreInterceptor
+{
+    private readonly ILogger<LogCommands> _logger;
+
+    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
+
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);   // pass the message through
+    }
+}
+```
+
+No registration needed — the generator finds it exactly like a handler.
+
+{% aside type="note" %}
+A pre-interceptor returns the message rather than `void`, because it is allowed to *rewrite*
+it: whatever you return is what the next stage sees. Returning the message unchanged, as
+above, is the pass-through case. See
+[Interceptors](/ergosfare.docs/preview/core-concepts/interceptors).
+{% /aside %}
+
+## Where to go next
+
+- [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery) — what the generator sees, and how to control it.
+- [Interceptors](/ergosfare.docs/preview/core-concepts/interceptors) — all four stages and how they compose.
+- [Execution context](/ergosfare.docs/preview/core-concepts/execution-context) — pooling, lifetime, and the rules that come with it.
+- [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch) — calling the mediator from inside a handler.

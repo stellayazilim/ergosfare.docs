@@ -1,138 +1,76 @@
 ---
-title: Install ergosfare
-description: Learn how to add ergosfare on your project
+title: Installation
+description: Installing the stable Ergosfare v1 packages, and what you would install for v2 instead.
 ---
 
+The stable v1.x packages are published to nuget.org and install without any flags:
 
-## Prequistes
+```bash
+dotnet add package Stella.Ergosfare
+```
 
-Before getting started, make sure your development environment meets the following requirements:
+`Stella.Ergosfare` is an umbrella package pulling in the Commands, Queries and Events
+modules with their DI extensions.
 
-{% steps %}
+{% aside type="tip" %}
+For a new project, consider the v2 preview instead — it adds compile-time registration,
+Native AOT support and a `ValueTask`-first surface:
 
-1. **.NET 9 SDK** You’ll need the latest .NET 9 SDK installed on your system. This ensures access to all the latest runtime features, performance improvements, and APIs required by the project. You can download it from the [official .NET website](https://dotnet.microsoft.com/).
+```bash
+dotnet add package Stella.Ergosfare --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
 
-    **C# 13 or higher** The project takes advantage of new language features introduced in C# 13+, such as enhanced pattern matching, improved collection expressions, and better async support. Make sure your IDE or editor is configured to use the latest C# language version.
+See the [v2 installation guide](/ergosfare.docs/preview/getting-started/installation).
+{% /aside %}
 
-    Optional but recommended tools: * **IDE Support**: Visual Studio 2022 (latest update) or JetBrains Rider for a full-featured development experience, including debugging and refactoring. * **Command-Line Tools**: Familiarity with `dotnet` CLI commands will be useful for building, running, and publishing the project.
+## Picking packages
 
+Each module is independent; the umbrella package is a convenience:
 
+| Package | What it gives you |
+|---|---|
+| `Stella.Ergosfare` | Umbrella — Commands + Queries + Events + DI extensions |
+| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, handler and interceptor contracts |
+| `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptors |
+| `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handlers and interceptors |
+| `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptors |
+| `Stella.Ergosfare.Core` | Runtime: registry, pipeline, dispatch |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, module builders |
 
-    Ergosfare can be added to your solution in a few different ways depending on whether you are starting fresh or integrating into an existing application.
+A library that only declares messages and handlers needs just the relevant `.Abstractions`
+package:
 
+```bash
+dotnet add package Stella.Ergosfare.Commands.Abstractions
+```
 
+On v1 that library's handlers still have to be registered by the application, which means
+the application must scan the library's assembly explicitly:
 
+```csharp
+.AddCommandModule(c => c
+    .RegisterFromAssembly(Assembly.GetExecutingAssembly())
+    .RegisterFromAssembly(typeof(SomeTypeInTheLibrary).Assembly))
+```
 
+On v2 the source generator walks referenced assemblies for you and the second call
+disappears — see
+[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
 
+## Requirements
 
-1. ## Create new Project
-   
-    If you are starting a new project, you can scaffold it with .NET 9 and add Ergosfare directly:
+The v1 line targets `net9.0` and `net10.0`.
 
-    ```bash
-    dotnet new WebApp -n MyErgosfareApp
-    ```
+## Versioning
 
-2.  ## Install Ergosfare package
+| Branch | Line | Tags | NuGet |
+|---|---|---|---|
+| `main` | stable v1.x | `vX.Y.Z` | stable |
+| `preview` | v2 | `v2.0.0-preview.N` | pre-release |
 
-    install all modules at once
-    {% tabs %}
-    {% tabitem label="dotnet cli" %}
-    ```bash 
-    dotnet add package Ergosfare 
-    ```
+Stable fixes land on `main` first and are merged into `preview` regularly, so nothing you
+depend on here disappears when you move up. The full policy is in
+[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/main/COMPATIBILITY.md).
 
-    
-    Or Per Module
-
-    ```bash 
-    // common packages
-    dotnet add package Ergosfare.Context
-    dotnet add package Ergosfare.Contracts
-
-    // module spesific packages
-    dotnet add package Ergosfare.Commands
-    dotnet add package Ergosfare.Commands.Abstractions
-    dotnet add package Ergosfare.Commands.Extensions.MicrosoftDependencyInjection
-    ```
-    {% /tabitem %}
-    {% tabitem label="nuget package manager" %}
-    ```bash
-    Install-Package Ergosfare
-    ```
-
-
-    
-    Or Per Module
-
-    ```bash 
-    // common packages
-    Install-Package  Ergosfare.Context
-    Install-Package  Ergosfare.Contracts
-
-    // module spesific packages
-    Install-Package  Ergosfare.Commands
-    Install-Package  Ergosfare.Commands.Abstractions
-    Install-Package  Ergosfare.Commands.Extensions.MicrosoftDependencyInjection
-    ```
-    {% /tabitem %}
-    {% /tabs %}
-
-
-
-3. #### Configure Ergosfare
-    Ergosfares basic configuration like so
-    ```cs  {% meta="ins={1, 6-8}" %} 
-    using Stella.Ergosfare;
-
-    var builder = WebApplication.CreateBuilder(args);
-
-    // Register Ergosfare's Commandmodule and discover all command handlers from the current assembly
-    builder.Services.AddErgosfare( o => {
-        o.AddcommandModule( builder = builder.RegisterFromAssembly(Assembly.GetExecutingAssembly()));
-    });
-
-    // Add other services (controllers, swagger, etc.)
-    builder.Services.AddControllers();
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
-
-    var app = builder.Build();
-
-    // Middleware pipeline
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
-
-    app.UseHttpsRedirection();
-    app.UseAuthorization();
-
-    app.MapControllers();
-
-    app.Run();
-    ```
-{% /steps %}
-
-
-## Available Modules
-Ergosfare is designed as a modular framework. You can install only what you need or bring in the full package. Some of the most commonly used modules include:
-
-- `Ergosfare.Context` – Context handling and propagation across requests.
-
-- `Ergosfare.Contracts` – Base contracts for commands, queries, and events.
-
-- `Ergosfare.Commands` – Core command processing.
-
-- `Ergosfare.Commands.Abstractions` – Abstractions for custom command handlers.
-
-- `Ergosfare.Commands.Extensions.MicrosoftDependencyInjection` – Extensions for DI container registration.
-
-- `Ergosfare.Queries` – Query handling support.
-
-- `Ergosfare.Events` – Event publishing and subscriptions.
-
-
-You can always find the full list of modules and their descriptions in the {% linkbutton href="/reference/configuration/" variant="minimal" %} {% icon name="pencil" /%}Ergosfare ModuleReference {% /linkbutton %}
-
+Next: [Quick start](/ergosfare.docs/getting-started/quick-start).

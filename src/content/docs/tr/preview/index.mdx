@@ -1,0 +1,61 @@
+---
+title: Ergosfare
+description: .NET için kaynak-üretimli, yüksek performanslı bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
+template: splash
+hero:
+  tagline: .NET için kaynak-üretimli bir mediator. Dispatch'in şekliyle ilgili tüm iş derleme zamanında yapılır — her dispatch'te değil.
+  image:
+    file: ../../../../assets/ergosfare.svg
+  actions:
+    - text: Başla
+      link: /ergosfare.docs/tr/preview/getting-started/introduction
+      icon: right-arrow
+      variant: minimal
+    - text: API referansı
+      link: /ergosfare.docs/preview/api
+      icon: open-book
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import { StarField } from "../../../../components/constellation/starfield.tsx"
+
+<div className="pt-20 pb-16 sm:pt-32 sm:pb-20 lg:py-20">
+  <div className="relative">
+    <StarField client:only className="-top-48 -right-44" />
+  </div>
+
+<CardGrid stagger>
+  <Card title="Derleme zamanı kayıt" icon="seti:c-sharp">
+    Bir Roslyn üreteci, handler'ları hem sizin derlemenizde *hem de* referans verilen
+    assembly'lerde bulur, descriptor'larını önceden hesaplar ve `RegisterGenerated()` metodunu
+    üretir. Bir kütüphanenin handler'ları, kütüphanede tek satır kayıt kodu olmadan kaydolur.
+  </Card>
+
+  <Card title="Reflection'sız dispatch" icon="rocket">
+    Üretilen dispatch root'ları executor generic'lerini derleme zamanında kapatır; pipeline
+    planları generic handler tiplerini önceden kapatır. Sıcak yolda `MakeGenericType` yok,
+    registry taraması yok, `AsyncLocal` yok.
+  </Card>
+
+  <Card title="Hesabı verilebilir allocation" icon="approve-check">
+    Havuzlanmış execution context'ler ve `ValueTask` öncelikli bir yüzey: 100 bin ardışık
+    dispatch 2.3 MB ayırıyor — aynı döngüde MediatR'ın 18.3 MB'ına karşılık.
+  </Card>
+
+  <Card title="Güvenli iç içe dispatch" icon="layers">
+    `context.CreateScope()`, handler'a kendi item'ları temiz ve iptal token'ı miras alınmış bir
+    alt bağlam verir — ambient state kullanan mediator'ların güvenle sunamadığı desen.
+  </Card>
+
+  <Card title="Native AOT ve trimming" icon="setting">
+    Her yapı `typeof` ile statik olarak referanslanır; dispatch root'ları `record struct`
+    mesajlar dahil her generic örneklemeyi sabitler.
+  </Card>
+
+  <Card title="Modüler" icon="puzzle-piece">
+    Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. `IModule` gerçek
+    bir genişletme noktasıdır — dahili modüller de onu kullanır.
+  </Card>
+</CardGrid>
+</div>

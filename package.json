@@ -7,7 +7,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "gen_api_ref": "tsx scripts/api-ref/index.ts",
+    "mcp": "node mcp/server.mjs"
   },
   "dependencies": {
     "@astrojs/markdoc": "^0.15.5",
@@ -16,6 +18,7 @@
     "@astrojs/starlight-markdoc": "^0.5.0",
     "@astrojs/ts-plugin": "^1.10.4",
     "@formkit/auto-animate": "^0.9.0",
+    "@stellayazilim/mcp-starlight": "^0.1.0",
     "@tailwindcss/vite": "^4.1.12",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
@@ -28,10 +31,15 @@
   },
   "devDependencies": {
     "@astrojs/starlight-tailwind": "^4.0.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^22.15.0",
     "clsx": "^2.1.1",
     "postcss": "^8.5.6",
-    "postcss-nesting": "^13.0.2"
+    "postcss-nesting": "^13.0.2",
+    "tsx": "^4.19.2",
+    "yaml": "^2.6.1",
+    "zod": "^3.25.76"
   }
 }

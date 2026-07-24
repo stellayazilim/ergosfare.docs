@@ -1,0 +1,112 @@
+---
+title: Exception interceptors
+description: Turning failures into results, translating exceptions, and deciding what propagates to the caller.
+---
+
+An exception interceptor runs when the handler — or anything earlier in the pipeline — threw.
+It receives the message, whatever result had been produced so far, and the exception, and it
+decides what the caller sees.
+
+```csharp
+public sealed class TranslateNotFound : IQueryExceptionInterceptor<GetProduct, Product?>
+{
+    public ValueTask<Product?> HandleAsync(
+        GetProduct query, Product? result, Exception exception, IExecutionContext context)
+    {
+        if (exception is KeyNotFoundException)
+            return ValueTask.FromResult<Product?>(null);
+
+        throw exception;      // not ours — let it propagate
+    }
+}
+```
+
+Two outcomes, and nothing in between:
+
+- **Return a value** — the exception is considered handled, and the caller receives that value.
+- **Throw** — the exception propagates. Rethrow the original when it is not yours to handle.
+
+## Where it sits
+
+```
+pre*  →  main handler  →  post*        →  final*
+                       ↘  exception*  ↗
+```
+
+Post-interceptors do not run when the pipeline threw; the exception stage takes their place.
+Final interceptors run either way.
+
+## Logging without swallowing
+
+The common case is enriching the failure and letting it continue:
+
+```csharp
+public sealed class LogFailures : ICommandExceptionInterceptor
+{
+    private readonly ILogger<LogFailures> _logger;
+
+    public LogFailures(ILogger<LogFailures> logger) => _logger = logger;
+
+    public ValueTask<object?> HandleAsync(
+        ICommand command, object? result, Exception exception, IExecutionContext context)
+    {
+        _logger.LogError(exception, "{Command} failed", command.GetType().Name);
+        throw exception;
+    }
+}
+```
+
+{% aside type="caution" %}
+Returning a value from an exception interceptor **swallows the exception**. A blanket
+interceptor that returns `null` on every failure will hide real bugs. Handle the exception
+types you actually know about and rethrow the rest.
+{% /aside %}
+
+## Fallbacks
+
+Supplying a degraded result is legitimate when the caller can use one:
+
+```csharp
+public sealed class FallbackToCache : IQueryExceptionInterceptor<GetRates, Rates>
+{
+    private readonly IMemoryCache _cache;
+
+    public FallbackToCache(IMemoryCache cache) => _cache = cache;
+
+    public ValueTask<Rates?> HandleAsync(
+        GetRates query, Rates? result, Exception exception, IExecutionContext context)
+    {
+        if (exception is HttpRequestException && _cache.TryGetValue<Rates>("rates", out var stale))
+            return ValueTask.FromResult<Rates?>(stale);
+
+        throw exception;
+    }
+}
+```
+
+## Ordering
+
+Direct registrations first, then covariant ones, each by `[Weight]` descending — the same
+rule as every other stage. The first interceptor that returns a value ends the stage;
+interceptors after it do not run.
+
+Put specific translations at a high weight and the blanket logger at a low one, so the logger
+sees failures that the specific handlers declined.
+
+## Aborts are not exceptions
+
+`context.Abort()` does not raise anything. It ends the pipeline cleanly, so the exception
+stage is not involved. `ExecutionAbortedException` exists for the runtime's own use; do not
+catch it as a control-flow mechanism.
+
+## Coverage
+
+| Interface | `HandleAsync` |
+|---|---|
+| `ICommandExceptionInterceptor` | `ValueTask<object?>(ICommand, object?, Exception, IExecutionContext)` |
+| `ICommandExceptionInterceptor<TCommand>` | `ValueTask<object?>(TCommand, object?, Exception, IExecutionContext)` |
+| `ICommandExceptionInterceptor<TCommand, TResult>` | `ValueTask<TResult?>(TCommand, TResult?, Exception, IExecutionContext)` |
+| `IQueryExceptionInterceptor` / `<TQuery, TResult>` | as above |
+| `IEventExceptionInterceptor` / `<TEvent>` | `ValueTask<object?>(TEvent, ValueTask, Exception, IExecutionContext)` |
+
+Next: [Final interceptors](/ergosfare.docs/preview/cross-cutting-concerns/final-interceptors).
