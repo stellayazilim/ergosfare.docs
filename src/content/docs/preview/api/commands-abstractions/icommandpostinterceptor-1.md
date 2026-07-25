@@ -16,7 +16,7 @@ This non-generic, non-type-safe version returns [`object`](https://learn.microso
 public interface ICommandPostInterceptor<in TCommand> : ICommand, IMessage, IAsyncPostInterceptor<TCommand>, IPostInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor%5BTCommand%5D.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor%5BTCommand%5D.cs#L17)
 
 **Type parameters**
 

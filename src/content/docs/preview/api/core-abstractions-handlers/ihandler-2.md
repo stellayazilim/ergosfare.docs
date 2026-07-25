@@ -16,7 +16,7 @@ and producing a result of type `TResult`.
 public interface IHandler<in TMessage, out TResult> : IHandler where TMessage : notnull where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IHandler%5BTMessage%2CTResult%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IHandler%5BTMessage%2CTResult%5D.cs#L14)
 
 **Type parameters**
 

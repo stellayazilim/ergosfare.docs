@@ -13,7 +13,7 @@ sidebar:
 public interface IMessageResolveStrategy
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageResolveStrategies.cs#L4)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageResolveStrategies.cs#L4)
 
 ## Methods
 

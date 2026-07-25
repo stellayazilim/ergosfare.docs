@@ -15,7 +15,7 @@ Represents a query exception interceptor that can handle multiple query types in
 public interface IQueryExceptionInterceptor : IQuery, IMessage, IAsyncExceptionInterceptor<IQuery>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor.cs#L17)
 
 ## Remarks
 

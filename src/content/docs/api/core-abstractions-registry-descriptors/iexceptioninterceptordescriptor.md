@@ -15,7 +15,7 @@ Represents a descriptor for an exception interceptor handler.
 public interface IExceptionInterceptorDescriptor : IHandlerDescriptor, IHasMessageType, IHasResultType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IExceptionInterceptorDescriptor.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IExceptionInterceptorDescriptor.cs#L12)
 
 ## Remarks
 

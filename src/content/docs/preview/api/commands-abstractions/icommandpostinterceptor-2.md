@@ -17,7 +17,7 @@ propagates further through the pipeline.
 public interface ICommandPostInterceptor<in TCommand, TResult> : ICommand, IMessage, IAsyncPostInterceptor<TCommand, TResult>, IPostInterceptor where TCommand : ICommand<TResult> where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor%5BTCommand%2CTResult%5D.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor%5BTCommand%2CTResult%5D.cs#L22)
 
 **Type parameters**
 

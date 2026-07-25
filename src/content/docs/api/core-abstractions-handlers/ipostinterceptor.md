@@ -20,4 +20,4 @@ this root exists for storage typing and registration.
 public interface IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IPostInterceptor.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IPostInterceptor.cs#L12)

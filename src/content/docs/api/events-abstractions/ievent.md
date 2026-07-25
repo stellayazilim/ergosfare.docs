@@ -15,7 +15,7 @@ Represents a message or handler that is recognized by the event module.
 public interface IEvent : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEvent.cs#L30)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEvent.cs#L30)
 
 ## Remarks
 

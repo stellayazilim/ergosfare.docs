@@ -22,7 +22,7 @@ types for asynchronous handlers).
 public static class HandlerDescriptors
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/HandlerDescriptors.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/HandlerDescriptors.cs#L15)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

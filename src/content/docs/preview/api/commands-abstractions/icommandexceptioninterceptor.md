@@ -15,7 +15,7 @@ Represents a non-type-safe exception interceptor for commands.
 public interface ICommandExceptionInterceptor : ICommand, IMessage, IAsyncExceptionInterceptor<ICommand>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor.cs#L18)
 
 ## Remarks
 

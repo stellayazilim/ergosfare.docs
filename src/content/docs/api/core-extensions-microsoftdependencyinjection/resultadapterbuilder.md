@@ -16,7 +16,7 @@ into an [`IResultAdapterService`](/ergosfare.docs/api/core-abstractions/iresulta
 public class ResultAdapterBuilder
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ResultAdapterBuilder.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ResultAdapterBuilder.cs#L18)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

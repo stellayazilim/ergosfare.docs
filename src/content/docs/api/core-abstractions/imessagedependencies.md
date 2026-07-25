@@ -16,7 +16,7 @@ interceptor references per stage, ordered and ready to resolve per dispatch.
 public interface IMessageDependencies
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessageDependencies.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessageDependencies.cs#L16)
 
 ## Remarks
 

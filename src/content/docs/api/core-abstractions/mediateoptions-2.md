@@ -15,7 +15,7 @@ Options for controlling the behavior of message mediation for a specific message
 public sealed class MediateOptions<TMessage, TResult> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/MediateOptions.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/MediateOptions.cs#L8)
 
 **Type parameters**
 

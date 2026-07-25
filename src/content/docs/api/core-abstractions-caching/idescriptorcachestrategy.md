@@ -15,7 +15,7 @@ Strategy for caching objects by string key.
 public interface IDescriptorCacheStrategy : IDisposable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Caching/IDescriptorCacheStrategy.cs#L5)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Caching/IDescriptorCacheStrategy.cs#L5)
 
 ## Properties
 

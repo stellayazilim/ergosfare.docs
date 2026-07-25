@@ -13,7 +13,7 @@ sidebar:
 public interface IQueryMediator : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/IQueryMediator.cs#L4)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/IQueryMediator.cs#L4)
 
 ## Methods
 

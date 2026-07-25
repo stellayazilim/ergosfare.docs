@@ -16,7 +16,7 @@ A dispatch root closed over a concrete (message, result) pair; see
 public abstract class MessageResultRoot
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L77)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L77)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

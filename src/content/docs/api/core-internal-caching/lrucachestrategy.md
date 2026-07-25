@@ -15,7 +15,7 @@ LRU (Least Recently Used) cache strategy.
 public sealed class LruCacheStrategy : IDescriptorCacheStrategy, IDisposable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core/Internal/Caching/MessageDescriptorLruCache.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core/Internal/Caching/MessageDescriptorLruCache.cs#L8)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

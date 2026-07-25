@@ -16,7 +16,7 @@ to execute after all query handlers and other interceptors have completed.
 public interface IQueryFinalInterceptor : IQuery, IMessage, IAsyncFinalInterceptor<IQuery, object>, IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/FinalInterceptors/IQueryFinalInterceptor.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/FinalInterceptors/IQueryFinalInterceptor.cs#L23)
 
 ## Remarks
 

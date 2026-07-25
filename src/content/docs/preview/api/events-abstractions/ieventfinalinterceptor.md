@@ -16,7 +16,7 @@ to execute after all event handlers and other interceptors have completed.
 public interface IEventFinalInterceptor : IEvent, IMessage, IAsyncFinalInterceptor<IEvent, ValueTask>, IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor.cs#L24)
 
 ## Remarks
 

@@ -16,7 +16,7 @@ Produces a [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading
 public interface IAsyncHandler<in TMessage> : IHandler where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IAsyncHandler%5BTMessage%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IAsyncHandler%5BTMessage%5D.cs#L18)
 
 **Type parameters**
 

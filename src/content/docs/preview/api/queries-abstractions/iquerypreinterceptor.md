@@ -15,7 +15,7 @@ Represents a non-generic pre-interceptor for queries in the Stella.Ergosfare pip
 public interface IQueryPreInterceptor : IQuery, IMessage, IAsyncPreInterceptor<IQuery>, IPreInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor.cs#L20)
 
 ## Remarks
 

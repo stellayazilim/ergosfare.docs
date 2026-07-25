@@ -16,7 +16,7 @@ to extract exceptions without throwing them directly.
 public interface IResultAdapter
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L23)
 
 ## Remarks
 

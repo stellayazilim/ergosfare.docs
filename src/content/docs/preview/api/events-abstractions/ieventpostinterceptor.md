@@ -16,7 +16,7 @@ to execute after any event handlers have been invoked.
 public interface IEventPostInterceptor : IEvent, IMessage, IAsyncPostInterceptor<IEvent>, IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PostInterceptors/IEventPostInterceptor.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PostInterceptors/IEventPostInterceptor.cs#L26)
 
 ## Remarks
 

@@ -15,7 +15,7 @@ Represents the mediator interface for publishing events within the application.
 public interface IEventMediator
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEventMediator.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEventMediator.cs#L14)
 
 ## Remarks
 

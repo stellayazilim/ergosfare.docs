@@ -16,7 +16,7 @@ to all registered handlers of the specified `TMessage`.
 public sealed class AsyncBroadcastMediationStrategy<TMessage> : IMessageMediationStrategy<TMessage, ValueTask> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events/AsyncBroadcastMediationStrategy.cs#L32)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events/AsyncBroadcastMediationStrategy.cs#L32)
 
 **Type parameters**
 

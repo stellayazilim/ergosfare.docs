@@ -15,7 +15,7 @@ Defines a strategy for mediating messages of a specific type and producing resul
 public interface IMessageMediationStrategy<in TMessage, out TMessageResult> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageMediationStrategy.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageMediationStrategy.cs#L15)
 
 **Type parameters**
 

@@ -15,7 +15,7 @@ Represents a post-processing interceptor for commands that executes after any [`
 public interface ICommandPostInterceptor : ICommand, IMessage, IAsyncPostInterceptor<ICommand>, IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor.cs#L19)
 
 ## Remarks
 

@@ -15,7 +15,7 @@ Represents an object that produces or is associated with a specific result type.
 public interface IHasResultType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHasResultType.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHasResultType.cs#L11)
 
 ## Remarks
 

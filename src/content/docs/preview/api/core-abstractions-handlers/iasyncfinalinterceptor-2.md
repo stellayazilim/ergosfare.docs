@@ -17,7 +17,7 @@ end of the pipeline, regardless of success or failure — for cleanup, auditing,
 public interface IAsyncFinalInterceptor<in TMessage, in TResult> : IFinalInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IAsyncFinalInterceptor%5BTMessage%2CTResult%5D.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IAsyncFinalInterceptor%5BTMessage%2CTResult%5D.cs#L15)
 
 **Type parameters**
 

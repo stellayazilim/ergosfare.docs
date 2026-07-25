@@ -16,7 +16,7 @@ enters the pipeline. Can be used to modify the command or perform preparatory ac
 public interface ICommandPreInterceptor : ICommand, IMessage, IAsyncPreInterceptor<ICommand>, IPreInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor.cs#L16)
 
 ## Remarks
 

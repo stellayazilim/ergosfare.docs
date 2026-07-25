@@ -15,7 +15,7 @@ Represents a type-safe pre-interceptor for queries in the Stella.Ergosfare pipel
 public interface IQueryPreInterceptor<in TQuery, TModifiedQuery> : IQuery, IMessage, IAsyncPreInterceptor<TQuery>, IPreInterceptor where TQuery : IQuery where TModifiedQuery : TQuery
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor%5BTQuery%2CTQuery%5D.cs#L27)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor%5BTQuery%2CTQuery%5D.cs#L27)
 
 **Type parameters**
 

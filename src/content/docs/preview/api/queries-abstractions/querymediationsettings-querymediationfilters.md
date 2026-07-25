@@ -15,7 +15,7 @@ Represents the filters to be applied during query mediation.
 public sealed class QueryMediationSettings.QueryMediationFilters
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediationSettings.cs#L36)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediationSettings.cs#L36)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

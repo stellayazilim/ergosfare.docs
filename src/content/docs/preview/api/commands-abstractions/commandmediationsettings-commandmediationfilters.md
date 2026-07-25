@@ -15,7 +15,7 @@ Represents the filters to be applied during command mediation.
 public sealed class CommandMediationSettings.CommandMediationFilters
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/CommandMediationSettings.cs#L36)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/CommandMediationSettings.cs#L36)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

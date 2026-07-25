@@ -12,6 +12,7 @@ import { writeCatalog } from "./catalog.ts";
 import {
   outDirFor,
   SIDEBAR_FILE,
+  SOURCE_REPO,
   type DocsVersion,
 } from "./config.ts";
 import { sidebarLink } from "./slug.ts";
@@ -34,8 +35,9 @@ sidebar:
 ---
 
 This reference is generated from the XML documentation comments in the
-[Ergosfare sources](https://github.com/stellayazilim/ergosfare/tree/${version.ref}/src)
-on every docs build, so it always describes ${version.blurb}.
+[Ergosfare sources](https://github.com/${SOURCE_REPO}/tree/${version.ref}/src) and
+committed alongside the site. It covers ${version.blurb}, as of the last time
+\`task api\` was run.
 
 It is published in English only. The narrative documentation is translated; this
 section is not, because translating API descriptions away from the identifiers

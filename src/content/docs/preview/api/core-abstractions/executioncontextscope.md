@@ -20,7 +20,7 @@ scope is disposed.
 public readonly struct ExecutionContextScope : IDisposable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Context/ExecutionContextScope.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Context/ExecutionContextScope.cs#L18)
 
 **Implements:** [`IDisposable`](https://learn.microsoft.com/dotnet/api/system.idisposable)
 

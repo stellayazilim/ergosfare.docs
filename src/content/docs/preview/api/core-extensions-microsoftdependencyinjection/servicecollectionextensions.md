@@ -16,7 +16,7 @@ with the ASP.NET Core dependency injection system.
 public static class ServiceCollectionExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ServiceCollectionExtensions.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ServiceCollectionExtensions.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

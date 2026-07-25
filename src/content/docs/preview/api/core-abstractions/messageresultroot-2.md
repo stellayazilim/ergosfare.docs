@@ -15,7 +15,7 @@ The concrete closure of [`MessageResultRoot`](/ergosfare.docs/preview/api/core-a
 public sealed class MessageResultRoot<TMessage, TResult> : MessageResultRoot where TMessage : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L84)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L84)
 
 **Type parameters**
 

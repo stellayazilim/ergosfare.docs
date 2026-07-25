@@ -17,7 +17,7 @@ handles exceptions, and applies final interceptors. Supports chunked streaming r
 public sealed class SingleStreamHandlerMediationStrategy<TMessage, TResult> : IMessageMediationStrategy<TMessage, IAsyncEnumerable<TResult>> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleStreamHandlerMediationStrategy%5BTMessage%2C%20TResult%5D.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleStreamHandlerMediationStrategy%5BTMessage%2C%20TResult%5D.cs#L15)
 
 **Type parameters**
 

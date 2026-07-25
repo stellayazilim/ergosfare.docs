@@ -17,7 +17,7 @@ regardless of success or failure — for cleanup, auditing, or logging.
 public interface IAsyncFinalInterceptor<in TMessage> : IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IAsyncFinalInterceptor%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IAsyncFinalInterceptor%5BTMessage%5D.cs#L14)
 
 **Type parameters**
 

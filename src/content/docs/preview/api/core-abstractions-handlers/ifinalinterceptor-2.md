@@ -17,7 +17,7 @@ pipeline, regardless of success or failure — for cleanup, auditing, or logging
 public interface IFinalInterceptor<in TMessage, in TResult> : IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IFinalInterceptor%5BTMessage%2CTResult%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/FinalInterceptor/IFinalInterceptor%5BTMessage%2CTResult%5D.cs#L18)
 
 **Type parameters**
 

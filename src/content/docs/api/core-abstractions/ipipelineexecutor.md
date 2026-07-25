@@ -19,7 +19,7 @@ of the handler's [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.thr
 public interface IPipelineExecutor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor.cs#L15)
 
 ## Remarks
 

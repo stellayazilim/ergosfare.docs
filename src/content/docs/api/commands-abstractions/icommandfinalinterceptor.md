@@ -16,7 +16,7 @@ without specifying a particular command type.
 public interface ICommandFinalInterceptor : ICommand, IMessage, IAsyncFinalInterceptor<ICommand>, IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor.cs#L21)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor.cs#L21)
 
 ## Remarks
 

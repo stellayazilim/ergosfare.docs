@@ -15,7 +15,7 @@ Provides extension methods for the [`ModuleRegistry`](/ergosfare.docs/preview/ap
 public static class ModuleRegistryExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L7)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

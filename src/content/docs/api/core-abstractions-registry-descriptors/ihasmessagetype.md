@@ -15,7 +15,7 @@ Represents an object that is associated with a specific message type.
 public interface IHasMessageType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHasMessageType.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHasMessageType.cs#L13)
 
 ## Remarks
 

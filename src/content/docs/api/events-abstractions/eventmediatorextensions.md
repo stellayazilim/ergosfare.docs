@@ -15,7 +15,7 @@ Provides extension methods for [`IEventMediator`](/ergosfare.docs/api/events-abs
 public static class EventMediatorExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediatorExtensions.cs#L6)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediatorExtensions.cs#L6)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

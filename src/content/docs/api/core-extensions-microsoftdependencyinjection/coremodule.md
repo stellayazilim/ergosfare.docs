@@ -16,7 +16,7 @@ and registering core message types into the message registry.
 public sealed class CoreModule : IModule
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/CoreModule.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/CoreModule.cs#L12)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

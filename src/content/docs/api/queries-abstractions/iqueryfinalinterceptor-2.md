@@ -16,7 +16,7 @@ to execute after all query handlers and other interceptors have completed.
 public interface IQueryFinalInterceptor<in TQuery, in TResult> : IQuery, IMessage, IAsyncFinalInterceptor<TQuery, TResult>, IFinalInterceptor where TQuery : IQuery<in TResult>
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/FinalInterceptors/IQueryFinalInterceptor%5BTQuery%2CTResult%5D.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/FinalInterceptors/IQueryFinalInterceptor%5BTQuery%2CTResult%5D.cs#L23)
 
 **Type parameters**
 

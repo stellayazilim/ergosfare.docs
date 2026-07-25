@@ -15,7 +15,7 @@ Represents the configuration settings that control command mediation behavior.
 public sealed class CommandMediationSettings
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/CommandMediationSettings.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/CommandMediationSettings.cs#L10)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

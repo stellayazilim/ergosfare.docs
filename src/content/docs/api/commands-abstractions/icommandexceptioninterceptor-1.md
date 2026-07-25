@@ -19,7 +19,7 @@ is handled by [`IAsyncExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/
 public interface ICommandExceptionInterceptor<in TCommand> : ICommand, IMessage, IAsyncExceptionInterceptor<TCommand, object>, IExceptionInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%5D.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%5D.cs#L20)
 
 **Type parameters**
 

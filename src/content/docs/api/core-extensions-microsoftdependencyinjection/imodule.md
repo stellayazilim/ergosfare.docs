@@ -15,7 +15,7 @@ Represents a module in an application that can be configured and built.
 public interface IModule
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModule.cs#L6)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModule.cs#L6)
 
 ## Methods
 

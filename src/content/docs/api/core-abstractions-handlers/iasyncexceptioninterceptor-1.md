@@ -17,7 +17,7 @@ Executed when the pipeline throws; may observe the exception and replace the res
 public interface IAsyncExceptionInterceptor<in TMessage> : IExceptionInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IAsyncExceptionHandler%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IAsyncExceptionHandler%5BTMessage%5D.cs#L14)
 
 **Type parameters**
 

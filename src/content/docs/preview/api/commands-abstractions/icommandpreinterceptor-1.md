@@ -16,7 +16,7 @@ the command that continues through the pipeline — the original instance, or a 
 public interface ICommandPreInterceptor<TCommand> : ICommand, IMessage, IAsyncPreInterceptor<TCommand>, IPreInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%5D.cs#L18)
 
 **Type parameters**
 

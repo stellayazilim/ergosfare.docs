@@ -16,7 +16,7 @@ directly throwing the original result type.
 public sealed class AdaptedException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/AdaptedException.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/AdaptedException.cs#L9)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 

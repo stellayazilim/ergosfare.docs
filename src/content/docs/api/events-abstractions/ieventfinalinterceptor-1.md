@@ -17,7 +17,7 @@ has completed.
 public interface IEventFinalInterceptor<in TEvent> : IEvent, IMessage, IAsyncFinalInterceptor<TEvent, ValueTask>, IFinalInterceptor where TEvent : IEvent
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L25)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L25)
 
 **Type parameters**
 

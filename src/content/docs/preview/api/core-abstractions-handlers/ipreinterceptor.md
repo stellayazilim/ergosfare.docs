@@ -18,4 +18,4 @@ this root exists for storage typing and registration.
 public interface IPreInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor.cs#L9)

@@ -16,7 +16,7 @@ which handlers should be invoked.
 public sealed class EventMediationSettings.EventMediationFilters
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediationSettiongs.cs#L31)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediationSettiongs.cs#L31)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

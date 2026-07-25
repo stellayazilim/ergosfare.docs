@@ -16,7 +16,7 @@ Handles registration, initialization, and handler discovery for all modules.
 public class ModuleRegistry : IModuleRegistry
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistry.cs#L21)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistry.cs#L21)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

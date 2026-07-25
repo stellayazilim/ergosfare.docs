@@ -15,7 +15,7 @@ Represents the configuration settings that control query mediation behavior.
 public sealed class QueryMediationSettings
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediationSettings.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediationSettings.cs#L10)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

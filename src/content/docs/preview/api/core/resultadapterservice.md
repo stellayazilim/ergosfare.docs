@@ -16,7 +16,7 @@ of [`IResultAdapter`](/ergosfare.docs/preview/api/core-abstractions/iresultadapt
 public sealed class ResultAdapterService : IResultAdapterService
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core/ResultAdapterService.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core/ResultAdapterService.cs#L17)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

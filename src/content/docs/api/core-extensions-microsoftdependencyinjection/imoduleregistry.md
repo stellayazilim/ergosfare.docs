@@ -15,7 +15,7 @@ Represents a registry that holds and manages modules, allowing registration and 
 public interface IModuleRegistry
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleRegistry.cs#L5)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleRegistry.cs#L5)
 
 ## Methods
 

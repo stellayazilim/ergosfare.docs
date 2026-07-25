@@ -19,4 +19,4 @@ the v2 executor dispatch.
 public interface IHandler
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IHandler.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IHandler.cs#L11)

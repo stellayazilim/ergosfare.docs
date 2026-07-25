@@ -15,7 +15,7 @@ Describes a message type and its associated handler and interceptor descriptors.
 public interface IMessageDescriptor : IHasMessageType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IMessageDescriptor.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IMessageDescriptor.cs#L19)
 
 ## Remarks
 

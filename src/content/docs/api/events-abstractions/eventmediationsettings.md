@@ -15,7 +15,7 @@ Represents the settings used for event mediation.
 public sealed class EventMediationSettings
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediationSettiongs.cs#L5)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/EventMediationSettiongs.cs#L5)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

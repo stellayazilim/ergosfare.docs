@@ -15,7 +15,7 @@ Represents a handler for commands that produce a strongly-typed result.
 public interface ICommandHandler<in TCommand, TResult> : ICommand, IMessage, IAsyncHandler<TCommand, TResult>, IHandler where TCommand : ICommand<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%2CTResult%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%2CTResult%5D.cs#L14)
 
 **Type parameters**
 

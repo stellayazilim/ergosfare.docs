@@ -16,7 +16,7 @@ queries and stream queries with optional group filtering.
 public static class QueryMediatorExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediatorExtensions.cs#L6)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/QueryMediatorExtensions.cs#L6)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
