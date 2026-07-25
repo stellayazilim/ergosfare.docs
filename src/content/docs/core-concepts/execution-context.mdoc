@@ -1,0 +1,154 @@
+---
+title: Execution context
+description: IExecutionContext is a pooled, explicitly-passed parameter — not ambient state. What it carries, and the lifetime rules that come with pooling.
+---
+
+`IExecutionContext` travels with a dispatch. It carries the cancellation token, a key/value
+bag for that dispatch, and the controls that let a handler or interceptor stop the pipeline.
+
+Two properties define everything else about it:
+
+1. **It is a parameter, never ambient.** Every handler and interceptor receives it
+   explicitly. There is no `AsyncLocal`, no thread-local, and no static accessor.
+2. **It is pooled.** A dispatch rents a context and returns it on completion. The context is
+   valid **only for the duration of that dispatch**.
+
+{% aside type="danger" %}
+`AmbientExecutionContext` was **removed in v2**. If you are porting v1 code that reached for
+it, see [Migrating from v1](/ergosfare.docs/migration/v1-to-v2). The context parameter is now
+the only access path.
+{% /aside %}
+
+## What it carries
+
+```csharp
+public interface IExecutionContext
+{
+    CancellationToken CancellationToken { get; }
+    IDictionary<object, object?> Items { get; }
+
+    void Set(string key, object item);
+    bool Has(string key);
+    T Get<T>(string key) where T : notnull;
+    bool TryGet<T>(string key, out T item);
+
+    void Abort(object? messageResult = null);
+    ExecutionContextScope CreateScope();
+}
+```
+
+### Cancellation
+
+```csharp
+public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+```
+
+The token comes from the mediator call — either the `CancellationToken` argument or, for the
+context-taking overloads, inherited from the parent context. Because it arrives on the
+context rather than as a separate handler parameter, forgetting to thread it is not possible.
+
+### The item bag
+
+`Set`/`Get`/`Has`/`TryGet` share data along one dispatch. A pre-interceptor can stash
+something the handler and post-interceptors read back:
+
+```csharp
+public sealed class StartTimer : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        context.Set("started", Stopwatch.GetTimestamp());
+        return ValueTask.FromResult<object>(command);
+    }
+}
+
+public sealed class StopTimer : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(ICommand command, object? result, Exception? ex, IExecutionContext context)
+    {
+        if (context.TryGet<long>("started", out var started))
+            _metrics.Record(Stopwatch.GetElapsedTime(started));
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+`Get<T>` throws `KeyNotFoundException` if the key is absent and `InvalidCastException` if the
+stored value is the wrong type. Use `TryGet<T>` when absence is expected.
+
+You can seed the bag for a dispatch from the mediation settings:
+
+```csharp
+var settings = new CommandMediationSettings { Items = { ["tenant"] = tenantId } };
+await commands.SendAsync(command, settings);
+```
+
+### Aborting
+
+`Abort()` ends the pipeline immediately — no further handlers or interceptors run. If the
+message has a result type and you abort before the main handler, you must supply the result:
+
+```csharp
+public sealed class RejectUnauthorized : ICommandPreInterceptor<CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+    {
+        if (!_user.CanCreateProducts)
+            context.Abort(Guid.Empty);   // result required: the pipeline still owes one
+
+        return ValueTask.FromResult(command);
+    }
+}
+```
+
+`CreateProduct` is an `ICommand<Guid>`, so the pipeline owes the caller a `Guid`. Aborting
+before the main handler runs means nothing else will produce one — hence the argument. For a
+command with no result, `Abort()` takes nothing.
+
+## Pooling and the lifetime rule
+
+Contexts are rented from a `[ThreadStatic]`-first pool — a plain load and store on the common
+same-thread cycle — and returned when the dispatch completes. There is a synchronous fast
+path that skips the async state machine entirely when the whole pipeline completes
+synchronously.
+
+This is where the ~2.3 MB per 100 000 dispatches comes from. It also imposes one rule:
+
+{% aside type="danger" %}
+**Never hold onto a context after its dispatch returns.** Once the dispatch completes the
+context goes back to the pool and will be handed to an unrelated dispatch. Capturing it in a
+field, a closure that outlives the call, or a fire-and-forget task will read another
+message's state.
+{% /aside %}
+
+```csharp
+// Wrong — the context is recycled the moment HandleAsync returns.
+public ValueTask HandleAsync(CreateProduct command, IExecutionContext context)
+{
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(1000);
+        context.Set("late", true);      // this context now belongs to someone else
+    });
+    return ValueTask.CompletedTask;
+}
+```
+
+If you need something after the dispatch, copy the values out before returning.
+
+## No service provider, on purpose
+
+`IExecutionContext` exposes no `IServiceProvider`. Handler resolution belongs to the
+dispatcher, which resolves instances from the calling DI scope. If a handler needs a service,
+take it in the constructor — that keeps the dependency visible to the container and to
+whoever reads the class.
+
+## Nested dispatch
+
+`CreateScope()` opens a child context for calling the mediator from inside a handler. It gets
+its own clean item bag and inherits the parent's cancellation token. That has enough detail
+to deserve its own page: [Nested dispatch](/ergosfare.docs/core-concepts/nested-dispatch).
+
+Next: [Nested dispatch](/ergosfare.docs/core-concepts/nested-dispatch).

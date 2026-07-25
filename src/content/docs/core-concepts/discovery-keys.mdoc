@@ -1,0 +1,115 @@
+---
+title: Discovery keys
+description: Gate handlers behind named keys so registration can cherry-pick which discovered types actually register.
+---
+
+Compile-time discovery finds everything. Discovery keys decide what actually **registers**.
+
+A type tagged with `[DiscoveryKey]` is *excluded from default discovery* and registers only
+when a registration call names one of its keys. That turns "which handlers exist" (a compile
+time question) and "which handlers are active" (a deployment question) into two separate
+decisions, without reflection and without conditional compilation.
+
+## The default key
+
+Every untagged type carries the implicit **default key**, the empty string. That is exactly
+what a pattern-less registration call selects:
+
+```csharp
+.AddCommandModule(c => c.RegisterGenerated())      // selects the default key only
+```
+
+So adding `[DiscoveryKey("reporting.daily")]` to a handler removes it from that call.
+
+## Gating a handler
+
+```csharp
+using Stella.Ergosfare.Core.Abstractions.Attributes;
+
+[DiscoveryKey("reporting.daily")]
+public sealed class DailyReportHandler : ICommandHandler<BuildDailyReport>
+{
+    public ValueTask HandleAsync(BuildDailyReport command, IExecutionContext context)
+        => _reports.BuildAsync(context.CancellationToken);
+}
+```
+
+```csharp
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c
+        .RegisterGenerated()                    // default discovery: untagged types
+        .RegisterGenerated("reporting.*")));    // plus everything keyed under reporting
+```
+
+Calls compose. Overlapping patterns are safe — registration is idempotent.
+
+## Patterns
+
+A registration call accepts either an exact key or a trailing-`*` prefix glob:
+
+| Pattern | Selects |
+|---|---|
+| `""` (or no argument) | Untagged types only |
+| `"reporting.daily"` | Exactly that key |
+| `"reporting.*"` | `reporting.daily`, `reporting.monthly`, `reporting.anything` |
+| `"*"` | Every keyed type |
+
+## Staying in default discovery *and* being selectable
+
+List the empty string alongside your keys:
+
+```csharp
+[DiscoveryKey("", "debug")]
+public sealed class VerboseLoggingInterceptor : ICommandPreInterceptor { … }
+```
+
+This registers under a plain `RegisterGenerated()` **and** under `RegisterGenerated("debug")`.
+
+## Tagging a whole assembly
+
+Applied at assembly level, the attribute sets the default keys for every registrable type in
+that assembly that does not declare its own:
+
+```csharp
+[assembly: DiscoveryKey("payments")]
+```
+
+This is the modular-monolith case: a slice tags its entire surface in one place, and the host
+opts the slice in with a single `RegisterGenerated("payments")`.
+
+A type that declares its own `[DiscoveryKey]` overrides the assembly-level one — it does not
+merge with it.
+
+## Removing a type entirely
+
+`[ExcludeFromDiscovery]` takes a type (or an assembly) out of discovery altogether. No key
+pattern will select it:
+
+```csharp
+[ExcludeFromDiscovery]
+public sealed class ExperimentalHandler : ICommandHandler<Probe> { … }
+```
+
+Explicit registration still works — `Register<ExperimentalHandler>()` registers it — which is
+the intended escape hatch for something you want available but never automatic.
+
+## Both registration paths agree
+
+The reflection-based `RegisterFromAssembly(assembly, discoveryKeyPattern)` evaluates the same
+attributes with the same rules. Generated and runtime registration cannot produce different
+sets for the same code, which is what makes it safe to move a project from one to the other.
+
+## When to reach for this
+
+- **Feature flags at deployment time** — key the handlers, select by key from configuration.
+- **Environment-specific interceptors** — a `[DiscoveryKey("debug")]` interceptor that only
+  a development host registers.
+- **Modular monoliths** — one assembly-level key per slice, one registration call per slice
+  the host wants to run.
+
+What discovery keys are *not* for: filtering which handlers run for a particular dispatch.
+That is a runtime concern and belongs to
+[groups](/ergosfare.docs/cross-cutting-concerns/groups-and-weights). Discovery keys are
+decided once, at registration.
+
+Next: [Polymorphism](/ergosfare.docs/core-concepts/polymorphism).

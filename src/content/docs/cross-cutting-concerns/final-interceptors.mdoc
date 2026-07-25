@@ -1,0 +1,133 @@
+---
+title: Final interceptors
+description: The stage that always runs — success, failure or abort — for cleanup, metrics and audit trails.
+---
+
+Final interceptors are new in v2. They run at the very end of every dispatch, whatever
+happened: the handler succeeded, the handler threw, or a pre-interceptor aborted. That makes
+them the only stage you can rely on for cleanup.
+
+```csharp
+public sealed class RecordDuration : ICommandFinalInterceptor
+{
+    private readonly IMetrics _metrics;
+
+    public RecordDuration(IMetrics metrics) => _metrics = metrics;
+
+    public ValueTask HandleAsync(
+        ICommand command, object? result, Exception? exception, IExecutionContext context)
+    {
+        if (context.TryGet<long>("started", out var started))
+            _metrics.Record(
+                command.GetType().Name,
+                Stopwatch.GetElapsedTime(started),
+                failed: exception is not null);
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+## The signature
+
+```csharp
+ValueTask HandleAsync(TMessage message, TResult? result, Exception? exception, IExecutionContext context);
+```
+
+Both `result` and `exception` are nullable because **exactly one of them is meaningful** on
+any given run:
+
+| Outcome | `result` | `exception` |
+|---|---|---|
+| Handler succeeded | the result | `null` |
+| Handler or interceptor threw | `null` | the exception |
+| Exception interceptor supplied a fallback | that fallback | `null` |
+| `context.Abort(value)` | `value` | `null` |
+
+Note the return type: plain `ValueTask`, not `ValueTask<T>`. A final interceptor **cannot
+change anything**. By the time it runs, the caller's result is decided.
+
+## Where it sits
+
+```
+pre*  →  main handler  →  post*        →  final*
+                       ↘  exception*  ↗
+```
+
+Compare with the other stages:
+
+| Stage | Runs on success | Runs on failure | Runs on abort | Can change the result |
+|---|---|---|---|---|
+| Pre | before the handler | — | — | rewrites the message |
+| Post | yes | no | no | yes |
+| Exception | no | yes | no | yes |
+| **Final** | **yes** | **yes** | **yes** | **no** |
+
+## The pairing pattern
+
+A final interceptor is usually the other half of a pre-interceptor. The pre one opens
+something, the final one closes it — and the final one closes it even when the pipeline
+blew up in between:
+
+```csharp
+[Weight(1000)]
+public sealed class StartTimer : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        context.Set("started", Stopwatch.GetTimestamp());
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Use the context bag rather than a field on the interceptor. Interceptors resolve from the
+calling DI scope, so a scoped or singleton instance may be shared across concurrent
+dispatches; the context is the only per-dispatch storage.
+
+{% aside type="danger" %}
+Do not capture the context past the end of the dispatch. It is pooled and will be handed to
+an unrelated dispatch — see
+[Execution context](/ergosfare.docs/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+Copy out what you need before returning.
+{% /aside %}
+
+## Audit trails
+
+Because a final interceptor sees both outcomes, one registration covers the whole audit:
+
+```csharp
+public sealed class AuditEverything : ICommandFinalInterceptor
+{
+    public async ValueTask HandleAsync(
+        ICommand command, object? result, Exception? exception, IExecutionContext context)
+    {
+        await _audit.WriteAsync(new AuditEntry(
+            Operation: command.GetType().Name,
+            Succeeded: exception is null,
+            Error:     exception?.Message,
+            Tenant:    context.TryGet<string>("tenant", out var t) ? t : null));
+    }
+}
+```
+
+## Ordering
+
+Direct registrations first, then covariant ones, each by `[Weight]` descending — the same rule
+as every stage. Unlike the exception stage, **every** final interceptor runs; none of them can
+end the stage early.
+
+An exception thrown from a final interceptor propagates to the caller and will mask the
+original failure. Keep them defensive.
+
+## Coverage
+
+| Interface | `HandleAsync` |
+|---|---|
+| `ICommandFinalInterceptor` | `ValueTask(ICommand, object?, Exception?, IExecutionContext)` |
+| `ICommandFinalInterceptor<TCommand>` | `ValueTask(TCommand, object?, Exception?, IExecutionContext)` |
+| `ICommandFinalInterceptor<TCommand, TResult>` | `ValueTask(TCommand, TResult?, Exception?, IExecutionContext)` |
+| `IQueryFinalInterceptor` / `<TQuery, TResult>` | as above |
+| `IEventFinalInterceptor` / `<TEvent>` | `ValueTask(TEvent, object?, Exception?, IExecutionContext)` |
+
+Next: [Groups and weights](/ergosfare.docs/cross-cutting-concerns/groups-and-weights).

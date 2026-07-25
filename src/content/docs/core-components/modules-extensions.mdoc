@@ -1,0 +1,92 @@
+---
+title: Modules and extensions
+description: The three shipped modules, the packages each one spans, and how the core, abstractions and DI layers divide the work.
+---
+
+Ergosfare ships three modules — Commands, Queries and Events — over a shared core. Each is
+independent: you register the ones you use and pay for nothing else.
+
+| Module | Message | Handler | Mediator | Dispatch |
+|---|---|---|---|---|
+| Commands | `ICommand`, `ICommand<TResult>` | `ICommandHandler<…>` | `ICommandMediator` | `SendAsync` |
+| Queries | `IQuery<TResult>`, `IStreamQuery<TResult>` | `IQueryHandler<…>`, `IStreamQueryHandler<…>` | `IQueryMediator` | `QueryAsync`, `StreamAsync` |
+| Events | `IEvent` | `IEventHandler<TEvent>` | `IEventMediator` | `PublishAsync` |
+
+They differ only in cardinality and result shape. All three run through the same registry,
+the same pipeline plan and the same four
+[interceptor stages](/ergosfare.docs/core-concepts/interceptors).
+
+## The three layers
+
+Every module spans the same three packages, and the split is worth understanding because it
+decides what a given project has to reference.
+
+**`*.Abstractions`** — the contracts. `ICommand`, `ICommandHandler<…>`, the interceptor
+interfaces, the mediation settings. No runtime, no DI container. This is all a library needs
+to declare messages and handlers.
+
+**`Stella.Ergosfare.*`** — the runtime for that module: the mediator implementation and the
+invoker caches that close generics over each message's runtime type.
+
+**`*.Extensions.MicrosoftDependencyInjection`** — the registration surface: the module
+builder, `AddCommandModule` and friends. This is the only layer that knows about
+`IServiceCollection`, which is what keeps the rest container-agnostic.
+
+`Stella.Ergosfare.Core.Abstractions` sits under all of them and holds what is not
+module-specific: `IExecutionContext`, the `[DiscoveryKey]`/`[Group]`/`[Weight]` attributes,
+the handler and interceptor base contracts, and the registry types.
+
+The umbrella package `Stella.Ergosfare` is a convenience bundle over all three modules. See
+[Installation](/ergosfare.docs/getting-started/installation) for choosing deliberately.
+
+## Registering modules
+
+```csharp
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
+```
+
+Each `AddXModule` constructs a module, hands it your registration lambda, and registers the
+module's mediator with `TryAddScoped` — so calling it twice is harmless.
+
+Only add what you use. An application that never publishes events should not register the
+event module; `IEventMediator` then simply is not resolvable, which is a better failure than
+a silent no-op.
+
+## Extension points
+
+**`ForceMemoizedHandlers()`** on the registry makes handler instances reusable across
+dispatches within a scope, for dispatch-heavy loops with transient handlers:
+
+```csharp
+services.AddErgosfare(o => o
+    .ForceMemoizedHandlers()
+    .AddCommandModule(c => c.RegisterGenerated()));
+```
+
+**`ConfigureResultAdapters(...)`** registers `IResultAdapter` implementations that translate
+a handler's return type into what the caller expects:
+
+```csharp
+services.AddErgosfare(o => o
+    .ConfigureResultAdapters(a => a.Register<MyResultAdapter>())
+    .AddQueryModule(q => q.RegisterGenerated()));
+```
+
+**`AddCoreModule(...)`** registers constructs that belong to none of the three shapes. Rarely
+needed directly.
+
+**Your own `IModule`** — the modules above are not privileged. Implementing `IModule` gives
+you a new message shape on the same machinery; see
+[Modules and plugins](/ergosfare.docs/core-concepts/plugins).
+
+## Mediators are per-module on purpose
+
+There is no single `IMediator`. A component takes the narrow interface it needs, and the
+type system does the rest: something holding only `IQueryMediator` cannot send a command or
+publish an event. That is the cheapest CQRS boundary available, and it costs one extra
+constructor parameter when a class genuinely needs two.
+
+Next: [Defining a command](/ergosfare.docs/core-components/command/command-definition).

@@ -1,0 +1,131 @@
+---
+title: Configuring Ergosfare
+description: Registration entry points, the three ways to feed the registry, and the knobs on AddErgosfare.
+---
+
+Everything Ergosfare needs at runtime comes from one call:
+
+```csharp
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
+```
+
+`AddErgosfare` takes an `Action<IModuleRegistry>`. Each `AddXModule` call opens a module
+builder that feeds the shared **message registry**. Only add the modules you use — an
+application that never publishes events has no reason to register the event module.
+
+## Three ways into the registry
+
+All three produce the same descriptors and can be combined freely. Registration is
+idempotent, so registering the same type twice is harmless.
+
+### Generated (preferred)
+
+```csharp
+.AddCommandModule(c => c.RegisterGenerated())
+```
+
+Compile-time discovery. Descriptors are pre-computed by the source generator, and dispatch
+roots are emitted so Native AOT has a static anchor for every generic instantiation. This is
+the only path with no reflection at all. See
+[Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery).
+
+### Explicit
+
+```csharp
+.AddCommandModule(c => c
+    .Register<CreateProductHandler>()
+    .Register(typeof(LogCommands)))
+```
+
+Useful when you want a handler registered under conditions the generator cannot see — a
+feature flag read from configuration, for example. For the compile-time equivalent, prefer
+[discovery keys](/ergosfare.docs/core-concepts/discovery-keys).
+
+### Runtime assembly scan
+
+```csharp
+.AddCommandModule(c => c.RegisterFromAssembly(typeof(CreateProductHandler).Assembly))
+```
+
+The escape hatch. It reflects over the assembly at startup, so it is the right tool for
+plugin assemblies loaded at runtime and the wrong tool for code you compile yourself. It
+honours the same `[DiscoveryKey]` and `[ExcludeFromDiscovery]` attributes as generated
+registration, so the two stay in lockstep.
+
+{% aside type="caution" %}
+`RegisterFromAssembly` is not AOT-safe and will produce trim warnings. If you are targeting
+Native AOT, every registration must go through `RegisterGenerated()`.
+{% /aside %}
+
+## Handler lifetimes
+
+Handlers and interceptors resolve from the **calling DI scope** on every dispatch. Their
+lifetime is whatever you registered them as:
+
+| Registration | Behaviour per dispatch |
+|---|---|
+| Singleton | Container-cached; one instance for the process |
+| Scoped | One instance per DI scope |
+| Transient | A new instance for every dispatch |
+
+Transient handlers allocating once per dispatch is not a leak — it is what a transient
+registration declares. For dispatch-heavy loops inside a single scope that want instance
+reuse, either register handlers as singletons or opt in globally:
+
+```csharp
+services.AddErgosfare(o => o
+    .ForceMemoizedHandlers()
+    .AddCommandModule(c => c.RegisterGenerated()));
+```
+
+## Per-dispatch settings
+
+Each module's mediator takes an optional settings object. It carries a group filter and a
+seed for the context's item bag:
+
+```csharp
+var settings = new CommandMediationSettings
+{
+    Items = { ["tenant"] = tenantId }
+};
+settings.Filters.Groups = ["audit"];
+
+await commands.SendAsync(new CreateProduct("Laptop", 999m), settings);
+```
+
+- **`Filters.Groups`** restricts the pipeline to handlers and interceptors carrying a
+  matching `[Group]`. An empty collection means "everything registered". See
+  [Groups and weights](/ergosfare.docs/cross-cutting-concerns/groups-and-weights).
+- **`Items`** seeds `context.Items` for this dispatch.
+
+Group filters participate in the pipeline plan cache key, so a filtered dispatch is not
+slower than an unfiltered one after the first of its shape.
+
+## Result adapters
+
+If a handler returns a type the caller does not want to depend on, register an
+`IResultAdapter` rather than changing the handler:
+
+```csharp
+services.AddErgosfare(o => o
+    .ConfigureResultAdapters(a => a.Register<MyResultAdapter>())
+    .AddCommandModule(c => c.RegisterGenerated()));
+```
+
+`ResultAdapterBuilder` offers the same three entry points as a module builder:
+`Register<TAdapter>()`, `Register(Type)` and `RegisterFromAssembly(assembly)`.
+
+## What is *not* configurable
+
+Two omissions are deliberate:
+
+- **The execution context exposes no service provider.** Handler resolution belongs to the
+  dispatcher. If a handler needs a service, take it in the constructor.
+- **There is no ambient context.** `AmbientExecutionContext` was removed in v2. The context
+  is a parameter on every handler and interceptor, and the only way to reach it. See
+  [Execution context](/ergosfare.docs/core-concepts/execution-context).
+
+Next: [Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery).

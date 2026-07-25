@@ -33,18 +33,26 @@ export const SOURCE_WORKFLOW = "api_reference.yml";
 
 /**
  * The documented lines. The site is two-footed: the stable line sits at the site
- * root and the v2 line under `/preview`, so each version owns a route prefix, a
- * git ref to read symbols from, and its own artifact.
+ * root and the preview line under `/preview`, so each version owns a route
+ * prefix, a git ref to read symbols from, and its own artifact.
+ *
+ * Since v2 was promoted, both lines document v2 — `main` and `preview` carry the
+ * same surface, so the two references come out identical. They stay separate
+ * entries because the next preview line will diverge again.
  *
  * Adding a line here is all it takes for the whole chain — fetch, transform,
  * emit and sidebar — to cover it.
  */
 export interface DocsVersion {
-  /** Directory name under `.api-cache/`, and the artifact suffix. */
+  /** Directory name under `.api-cache/`, and the sidebar key. */
   id: string;
   /** Branch docfx reads the sources from. */
   ref: string;
-  /** Artifact uploaded by api_reference.yml. */
+  /**
+   * Artifact uploaded by api_reference.yml. Still named after the version the
+   * line carried when the workflow was written; renaming it would have to land
+   * in both repositories at once, and it is only a transport key.
+   */
   artifact: string;
   /** Route prefix under the Starlight base, e.g. `/api` or `/preview/api`. */
   routeBase: string;
@@ -60,7 +68,7 @@ export interface DocsVersion {
 
 export const VERSIONS: DocsVersion[] = [
   {
-    id: "v1",
+    id: "stable",
     ref: "main",
     artifact: "api-mref-v1",
     routeBase: "/api",
@@ -68,10 +76,10 @@ export const VERSIONS: DocsVersion[] = [
     label: "API Reference",
     labelTr: "API Referansı",
     blurb:
-      "the stable v1.x line, generated from the `main` branch",
+      "the stable v2 line, generated from the `main` branch",
   },
   {
-    id: "v2",
+    id: "preview",
     ref: "preview",
     artifact: "api-mref-v2",
     routeBase: "/preview/api",

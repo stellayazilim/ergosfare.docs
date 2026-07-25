@@ -1,0 +1,121 @@
+---
+title: Groups and weights
+description: Ordering pipeline members with [Weight], scoping them with [Group], and excluding messages with [ExcludeFromPipeline].
+---
+
+Three attributes decide which pipeline members run for a dispatch and in what order. All
+three are evaluated when the **pipeline plan** is built — once per `(message type, group
+set)` — so none of them costs anything per dispatch.
+
+## `[Weight]` — ordering within a stage
+
+```csharp
+[Weight(200)] public sealed class Authorize : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(100)] public sealed class Validate  : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(10)]  public sealed class Log       : ICommandPreInterceptor<DeleteProduct> { … }
+```
+
+Higher weight runs **earlier**. The weight is a `uint`, so it cannot be negative; the default
+for an unmarked type is 0, which puts it last.
+
+Weight only orders *within a group of equal directness*. The full rule for every stage is:
+
+1. **Direct** entries — registered against the message's own type — ordered by weight descending.
+2. **Indirect** entries — matched covariantly through a base type or interface — ordered by weight descending.
+
+A `[Weight(999)]` interceptor registered against `ICommand` still runs after an unweighted one
+registered against `DeleteProduct`. Directness wins over weight; see
+[Polymorphism](/ergosfare.docs/core-concepts/polymorphism#direct-before-indirect).
+
+## `[Group]` — scoping to a subset of dispatches
+
+A group tags a handler or interceptor so that a dispatch can ask for it by name:
+
+```csharp
+using Stella.Ergosfare.Core.Abstractions.Attributes;
+
+[Group("audit")]
+public sealed class AuditTrail : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _audit.Log(command);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+The dispatch selects groups through the mediation settings:
+
+```csharp
+var settings = new CommandMediationSettings();
+settings.Filters.Groups = ["audit"];
+
+await commands.SendAsync(new DeleteProduct(id), settings);
+```
+
+With a non-empty filter, **only** pipeline members carrying a matching group participate. An
+empty filter — the default — means every registered member participates.
+
+A type can belong to several groups:
+
+```csharp
+[Group("audit", "compliance")]
+public sealed class AuditTrail : ICommandPreInterceptor { … }
+```
+
+The default group name for an unmarked type is `"default"`
+(`GroupAttribute.DefaultGroupName`).
+
+{% aside type="caution" %}
+Group filters apply to **handlers as well as interceptors**. A filter that matches no handler
+for the message means nothing handles it. Use groups to select cross-cutting behaviour, not
+to route between handlers.
+{% /aside %}
+
+Because the group set is part of the plan cache key, a filtered dispatch is no slower than an
+unfiltered one after the first dispatch of that shape.
+
+## `[ExcludeFromPipeline]` — opting a message out
+
+The previous two attributes go on pipeline members. This one goes on a **message**, and
+removes it from *covariantly matched* interceptors:
+
+```csharp
+[ExcludeFromPipeline]
+public sealed record Heartbeat : ICommand;
+```
+
+`Heartbeat` no longer picks up the blanket `ICommandPreInterceptor` or anything else matched
+through a base type. This is the escape hatch for a high-volume message that should not pay
+for the pipeline everything else wants.
+
+Scoped to particular groups:
+
+```csharp
+[ExcludeFromPipeline("logging", "metrics")]
+public sealed record Tick : ICommand;
+```
+
+`Tick` skips covariantly matched members in those two groups and keeps the rest.
+
+Two things are never affected:
+
+- **Interceptors registered for the message type itself.** Someone wrote
+  `ICommandPreInterceptor<Heartbeat>` deliberately; it runs.
+- **Main handlers.** Excluding a message from the pipeline does not stop it being handled.
+
+## Choosing between them
+
+| You want to… | Use |
+|---|---|
+| Run authorization before validation | `[Weight]` |
+| Run audit interceptors only on the endpoints that need auditing | `[Group]` + a dispatch-time filter |
+| Keep one noisy message out of the blanket logger | `[ExcludeFromPipeline]` |
+| Decide at startup which handlers exist at all | [discovery keys](/ergosfare.docs/core-concepts/discovery-keys) |
+
+The last row is the one worth reading twice. Discovery keys are a **registration-time**
+decision — the handler is either in the registry or it is not. Groups are a **dispatch-time**
+decision — the handler is registered, and each call chooses whether it participates.
+
+Next: [Modules and extensions](/ergosfare.docs/core-components/modules-extensions).

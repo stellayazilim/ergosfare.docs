@@ -1,34 +1,27 @@
 ---
 title: Giriş
-description: Ergosfare v1 — .NET'te CQRS tarzı mesajlaşma için modüler, reflection'ı az kullanan bir mediator.
+description: Ergosfare, .NET'te CQRS tarzı mesajlaşma için kaynak-üretimli, yüksek performanslı bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
 ---
 
-Ergosfare, .NET'te CQRS tarzı mesajlaşma için bir mediator'dür: command, query ve event'ler
-tek bir pipeline modeli üzerinde, cross-cutting concern'ler için interceptor'lar ve kovaryant
-handler eşleşmesiyle.
+Ergosfare, .NET'te CQRS tarzı mesajlaşma için bir mediator'dür: command, query ve event'ler tek
+bir pipeline modeli üzerinde çalışır. Tek bir tasarım öncülü üzerine kuruludur — **dispatch'in
+şekliyle ilgili tüm iş derleme zamanında ya da mesaj tipi başına bir kez yapılır, asla her
+dispatch'te değil.**
 
-{% aside type="caution" %}
-**v1 dokümantasyonunu okuyorsunuz ve bu bölüm bilinçli olarak kısa tutuldu.**
+Kayıt işlemini bir Roslyn kaynak üreteci üretir. Pipeline planları `(mesaj tipi, grup kümesi)`
+başına bir kez hesaplanır ve süreç genelinde önbelleğe alınır. Dispatch generic'leri derleme
+zamanında kapatılır ve execution context'ler havuzlanır. Bir dispatch, handler *örneklerini*
+çağıran DI scope'undan çözer ve önceden kurulmuş bir planı yürür — reflection yok,
+`MakeGenericType` yok, registry taraması yok, `AsyncLocal` yok ve sıcak yolda context
+allocation'ı yok.
 
-Aktif geliştirme **v2 preview hattında** yapılıyor; asıl iş orada: kaynak üreteci ile derleme
-zamanı kayıt, `ValueTask` öncelikli bir yüzey, havuzlanmış execution context'ler, gerçekten
-çalışan Native AOT desteği ve iç içe dispatch scope'ları. v2 stable'a yakın.
-
-Yeni bir şeye başlıyorsanız **[v2 ile başlayın](/ergosfare.docs/tr/preview/getting-started/introduction)**.
-Zaten v1'deyseniz [geçiş rehberi](/ergosfare.docs/tr/preview/migration/v1-to-v2) kısa.
+{% aside %}
+**Kararlı v2 hattının** dokümantasyonunu okuyorsunuz;
+[`main` dalından](https://github.com/stellayazilim/Ergosfare/tree/main) üretiliyor. Geliştirme
+hâlindeki işler önce [önizleme hattına](/ergosfare.docs/tr/preview/getting-started/introduction)
+iner. v1'den mi geliyorsunuz? [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2)
+sayfasına bakın.
 {% /aside %}
-
-## v1 ne veriyor
-
-- **Modüler.** Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir.
-  Yalnızca kullandığınız modülleri kaydedersiniz.
-- **Interceptor pipeline'ı.** Loglama, doğrulama, yetkilendirme ve temizlik için pre, post,
-  exception ve final aşamaları; handler'lara dokunmadan takılır.
-- **Kovaryant interceptor eşleşmesi.** Bir base tip veya arayüz için kaydedilen interceptor,
-  ona atanabilir her mesaja uygulanır.
-- **DI ile uyumlu.** Birinci sınıf `Microsoft.Extensions.DependencyInjection` desteği;
-  handler'lar çağıran scope'tan çözülür.
-- **MIT lisanslı**, dayatılan harici bağımlılık yok.
 
 ## Nasıl görünüyor
 
@@ -40,45 +33,86 @@ public sealed record CreateProduct(string Name) : ICommand<Guid>;
 
 public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 {
-    public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
-        => Task.FromResult(Guid.NewGuid());
+    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+        => ValueTask.FromResult(Guid.NewGuid());
 }
 ```
 
-Kayıt, başlangıçta bir assembly taraması yapar:
+Bu handler'ı elle kaydeden hiçbir şey yok. Kaynak üreteci onu derleme zamanında bulur ve
+başlangıçta bir kez bağlayacağınız kayıt çağrısını üretir:
 
 ```csharp
-using System.Reflection;
+using Stella.Ergosfare.Generated;
 
 builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterFromAssembly(Assembly.GetExecutingAssembly()))
-    .AddQueryModule(q => q.RegisterFromAssembly(Assembly.GetExecutingAssembly()))
-    .AddEventModule(e => e.RegisterFromAssembly(Assembly.GetExecutingAssembly())));
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
 ```
 
-## v1 ve v2 farkı
+## Neden Ergosfare
 
-v2 kavramların yeniden yazımı değil — mesajlar, handler'lar ve interceptor'lar aynı şekilde
-çalışıyor. Değişen, kaydın ve dispatch'in nasıl uygulandığı:
+**Derleme zamanı kayıt.** Üreteç, handler'ları hem sizin derlemenizde *hem de referans verilen
+assembly'lerde* bulur, descriptor'larını önceden hesaplar ve `RegisterGenerated()` üretir. Bir
+kütüphanenin handler'ları, kütüphanede hiç kayıt kodu olmadan, onu kullanan uygulamanın
+üretilmiş kodu üzerinden kaydolur.
 
-| | v1 (bu hat) | v2 preview |
-|---|---|---|
-| Kayıt | Çalışma zamanı assembly taraması | Kaynak üreteci, derleme zamanında |
-| Handler dönüşü | `Task` / `Task<T>` | `ValueTask` / `ValueTask<T>` |
-| Execution context | Parametre + `AmbientExecutionContext` | Sadece parametre; havuzlanmış |
-| İç içe dispatch | Ambient scope | `context.CreateScope()`, izole |
-| Native AOT | Desteklenmiyor | Destekleniyor, dispatch root'larıyla |
-| Event handler'ları | Yalnızca tam event tipi | Interceptor'lar gibi kovaryant |
-| Allocation (100 bin dispatch) | — | ~2.3 MB |
+**Reflection'sız dispatch.** Üretilen dispatch root'ları executor generic'lerini derleme
+zamanında kapatır, pipeline planları da generic handler tiplerini önceden kapatır.
+`MakeGenericType` yalnızca açık generic'ler ve çalışma zamanı kayıtları için bir yedek olarak
+kalır.
+
+**Hesabı verilebilir allocation.** Havuzlanmış execution context'ler, `ValueTask` öncelikli bir
+yüzey ve senkron hızlı yollar; 100 bin ardışık dispatch'i ~2.3 MB'a indiriyor — aynı döngüde
+MediatR'ın 18.3 MB'ına karşılık. Tam ölçüm ve MediatR'ın kazandığı senaryo için
+[Performans](/ergosfare.docs/tr/advanced/performance) sayfasına bakın.
+
+**Güvenli iç içe dispatch.** `context.CreateScope()`, handler içindeki mediator çağrıları için
+izole bir alt bağlam verir; iptal token'ı miras alınır. Ambient state kullanan mediator'ların
+güvenle sunamadığı desen budur.
+
+**Ambient state yok.** Execution context bir parametredir, asla bir `AsyncLocal` değil. Bir
+dispatch hakkında hiçbir şey thread-local depodan keşfedilemez — iç içe ve paralel dispatch'i
+öngörülebilir kılan da budur.
+
+**Native AOT ve trimming.** Her yapı `typeof` ile statik olarak referanslanır ve dispatch
+root'ları her generic örneklemeyi sabitler — paylaşımlı generic kodun kapsayamadığı
+`record struct` mesajlar dahil.
+
+**Modüler.** Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. Sadece
+mesaj tanımlayan bir kütüphaneye yalnızca ilgili `.Abstractions` paketi yeter.
+
+## Bir dispatch nasıl birleşiyor
+
+```
+derleme zamanı                (mesaj tipi, gruplar) başına bir kez        her dispatch
+──────────────                ───────────────────────────────────        ────────────
+kaynak üreteci         ──►    MessageRegistry ─► descriptor ─► plan  ──►  havuzdan context alınır
+  descriptor'lar önceden        │                                          │
+  dispatch root'ları üretilir   │  altı sabit aşama, önceden sıralı        │  executor runtime tipe kapatılır
+  RegisterGenerated()           │  (önce doğrudan, sonra ağırlığa göre)    │  handler çağıran scope'tan çözülür
+                                └─ kapalı generic tipler önceden           └─ pre → main → post/exception → final
+```
+
+- **Registry ve descriptor'lar.** Üretilen kayıt, önceden hesaplanmış descriptor'ları sağlar.
+  Açık `Register<T>()` ve çalışma zamanı taraması aynı registry'yi besler ve idempotenttir —
+  üçü birlikte kullanılabilir.
+- **Pipeline planı.** Mesaj başına altı sabit aşama: ana handler'lar (doğrudan/dolaylı ayrımıyla)
+  ve dört interceptor aşaması; her biri önceden sıralanmış bir dizi. Önce doğrudan girdiler,
+  sonra kovaryant eşleşmeler ağırlığa göre. Grup filtreleri ve `[ExcludeFromPipeline]` burada,
+  bir kez uygulanır.
+- **Dispatch.** Mediator havuzdan bir context alır, mesajın çalışma zamanı tipine karşılık gelen
+  önbellekli executor'ı bulur ve planı yürür. Handler çözümü dispatcher'a aittir — execution
+  context bilinçli olarak **hiçbir** service provider sunmaz.
 
 ## Sırada ne var
 
-- [Kurulum](/ergosfare.docs/tr/getting-started/installation) — paketler ve sürümler.
-- [Hızlı başlangıç](/ergosfare.docs/tr/getting-started/quick-start) — bir command, query ve event.
-- [Temel kavramlar](/ergosfare.docs/tr/core-concepts) — mesajlar, handler'lar, bağlam.
-- [Interceptorlar](/ergosfare.docs/tr/interceptors) — dört pipeline aşaması.
-- [API referansı](/ergosfare.docs/api) — `main` dalından üretiliyor (İngilizce).
+- [Kurulum](/ergosfare.docs/tr/getting-started/installation) — gerçekte hangi paketlere ihtiyacınız var.
+- [Hızlı başlangıç](/ergosfare.docs/tr/getting-started/quick-start) — uçtan uca bir command, query ve event.
+- [Derleme zamanı keşif](/ergosfare.docs/tr/core-concepts/compile-time-discovery) — `RegisterGenerated()` nereden geliyor.
+- [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2) — zaten kararlı hattaysanız.
 
-Bunun ötesindeki her şey için
-[v2 dokümantasyonu](/ergosfare.docs/tr/preview/getting-started/introduction) aynı konuları çok
-daha derin anlatıyor ve çoğu kavramsal olarak v1 için de geçerli.
+{% aside type="note" %}
+Bir yerde takıldınız mı?
+[GitHub](https://github.com/stellayazilim/ergosfare/issues) üzerinden issue açın.
+{% /aside %}

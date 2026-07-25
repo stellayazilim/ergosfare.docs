@@ -1,0 +1,110 @@
+---
+title: Defining an event handler
+description: IEventHandler — many handlers per event, what happens when one throws, and why handlers must not depend on each other.
+---
+
+An event handler implements `IEventHandler<TEvent>`. There is no result to return:
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
+{
+    private readonly IMailer _mailer;
+
+    public SendWelcomeEmail(IMailer mailer) => _mailer = mailer;
+
+    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+        => _mailer.SendAsync(@event.Name, context.CancellationToken);
+}
+```
+
+Any number of handlers can exist for one event — that is the point of the module. Adding a
+second one is not a configuration error, unlike with commands and queries.
+
+## Handlers must be independent
+
+Handlers for the same event run in a defined order (direct before covariant, then `[Weight]`
+descending), but you should not build on that order. Two rules follow:
+
+- **Do not pass data between handlers.** If handler B needs what handler A produced, they are
+  one operation and belong in one handler — or A should be a command that publishes the event
+  B reacts to.
+- **Do not assume the others succeeded.** A handler that must run only after another
+  succeeded is describing a workflow, not a broadcast.
+
+The item bag on the context does let handlers share data within one dispatch, which makes
+this easy to violate. Reserve it for
+[interceptors](/ergosfare.docs/core-concepts/interceptors) passing data to the pipeline, not
+for handler-to-handler communication.
+
+## When a handler throws
+
+The exception propagates out of `PublishAsync`, and the
+[exception stage](/ergosfare.docs/cross-cutting-concerns/exception-interceptors) runs. That
+means one failing subscriber can fail the whole publish — and, if the publish is inside a
+command handler, the command with it.
+
+When a subscriber's failure genuinely should not fail the publisher, contain it in the
+handler:
+
+```csharp
+public async ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+{
+    try
+    {
+        await _searchIndex.AddAsync(@event.Id, @event.Name, context.CancellationToken);
+    }
+    catch (Exception ex) when (ex is not OperationCanceledException)
+    {
+        _logger.LogError(ex, "Indexing {Product} failed; continuing", @event.Id);
+    }
+}
+```
+
+Letting cancellation through is deliberate — a cancelled dispatch should stay cancelled.
+
+For work that must survive process failure, do not do it in the handler at all: write to an
+outbox in the handler and let a separate worker do the delivery.
+
+## Covariant handlers
+
+A handler registered against a base type or interface receives every assignable event:
+
+```csharp
+public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
+{
+    public ValueTask HandleAsync(IDomainEvent @event, IExecutionContext context)
+        => _outbox.AppendAsync(@event, context.CancellationToken);
+}
+```
+
+Handlers registered for the concrete event type run first, then covariant ones. This is what
+lets an outbox, an audit sink or a metrics collector subscribe to a whole family of events
+with a single class.
+
+## Lifetimes
+
+Event handlers resolve from the calling DI scope on each dispatch, like every other handler.
+A handler holding a `DbContext` should be **scoped**. See
+[Configuring Ergosfare](/ergosfare.docs/getting-started/configuring#handler-lifetimes).
+
+Because a publish may fan out to many handlers, this is the module where transient handlers
+allocate most visibly — one instance per handler per dispatch. Register them as singletons
+when they are stateless.
+
+## Publishing from a handler
+
+Use a [nested scope](/ergosfare.docs/core-concepts/nested-dispatch) so the inner dispatch gets
+a clean item bag and the parent's cancellation token:
+
+```csharp
+public async ValueTask HandleAsync(OrderPlaced @event, IExecutionContext context)
+{
+    using var scope = context.CreateScope();
+    await _events.PublishAsync(new InvoiceRequested(@event.OrderId), scope.Context);
+}
+```
+
+Next: [Modules and extensions](/ergosfare.docs/core-components/modules-extensions).

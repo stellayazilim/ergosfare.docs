@@ -38,7 +38,8 @@ function apiReferenceCollection() {
 
 /**
  * Sidebar entries for the generated API Reference, keyed by documented line
- * (`v1` for stable at the site root, `v2` for the preview line under /preview).
+ * (`stable` for the site root, `preview` for the line under /preview). The keys
+ * come from `VERSIONS` in scripts/api-ref/config.ts.
  *
  * The fragment is written by `npm run gen_api_ref` and is git-ignored, so a
  * fresh checkout has no file here. Falling back to empty groups keeps
@@ -80,7 +81,7 @@ export default defineConfig({
         // to the line the reader is on, keyed off the `preview/` route prefix — so
         // a stable page never shows the preview tree and vice versa.
         sidebar: [
-            // ---------------------------------------------------------- v1 stable
+            // ------------------------------------------------------ v2 stable (root)
             {
                 label: "Getting started",
                 translations: { tr: "Başlarken" },
@@ -88,15 +89,60 @@ export default defineConfig({
                     { label: "Introduction", slug: "getting-started/introduction", translations: { tr: "Giriş" } },
                     { label: "Installation", slug: "getting-started/installation", translations: { tr: "Kurulum" } },
                     { label: "Quick start", slug: "getting-started/quick-start", translations: { tr: "Hızlı Başlangıç" } },
+                    { label: "Configuring Ergosfare", slug: "getting-started/configuring", translations: { tr: "Ergosfare'yi Yapılandırma" } },
                 ],
             },
             {
-                label: "Concepts", translations: { tr: "Kavramlar" }, items: [
-                    { label: "Core concepts", slug: "core-concepts", translations: { tr: "Temel Kavramlar" } },
-                    { label: "Interceptors", slug: "interceptors", translations: { tr: "Interceptorlar" } },
+                label: "Core concepts", translations: { tr: "Temel Kavramlar" }, items: [
+                    { label: "Compile-time discovery", slug: "core-concepts/compile-time-discovery", translations: { tr: "Derleme Zamanı Keşif" } },
+                    { label: "Discovery keys", slug: "core-concepts/discovery-keys", translations: { tr: "Keşif Anahtarları" } },
+                    { label: "Polymorphism", slug: "core-concepts/polymorphism", translations: { tr: "Çok Biçimlilik" } },
+                    { label: "Interceptors", slug: "core-concepts/interceptors", translations: { tr: "Interceptorlar" } },
+                    { label: "Execution context", slug: "core-concepts/execution-context", translations: { tr: "Yürütme Bağlamı" } },
+                    { label: "Nested dispatch", slug: "core-concepts/nested-dispatch", translations: { tr: "İç İçe Dispatch" } },
+                    { label: "Modules and plugins", slug: "core-concepts/plugins", translations: { tr: "Modüller ve Eklentiler" } },
                 ]
             },
-            ...apiReferenceSidebar('v1'),
+            {
+                label: "Core components", translations: { tr: "Temel Bileşenler" },
+                items: [
+                    { label: "Modules and extensions", slug: "core-components/modules-extensions", translations: { tr: "Modüller ve Uzantılar" } },
+                    { label: "Command module", translations: { tr: "Command Modülü" }, items: [
+                        { label: "Defining a command", slug: "core-components/command/command-definition", translations: { tr: "Command Tanımlama" } },
+                        { label: "Defining a command handler", slug: "core-components/command/command-handler", translations: { tr: "Command Handler Tanımlama" } }
+                    ]},
+                    { label: "Query module", translations: { tr: "Query Modülü" }, items: [
+                        { label: "Defining a query", slug: "core-components/query/query-definition", translations: { tr: "Query Tanımlama" } },
+                        { label: "Defining a query handler", slug: "core-components/query/query-handler", translations: { tr: "Query Handler Tanımlama" } }
+                    ]},
+                    { label: "Event module", translations: { tr: "Event Modülü" }, items: [
+                        { label: "Defining an event", slug: "core-components/event/event-definition", translations: { tr: "Event Tanımlama" } },
+                        { label: "Defining an event handler", slug: "core-components/event/event-handler", translations: { tr: "Event Handler Tanımlama" } }
+                    ]}
+                ]
+            },
+            {
+                label: "Cross-cutting concerns", translations: { tr: "Katmanlar Arası Kaygılar" }, items: [
+                    { label: "Pre-interceptors", slug: "cross-cutting-concerns/pre-interceptors", translations: { tr: "Ön-Interceptorlar" } },
+                    { label: "Post-interceptors", slug: "cross-cutting-concerns/post-interceptors", translations: { tr: "Son-Interceptorlar" } },
+                    { label: "Exception interceptors", slug: "cross-cutting-concerns/exception-interceptors", translations: { tr: "Hata Interceptorları" } },
+                    { label: "Final interceptors", slug: "cross-cutting-concerns/final-interceptors", translations: { tr: "Final Interceptorlar" } },
+                    { label: "Groups and weights", slug: "cross-cutting-concerns/groups-and-weights", translations: { tr: "Gruplar ve Ağırlıklar" } },
+                ]
+            },
+            {
+                label: "Advanced", translations: { tr: "İleri Seviye" }, items: [
+                    { label: "Performance", slug: "advanced/performance", translations: { tr: "Performans" } },
+                    { label: "Native AOT and trimming", slug: "advanced/aot-and-trimming", translations: { tr: "Native AOT ve Trimming" } },
+                    { label: "Experimental APIs", slug: "advanced/experimental-apis", translations: { tr: "Deneysel API'ler" } },
+                ]
+            },
+            {
+                label: "Migration", translations: { tr: "Geçiş" }, items: [
+                    { label: "v1 to v2", slug: "migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
+                ]
+            },
+            ...apiReferenceSidebar('stable'),
 
             // --------------------------------------------------------- v2 preview
             {
@@ -159,7 +205,7 @@ export default defineConfig({
                     { label: "v1 to v2", slug: "preview/migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]
             },
-            ...apiReferenceSidebar('v2'),
+            ...apiReferenceSidebar('preview'),
         ],
         customCss: [
         './src/styles/global.css'

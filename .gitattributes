@@ -1,0 +1,6 @@
+# The site documents two lines whose pages are copies of one another, so a
+# CRLF/LF split between /preview and the root shows up as a whole-file diff even
+# when the prose is identical — and it hides the differences that matter.
+# Normalizing on the way in makes the two trees comparable byte for byte,
+# regardless of each contributor's core.autocrlf.
+* text=auto eol=lf

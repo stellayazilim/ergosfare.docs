@@ -1,0 +1,110 @@
+---
+title: Nested dispatch
+description: Calling the mediator from inside a handler with CreateScope() — isolated items, inherited cancellation, no ambient state to restore.
+---
+
+A handler often needs to mediate further messages: reserve stock while placing an order,
+publish an event after a command succeeds. Ergosfare handles this with an explicit child
+scope rather than ambient state.
+
+```csharp
+public async ValueTask HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+{
+    using var scope = ctx.CreateScope();   // struct scope — allocates nothing
+
+    var reserved = await _commands.SendAsync(new ReserveStock(msg.OrderId), scope.Context);
+    await _events.PublishAsync(new OrderPlaced(msg.OrderId), scope.Context);
+}
+```
+
+## What the child gets
+
+**Clean items.** The child starts with an empty item bag. Anything an inner interceptor
+stashes stays inner — it cannot leak into the outer dispatch and confuse an outer
+post-interceptor.
+
+**The parent's cancellation token.** Inherited, not re-derived. Nested work cannot escape the
+outer cancellation chain, and there is no token parameter to forget.
+
+**Its own pipeline.** The inner message runs its own plan: its own interceptors, its own
+handlers, its own abort semantics.
+
+## Passing the child
+
+Every mediator facade has an overload taking an `IExecutionContext`:
+
+```csharp
+ValueTask        SendAsync(ICommand command, IExecutionContext context, CommandMediationSettings? settings = null);
+ValueTask<T>     SendAsync<T>(ICommand<T> command, IExecutionContext context, CommandMediationSettings? settings = null);
+ValueTask<T>     QueryAsync<T>(IQuery<T> query, IExecutionContext context, QueryMediationSettings? settings = null);
+ValueTask        PublishAsync(IEvent @event, IExecutionContext context, EventMediationSettings? settings = null);
+```
+
+Pass `scope.Context`, not `ctx`. Passing the parent would run the inner dispatch on the
+outer context and defeat the isolation.
+
+## Abort is scoped too
+
+An `Abort()` inside the child ends **only the inner pipeline**. The outer handler resumes at
+the line after the inner call and decides what happens next:
+
+```csharp
+public async ValueTask<bool> HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+{
+    using var reserve = ctx.CreateScope();
+    var stock = await _commands.SendAsync(new ReserveStock(msg.OrderId), reserve.Context);
+
+    if (!stock.Reserved)
+        return false;      // inner abort did not touch this pipeline
+
+    using var notify = ctx.CreateScope();
+    await _events.PublishAsync(new OrderPlaced(msg.OrderId), notify.Context);
+    return true;
+}
+```
+
+This is the part ambient-state mediators cannot offer safely. With an `AsyncLocal` context,
+an inner dispatch either overwrites the ambient value — requiring a restore step that a
+`finally` block has to get exactly right — or shares state with the outer pipeline. Here
+there is nothing ambient to overwrite, so there is nothing to restore.
+
+## Parallel inner dispatches
+
+Separate scopes are independent, so fanning out is safe:
+
+```csharp
+public async ValueTask HandleAsync(RebuildAll msg, IExecutionContext ctx)
+{
+    await Task.WhenAll(msg.TenantIds.Select(async id =>
+    {
+        using var scope = ctx.CreateScope();
+        await _commands.SendAsync(new RebuildTenant(id), scope.Context);
+    }));
+}
+```
+
+Each iteration rents its own child context. They share the parent's cancellation token and
+nothing else.
+
+{% aside type="caution" %}
+Do not share one scope across concurrent inner dispatches. One scope means one context, and
+a context is single-dispatch state.
+{% /aside %}
+
+## Lifetime
+
+`ExecutionContextScope` is a `readonly struct` implementing `IDisposable`, and `using`
+returns the pooled child. As with any pooled context, the child **must not be used after the
+scope is disposed** — see
+[Execution context](/ergosfare.docs/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+
+```csharp
+// Wrong — the child is back in the pool by the time this runs.
+IExecutionContext leaked;
+using (var scope = ctx.CreateScope())
+    leaked = scope.Context;
+
+leaked.Set("oops", true);
+```
+
+Next: [Interceptors](/ergosfare.docs/core-concepts/interceptors).
