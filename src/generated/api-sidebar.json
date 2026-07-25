@@ -1,0 +1,1616 @@
+{
+  "stable": {
+    "label": "API Reference",
+    "collapsed": true,
+    "translations": {
+      "tr": "API Referansı"
+    },
+    "items": [
+      {
+        "label": "Overview",
+        "link": "/api"
+      },
+      {
+        "label": "Core.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions"
+          },
+          {
+            "label": "ExecutionContextScope",
+            "link": "/api/core-abstractions/executioncontextscope"
+          },
+          {
+            "label": "GeneratedDispatchRoots",
+            "link": "/api/core-abstractions/generateddispatchroots"
+          },
+          {
+            "label": "IExecutionContext",
+            "link": "/api/core-abstractions/iexecutioncontext"
+          },
+          {
+            "label": "IHandlerReference<THandler, TDescriptor>",
+            "link": "/api/core-abstractions/ihandlerreference-2"
+          },
+          {
+            "label": "IMessage",
+            "link": "/api/core-abstractions/imessage"
+          },
+          {
+            "label": "IMessageDependencies",
+            "link": "/api/core-abstractions/imessagedependencies"
+          },
+          {
+            "label": "IMessageMediationStrategy<TMessage, TMessageResult>",
+            "link": "/api/core-abstractions/imessagemediationstrategy-2"
+          },
+          {
+            "label": "IMessageMediator",
+            "link": "/api/core-abstractions/imessagemediator"
+          },
+          {
+            "label": "IMessageResolveStrategy",
+            "link": "/api/core-abstractions/imessageresolvestrategy"
+          },
+          {
+            "label": "IMessageResultRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions/imessageresultrootvisitor-2"
+          },
+          {
+            "label": "IMessageRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions/imessagerootvisitor-2"
+          },
+          {
+            "label": "IPipelineExecutor",
+            "link": "/api/core-abstractions/ipipelineexecutor"
+          },
+          {
+            "label": "IPipelineExecutor<TResult>",
+            "link": "/api/core-abstractions/ipipelineexecutor-1"
+          },
+          {
+            "label": "IResultAdapter",
+            "link": "/api/core-abstractions/iresultadapter"
+          },
+          {
+            "label": "IResultAdapterService",
+            "link": "/api/core-abstractions/iresultadapterservice"
+          },
+          {
+            "label": "MediateOptions<TMessage, TResult>",
+            "link": "/api/core-abstractions/mediateoptions-2"
+          },
+          {
+            "label": "MessageResultRoot",
+            "link": "/api/core-abstractions/messageresultroot"
+          },
+          {
+            "label": "MessageResultRoot<TMessage, TResult>",
+            "link": "/api/core-abstractions/messageresultroot-2"
+          },
+          {
+            "label": "MessageRoot",
+            "link": "/api/core-abstractions/messageroot"
+          },
+          {
+            "label": "MessageRoot<TMessage>",
+            "link": "/api/core-abstractions/messageroot-1"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Attributes",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-attributes"
+          },
+          {
+            "label": "Discovery",
+            "link": "/api/core-abstractions-attributes/discovery"
+          },
+          {
+            "label": "DiscoveryKeyAttribute",
+            "link": "/api/core-abstractions-attributes/discoverykeyattribute"
+          },
+          {
+            "label": "ExcludeFromDiscoveryAttribute",
+            "link": "/api/core-abstractions-attributes/excludefromdiscoveryattribute"
+          },
+          {
+            "label": "ExcludeFromPipelineAttribute",
+            "link": "/api/core-abstractions-attributes/excludefrompipelineattribute"
+          },
+          {
+            "label": "GroupAttribute",
+            "link": "/api/core-abstractions-attributes/groupattribute"
+          },
+          {
+            "label": "WeightAttribute",
+            "link": "/api/core-abstractions-attributes/weightattribute"
+          }
+        ]
+      },
+      {
+        "label": "Commands.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/commands-abstractions"
+          },
+          {
+            "label": "CommandMediationSettings",
+            "link": "/api/commands-abstractions/commandmediationsettings"
+          },
+          {
+            "label": "CommandMediationSettings.CommandMediationFilters",
+            "link": "/api/commands-abstractions/commandmediationsettings-commandmediationfilters"
+          },
+          {
+            "label": "CommandMediatorExtensions",
+            "link": "/api/commands-abstractions/commandmediatorextensions"
+          },
+          {
+            "label": "ICommand",
+            "link": "/api/commands-abstractions/icommand"
+          },
+          {
+            "label": "ICommand<TResult>",
+            "link": "/api/commands-abstractions/icommand-1"
+          },
+          {
+            "label": "ICommandExceptionInterceptor",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptor"
+          },
+          {
+            "label": "ICommandExceptionInterceptor<TCommand, TResult>",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptor-2"
+          },
+          {
+            "label": "ICommandExceptionInterceptor<TCommand>",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptor-1"
+          },
+          {
+            "label": "ICommandFinalInterceptor",
+            "link": "/api/commands-abstractions/icommandfinalinterceptor"
+          },
+          {
+            "label": "ICommandFinalInterceptor<TCommand, TResult>",
+            "link": "/api/commands-abstractions/icommandfinalinterceptor-2"
+          },
+          {
+            "label": "ICommandFinalInterceptor<TCommand>",
+            "link": "/api/commands-abstractions/icommandfinalinterceptor-1"
+          },
+          {
+            "label": "ICommandHandler<TCommand, TResult>",
+            "link": "/api/commands-abstractions/icommandhandler-2"
+          },
+          {
+            "label": "ICommandHandler<TCommand>",
+            "link": "/api/commands-abstractions/icommandhandler-1"
+          },
+          {
+            "label": "ICommandMediator",
+            "link": "/api/commands-abstractions/icommandmediator"
+          },
+          {
+            "label": "ICommandPostInterceptor",
+            "link": "/api/commands-abstractions/icommandpostinterceptor"
+          },
+          {
+            "label": "ICommandPostInterceptor<TCommand, TResult>",
+            "link": "/api/commands-abstractions/icommandpostinterceptor-2"
+          },
+          {
+            "label": "ICommandPostInterceptor<TCommand>",
+            "link": "/api/commands-abstractions/icommandpostinterceptor-1"
+          },
+          {
+            "label": "ICommandPreInterceptor",
+            "link": "/api/commands-abstractions/icommandpreinterceptor"
+          },
+          {
+            "label": "ICommandPreInterceptor<TCommand, TModifiedCommand>",
+            "link": "/api/commands-abstractions/icommandpreinterceptor-2"
+          },
+          {
+            "label": "ICommandPreInterceptor<TCommand>",
+            "link": "/api/commands-abstractions/icommandpreinterceptor-1"
+          }
+        ]
+      },
+      {
+        "label": "Queries.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/queries-abstractions"
+          },
+          {
+            "label": "IQuery",
+            "link": "/api/queries-abstractions/iquery"
+          },
+          {
+            "label": "IQuery<TResult>",
+            "link": "/api/queries-abstractions/iquery-1"
+          },
+          {
+            "label": "IQueryExceptionInterceptor",
+            "link": "/api/queries-abstractions/iqueryexceptioninterceptor"
+          },
+          {
+            "label": "IQueryExceptionInterceptor<TQuery, TResult>",
+            "link": "/api/queries-abstractions/iqueryexceptioninterceptor-2"
+          },
+          {
+            "label": "IQueryFinalInterceptor",
+            "link": "/api/queries-abstractions/iqueryfinalinterceptor"
+          },
+          {
+            "label": "IQueryFinalInterceptor<TQuery, TResult>",
+            "link": "/api/queries-abstractions/iqueryfinalinterceptor-2"
+          },
+          {
+            "label": "IQueryHandler<TQuery, TResult>",
+            "link": "/api/queries-abstractions/iqueryhandler-2"
+          },
+          {
+            "label": "IQueryMediator",
+            "link": "/api/queries-abstractions/iquerymediator"
+          },
+          {
+            "label": "IQueryPostInterceptor",
+            "link": "/api/queries-abstractions/iquerypostinterceptor"
+          },
+          {
+            "label": "IQueryPostInterceptor<TQuery, TResult>",
+            "link": "/api/queries-abstractions/iquerypostinterceptor-2"
+          },
+          {
+            "label": "IQueryPostInterceptor<TQuery>",
+            "link": "/api/queries-abstractions/iquerypostinterceptor-1"
+          },
+          {
+            "label": "IQueryPreInterceptor",
+            "link": "/api/queries-abstractions/iquerypreinterceptor"
+          },
+          {
+            "label": "IQueryPreInterceptor<TQuery, TModifiedQuery>",
+            "link": "/api/queries-abstractions/iquerypreinterceptor-2"
+          },
+          {
+            "label": "IQueryPreInterceptor<TQuery>",
+            "link": "/api/queries-abstractions/iquerypreinterceptor-1"
+          },
+          {
+            "label": "IStreamQuery<TResult>",
+            "link": "/api/queries-abstractions/istreamquery-1"
+          },
+          {
+            "label": "IStreamQueryHandler<TQuery, TResult>",
+            "link": "/api/queries-abstractions/istreamqueryhandler-2"
+          },
+          {
+            "label": "QueryMediationSettings",
+            "link": "/api/queries-abstractions/querymediationsettings"
+          },
+          {
+            "label": "QueryMediationSettings.QueryMediationFilters",
+            "link": "/api/queries-abstractions/querymediationsettings-querymediationfilters"
+          },
+          {
+            "label": "QueryMediatorExtensions",
+            "link": "/api/queries-abstractions/querymediatorextensions"
+          }
+        ]
+      },
+      {
+        "label": "Events.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/events-abstractions"
+          },
+          {
+            "label": "EventMediationSettings",
+            "link": "/api/events-abstractions/eventmediationsettings"
+          },
+          {
+            "label": "EventMediationSettings.EventMediationFilters",
+            "link": "/api/events-abstractions/eventmediationsettings-eventmediationfilters"
+          },
+          {
+            "label": "EventMediatorExtensions",
+            "link": "/api/events-abstractions/eventmediatorextensions"
+          },
+          {
+            "label": "IEvent",
+            "link": "/api/events-abstractions/ievent"
+          },
+          {
+            "label": "IEventExceptionInterceptor",
+            "link": "/api/events-abstractions/ieventexceptioninterceptor"
+          },
+          {
+            "label": "IEventExceptionInterceptor<TEvent>",
+            "link": "/api/events-abstractions/ieventexceptioninterceptor-1"
+          },
+          {
+            "label": "IEventFinalInterceptor",
+            "link": "/api/events-abstractions/ieventfinalinterceptor"
+          },
+          {
+            "label": "IEventFinalInterceptor<TEvent>",
+            "link": "/api/events-abstractions/ieventfinalinterceptor-1"
+          },
+          {
+            "label": "IEventHandler<TEvent>",
+            "link": "/api/events-abstractions/ieventhandler-1"
+          },
+          {
+            "label": "IEventMediator",
+            "link": "/api/events-abstractions/ieventmediator"
+          },
+          {
+            "label": "IEventPostInterceptor",
+            "link": "/api/events-abstractions/ieventpostinterceptor"
+          },
+          {
+            "label": "IEventPostInterceptor<TEvent>",
+            "link": "/api/events-abstractions/ieventpostinterceptor-1"
+          },
+          {
+            "label": "IEventPreInterceptor",
+            "link": "/api/events-abstractions/ieventpreinterceptor"
+          },
+          {
+            "label": "IEventPreInterceptor<TEvent, TModifiedEvent>",
+            "link": "/api/events-abstractions/ieventpreinterceptor-2"
+          },
+          {
+            "label": "IEventPreInterceptor<TEvent>",
+            "link": "/api/events-abstractions/ieventpreinterceptor-1"
+          },
+          {
+            "label": "IPublisher",
+            "link": "/api/events-abstractions/ipublisher"
+          }
+        ]
+      },
+      {
+        "label": "Commands",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/commands"
+          },
+          {
+            "label": "CommandMediator",
+            "link": "/api/commands/commandmediator"
+          }
+        ]
+      },
+      {
+        "label": "Commands.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/commands-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "CommandModuleBuilder",
+            "link": "/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/api/commands-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          }
+        ]
+      },
+      {
+        "label": "Core",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core"
+          },
+          {
+            "label": "ResultAdapterService",
+            "link": "/api/core/resultadapterservice"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Caching",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-caching"
+          },
+          {
+            "label": "IDescriptorCacheStrategy",
+            "link": "/api/core-abstractions-caching/idescriptorcachestrategy"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Exceptions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-exceptions"
+          },
+          {
+            "label": "AdaptedException",
+            "link": "/api/core-abstractions-exceptions/adaptedexception"
+          },
+          {
+            "label": "ExecutionAbortedException",
+            "link": "/api/core-abstractions-exceptions/executionabortedexception"
+          },
+          {
+            "label": "ExecutionRetryRequestedException",
+            "link": "/api/core-abstractions-exceptions/executionretryrequestedexception"
+          },
+          {
+            "label": "InvalidMessageTypeException",
+            "link": "/api/core-abstractions-exceptions/invalidmessagetypeexception"
+          },
+          {
+            "label": "MultipleHandlerFoundException",
+            "link": "/api/core-abstractions-exceptions/multiplehandlerfoundexception"
+          },
+          {
+            "label": "NoHandlerFoundException",
+            "link": "/api/core-abstractions-exceptions/nohandlerfoundexception"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Factories",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-factories"
+          },
+          {
+            "label": "IMessageDependenciesFactory",
+            "link": "/api/core-abstractions-factories/imessagedependenciesfactory"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Handlers",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-handlers"
+          },
+          {
+            "label": "IAsyncExceptionInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/iasyncexceptioninterceptor-2"
+          },
+          {
+            "label": "IAsyncExceptionInterceptor<TMessage>",
+            "link": "/api/core-abstractions-handlers/iasyncexceptioninterceptor-1"
+          },
+          {
+            "label": "IAsyncFinalInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/iasyncfinalinterceptor-2"
+          },
+          {
+            "label": "IAsyncFinalInterceptor<TMessage>",
+            "link": "/api/core-abstractions-handlers/iasyncfinalinterceptor-1"
+          },
+          {
+            "label": "IAsyncHandler<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/iasynchandler-2"
+          },
+          {
+            "label": "IAsyncHandler<TMessage>",
+            "link": "/api/core-abstractions-handlers/iasynchandler-1"
+          },
+          {
+            "label": "IAsyncPostInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/iasyncpostinterceptor-2"
+          },
+          {
+            "label": "IAsyncPostInterceptor<TMessage>",
+            "link": "/api/core-abstractions-handlers/iasyncpostinterceptor-1"
+          },
+          {
+            "label": "IAsyncPreInterceptor<TMessage>",
+            "link": "/api/core-abstractions-handlers/iasyncpreinterceptor-1"
+          },
+          {
+            "label": "IExceptionInterceptor",
+            "link": "/api/core-abstractions-handlers/iexceptioninterceptor"
+          },
+          {
+            "label": "IExceptionInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/iexceptioninterceptor-2"
+          },
+          {
+            "label": "IFinalInterceptor",
+            "link": "/api/core-abstractions-handlers/ifinalinterceptor"
+          },
+          {
+            "label": "IFinalInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/ifinalinterceptor-2"
+          },
+          {
+            "label": "IHandler",
+            "link": "/api/core-abstractions-handlers/ihandler"
+          },
+          {
+            "label": "IHandler<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/ihandler-2"
+          },
+          {
+            "label": "IPostInterceptor",
+            "link": "/api/core-abstractions-handlers/ipostinterceptor"
+          },
+          {
+            "label": "IPostInterceptor<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/ipostinterceptor-2"
+          },
+          {
+            "label": "IPreInterceptor",
+            "link": "/api/core-abstractions-handlers/ipreinterceptor"
+          },
+          {
+            "label": "IPreInterceptor<TMessage>",
+            "link": "/api/core-abstractions-handlers/ipreinterceptor-1"
+          },
+          {
+            "label": "IStreamHandler<TMessage, TResult>",
+            "link": "/api/core-abstractions-handlers/istreamhandler-2"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Registry",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-registry"
+          },
+          {
+            "label": "IMessageRegistry",
+            "link": "/api/core-abstractions-registry/imessageregistry"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Registry.Descriptors",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-registry-descriptors"
+          },
+          {
+            "label": "HandlerDescriptors",
+            "link": "/api/core-abstractions-registry-descriptors/handlerdescriptors"
+          },
+          {
+            "label": "IExceptionInterceptorDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/iexceptioninterceptordescriptor"
+          },
+          {
+            "label": "IFinalInterceptorDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/ifinalinterceptordescriptor"
+          },
+          {
+            "label": "IHandlerDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/ihandlerdescriptor"
+          },
+          {
+            "label": "IHasMessageType",
+            "link": "/api/core-abstractions-registry-descriptors/ihasmessagetype"
+          },
+          {
+            "label": "IHasResultType",
+            "link": "/api/core-abstractions-registry-descriptors/ihasresulttype"
+          },
+          {
+            "label": "IMainHandlerDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/imainhandlerdescriptor"
+          },
+          {
+            "label": "IMessageDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/imessagedescriptor"
+          },
+          {
+            "label": "IPostInterceptorDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/ipostinterceptordescriptor"
+          },
+          {
+            "label": "IPreInterceptorDescriptor",
+            "link": "/api/core-abstractions-registry-descriptors/ipreinterceptordescriptor"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Strategies",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-strategies"
+          },
+          {
+            "label": "ActualTypeOrFirstAssignableTypeMessageResolveStrategy",
+            "link": "/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy"
+          },
+          {
+            "label": "SingleAsyncHandlerMediationStrategy<TMessage, TResult>",
+            "link": "/api/core-abstractions-strategies/singleasynchandlermediationstrategy-2"
+          },
+          {
+            "label": "SingleAsyncHandlerMediationStrategy<TMessage>",
+            "link": "/api/core-abstractions-strategies/singleasynchandlermediationstrategy-1"
+          },
+          {
+            "label": "SingleStreamHandlerMediationStrategy<TMessage, TResult>",
+            "link": "/api/core-abstractions-strategies/singlestreamhandlermediationstrategy-2"
+          }
+        ]
+      },
+      {
+        "label": "Core.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "CoreModule",
+            "link": "/api/core-extensions-microsoftdependencyinjection/coremodule"
+          },
+          {
+            "label": "CoreModuleBuilder",
+            "link": "/api/core-extensions-microsoftdependencyinjection/coremodulebuilder"
+          },
+          {
+            "label": "IModule",
+            "link": "/api/core-extensions-microsoftdependencyinjection/imodule"
+          },
+          {
+            "label": "IModuleBuilder",
+            "link": "/api/core-extensions-microsoftdependencyinjection/imodulebuilder"
+          },
+          {
+            "label": "IModuleConfiguration",
+            "link": "/api/core-extensions-microsoftdependencyinjection/imoduleconfiguration"
+          },
+          {
+            "label": "IModuleRegistry",
+            "link": "/api/core-extensions-microsoftdependencyinjection/imoduleregistry"
+          },
+          {
+            "label": "ModuleRegistry",
+            "link": "/api/core-extensions-microsoftdependencyinjection/moduleregistry"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/api/core-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          },
+          {
+            "label": "ResultAdapterBuilder",
+            "link": "/api/core-extensions-microsoftdependencyinjection/resultadapterbuilder"
+          },
+          {
+            "label": "ServiceCollectionExtensions",
+            "link": "/api/core-extensions-microsoftdependencyinjection/servicecollectionextensions"
+          }
+        ]
+      },
+      {
+        "label": "Core.Internal.Caching",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-internal-caching"
+          },
+          {
+            "label": "LruCacheStrategy",
+            "link": "/api/core-internal-caching/lrucachestrategy"
+          }
+        ]
+      },
+      {
+        "label": "Events",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/events"
+          },
+          {
+            "label": "AsyncBroadcastMediationStrategy<TMessage>",
+            "link": "/api/events/asyncbroadcastmediationstrategy-1"
+          },
+          {
+            "label": "EventMediator",
+            "link": "/api/events/eventmediator"
+          }
+        ]
+      },
+      {
+        "label": "Events.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/events-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "EventModuleBuilder",
+            "link": "/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/api/events-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          }
+        ]
+      },
+      {
+        "label": "Queries",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/queries"
+          },
+          {
+            "label": "QueryMediator",
+            "link": "/api/queries/querymediator"
+          }
+        ]
+      },
+      {
+        "label": "Queries.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/queries-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "QueryModuleBuilder",
+            "link": "/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder"
+          },
+          {
+            "label": "QueryModuleRegistryExtensions",
+            "link": "/api/queries-extensions-microsoftdependencyinjection/querymoduleregistryextensions"
+          }
+        ]
+      }
+    ]
+  },
+  "preview": {
+    "label": "API Reference",
+    "collapsed": true,
+    "translations": {
+      "tr": "API Referansı"
+    },
+    "items": [
+      {
+        "label": "Overview",
+        "link": "/preview/api"
+      },
+      {
+        "label": "Core.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions"
+          },
+          {
+            "label": "ExecutionContextScope",
+            "link": "/preview/api/core-abstractions/executioncontextscope"
+          },
+          {
+            "label": "GeneratedDispatchRoots",
+            "link": "/preview/api/core-abstractions/generateddispatchroots"
+          },
+          {
+            "label": "IExecutionContext",
+            "link": "/preview/api/core-abstractions/iexecutioncontext"
+          },
+          {
+            "label": "IHandlerReference<THandler, TDescriptor>",
+            "link": "/preview/api/core-abstractions/ihandlerreference-2"
+          },
+          {
+            "label": "IMessage",
+            "link": "/preview/api/core-abstractions/imessage"
+          },
+          {
+            "label": "IMessageDependencies",
+            "link": "/preview/api/core-abstractions/imessagedependencies"
+          },
+          {
+            "label": "IMessageMediationStrategy<TMessage, TMessageResult>",
+            "link": "/preview/api/core-abstractions/imessagemediationstrategy-2"
+          },
+          {
+            "label": "IMessageMediator",
+            "link": "/preview/api/core-abstractions/imessagemediator"
+          },
+          {
+            "label": "IMessageResolveStrategy",
+            "link": "/preview/api/core-abstractions/imessageresolvestrategy"
+          },
+          {
+            "label": "IMessageResultRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions/imessageresultrootvisitor-2"
+          },
+          {
+            "label": "IMessageRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions/imessagerootvisitor-2"
+          },
+          {
+            "label": "IPipelineExecutor",
+            "link": "/preview/api/core-abstractions/ipipelineexecutor"
+          },
+          {
+            "label": "IPipelineExecutor<TResult>",
+            "link": "/preview/api/core-abstractions/ipipelineexecutor-1"
+          },
+          {
+            "label": "IResultAdapter",
+            "link": "/preview/api/core-abstractions/iresultadapter"
+          },
+          {
+            "label": "IResultAdapterService",
+            "link": "/preview/api/core-abstractions/iresultadapterservice"
+          },
+          {
+            "label": "MediateOptions<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions/mediateoptions-2"
+          },
+          {
+            "label": "MessageResultRoot",
+            "link": "/preview/api/core-abstractions/messageresultroot"
+          },
+          {
+            "label": "MessageResultRoot<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions/messageresultroot-2"
+          },
+          {
+            "label": "MessageRoot",
+            "link": "/preview/api/core-abstractions/messageroot"
+          },
+          {
+            "label": "MessageRoot<TMessage>",
+            "link": "/preview/api/core-abstractions/messageroot-1"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Attributes",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-attributes"
+          },
+          {
+            "label": "Discovery",
+            "link": "/preview/api/core-abstractions-attributes/discovery"
+          },
+          {
+            "label": "DiscoveryKeyAttribute",
+            "link": "/preview/api/core-abstractions-attributes/discoverykeyattribute"
+          },
+          {
+            "label": "ExcludeFromDiscoveryAttribute",
+            "link": "/preview/api/core-abstractions-attributes/excludefromdiscoveryattribute"
+          },
+          {
+            "label": "ExcludeFromPipelineAttribute",
+            "link": "/preview/api/core-abstractions-attributes/excludefrompipelineattribute"
+          },
+          {
+            "label": "GroupAttribute",
+            "link": "/preview/api/core-abstractions-attributes/groupattribute"
+          },
+          {
+            "label": "WeightAttribute",
+            "link": "/preview/api/core-abstractions-attributes/weightattribute"
+          }
+        ]
+      },
+      {
+        "label": "Commands.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/commands-abstractions"
+          },
+          {
+            "label": "CommandMediationSettings",
+            "link": "/preview/api/commands-abstractions/commandmediationsettings"
+          },
+          {
+            "label": "CommandMediationSettings.CommandMediationFilters",
+            "link": "/preview/api/commands-abstractions/commandmediationsettings-commandmediationfilters"
+          },
+          {
+            "label": "CommandMediatorExtensions",
+            "link": "/preview/api/commands-abstractions/commandmediatorextensions"
+          },
+          {
+            "label": "ICommand",
+            "link": "/preview/api/commands-abstractions/icommand"
+          },
+          {
+            "label": "ICommand<TResult>",
+            "link": "/preview/api/commands-abstractions/icommand-1"
+          },
+          {
+            "label": "ICommandExceptionInterceptor",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptor"
+          },
+          {
+            "label": "ICommandExceptionInterceptor<TCommand, TResult>",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptor-2"
+          },
+          {
+            "label": "ICommandExceptionInterceptor<TCommand>",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptor-1"
+          },
+          {
+            "label": "ICommandFinalInterceptor",
+            "link": "/preview/api/commands-abstractions/icommandfinalinterceptor"
+          },
+          {
+            "label": "ICommandFinalInterceptor<TCommand, TResult>",
+            "link": "/preview/api/commands-abstractions/icommandfinalinterceptor-2"
+          },
+          {
+            "label": "ICommandFinalInterceptor<TCommand>",
+            "link": "/preview/api/commands-abstractions/icommandfinalinterceptor-1"
+          },
+          {
+            "label": "ICommandHandler<TCommand, TResult>",
+            "link": "/preview/api/commands-abstractions/icommandhandler-2"
+          },
+          {
+            "label": "ICommandHandler<TCommand>",
+            "link": "/preview/api/commands-abstractions/icommandhandler-1"
+          },
+          {
+            "label": "ICommandMediator",
+            "link": "/preview/api/commands-abstractions/icommandmediator"
+          },
+          {
+            "label": "ICommandPostInterceptor",
+            "link": "/preview/api/commands-abstractions/icommandpostinterceptor"
+          },
+          {
+            "label": "ICommandPostInterceptor<TCommand, TResult>",
+            "link": "/preview/api/commands-abstractions/icommandpostinterceptor-2"
+          },
+          {
+            "label": "ICommandPostInterceptor<TCommand>",
+            "link": "/preview/api/commands-abstractions/icommandpostinterceptor-1"
+          },
+          {
+            "label": "ICommandPreInterceptor",
+            "link": "/preview/api/commands-abstractions/icommandpreinterceptor"
+          },
+          {
+            "label": "ICommandPreInterceptor<TCommand, TModifiedCommand>",
+            "link": "/preview/api/commands-abstractions/icommandpreinterceptor-2"
+          },
+          {
+            "label": "ICommandPreInterceptor<TCommand>",
+            "link": "/preview/api/commands-abstractions/icommandpreinterceptor-1"
+          }
+        ]
+      },
+      {
+        "label": "Queries.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/queries-abstractions"
+          },
+          {
+            "label": "IQuery",
+            "link": "/preview/api/queries-abstractions/iquery"
+          },
+          {
+            "label": "IQuery<TResult>",
+            "link": "/preview/api/queries-abstractions/iquery-1"
+          },
+          {
+            "label": "IQueryExceptionInterceptor",
+            "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptor"
+          },
+          {
+            "label": "IQueryExceptionInterceptor<TQuery, TResult>",
+            "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptor-2"
+          },
+          {
+            "label": "IQueryFinalInterceptor",
+            "link": "/preview/api/queries-abstractions/iqueryfinalinterceptor"
+          },
+          {
+            "label": "IQueryFinalInterceptor<TQuery, TResult>",
+            "link": "/preview/api/queries-abstractions/iqueryfinalinterceptor-2"
+          },
+          {
+            "label": "IQueryHandler<TQuery, TResult>",
+            "link": "/preview/api/queries-abstractions/iqueryhandler-2"
+          },
+          {
+            "label": "IQueryMediator",
+            "link": "/preview/api/queries-abstractions/iquerymediator"
+          },
+          {
+            "label": "IQueryPostInterceptor",
+            "link": "/preview/api/queries-abstractions/iquerypostinterceptor"
+          },
+          {
+            "label": "IQueryPostInterceptor<TQuery, TResult>",
+            "link": "/preview/api/queries-abstractions/iquerypostinterceptor-2"
+          },
+          {
+            "label": "IQueryPostInterceptor<TQuery>",
+            "link": "/preview/api/queries-abstractions/iquerypostinterceptor-1"
+          },
+          {
+            "label": "IQueryPreInterceptor",
+            "link": "/preview/api/queries-abstractions/iquerypreinterceptor"
+          },
+          {
+            "label": "IQueryPreInterceptor<TQuery, TModifiedQuery>",
+            "link": "/preview/api/queries-abstractions/iquerypreinterceptor-2"
+          },
+          {
+            "label": "IQueryPreInterceptor<TQuery>",
+            "link": "/preview/api/queries-abstractions/iquerypreinterceptor-1"
+          },
+          {
+            "label": "IStreamQuery<TResult>",
+            "link": "/preview/api/queries-abstractions/istreamquery-1"
+          },
+          {
+            "label": "IStreamQueryHandler<TQuery, TResult>",
+            "link": "/preview/api/queries-abstractions/istreamqueryhandler-2"
+          },
+          {
+            "label": "QueryMediationSettings",
+            "link": "/preview/api/queries-abstractions/querymediationsettings"
+          },
+          {
+            "label": "QueryMediationSettings.QueryMediationFilters",
+            "link": "/preview/api/queries-abstractions/querymediationsettings-querymediationfilters"
+          },
+          {
+            "label": "QueryMediatorExtensions",
+            "link": "/preview/api/queries-abstractions/querymediatorextensions"
+          }
+        ]
+      },
+      {
+        "label": "Events.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/events-abstractions"
+          },
+          {
+            "label": "EventMediationSettings",
+            "link": "/preview/api/events-abstractions/eventmediationsettings"
+          },
+          {
+            "label": "EventMediationSettings.EventMediationFilters",
+            "link": "/preview/api/events-abstractions/eventmediationsettings-eventmediationfilters"
+          },
+          {
+            "label": "EventMediatorExtensions",
+            "link": "/preview/api/events-abstractions/eventmediatorextensions"
+          },
+          {
+            "label": "IEvent",
+            "link": "/preview/api/events-abstractions/ievent"
+          },
+          {
+            "label": "IEventExceptionInterceptor",
+            "link": "/preview/api/events-abstractions/ieventexceptioninterceptor"
+          },
+          {
+            "label": "IEventExceptionInterceptor<TEvent>",
+            "link": "/preview/api/events-abstractions/ieventexceptioninterceptor-1"
+          },
+          {
+            "label": "IEventFinalInterceptor",
+            "link": "/preview/api/events-abstractions/ieventfinalinterceptor"
+          },
+          {
+            "label": "IEventFinalInterceptor<TEvent>",
+            "link": "/preview/api/events-abstractions/ieventfinalinterceptor-1"
+          },
+          {
+            "label": "IEventHandler<TEvent>",
+            "link": "/preview/api/events-abstractions/ieventhandler-1"
+          },
+          {
+            "label": "IEventMediator",
+            "link": "/preview/api/events-abstractions/ieventmediator"
+          },
+          {
+            "label": "IEventPostInterceptor",
+            "link": "/preview/api/events-abstractions/ieventpostinterceptor"
+          },
+          {
+            "label": "IEventPostInterceptor<TEvent>",
+            "link": "/preview/api/events-abstractions/ieventpostinterceptor-1"
+          },
+          {
+            "label": "IEventPreInterceptor",
+            "link": "/preview/api/events-abstractions/ieventpreinterceptor"
+          },
+          {
+            "label": "IEventPreInterceptor<TEvent, TModifiedEvent>",
+            "link": "/preview/api/events-abstractions/ieventpreinterceptor-2"
+          },
+          {
+            "label": "IEventPreInterceptor<TEvent>",
+            "link": "/preview/api/events-abstractions/ieventpreinterceptor-1"
+          },
+          {
+            "label": "IPublisher",
+            "link": "/preview/api/events-abstractions/ipublisher"
+          }
+        ]
+      },
+      {
+        "label": "Commands",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/commands"
+          },
+          {
+            "label": "CommandMediator",
+            "link": "/preview/api/commands/commandmediator"
+          }
+        ]
+      },
+      {
+        "label": "Commands.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/commands-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "CommandModuleBuilder",
+            "link": "/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/preview/api/commands-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          }
+        ]
+      },
+      {
+        "label": "Core",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core"
+          },
+          {
+            "label": "ResultAdapterService",
+            "link": "/preview/api/core/resultadapterservice"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Caching",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-caching"
+          },
+          {
+            "label": "IDescriptorCacheStrategy",
+            "link": "/preview/api/core-abstractions-caching/idescriptorcachestrategy"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Exceptions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-exceptions"
+          },
+          {
+            "label": "AdaptedException",
+            "link": "/preview/api/core-abstractions-exceptions/adaptedexception"
+          },
+          {
+            "label": "ExecutionAbortedException",
+            "link": "/preview/api/core-abstractions-exceptions/executionabortedexception"
+          },
+          {
+            "label": "ExecutionRetryRequestedException",
+            "link": "/preview/api/core-abstractions-exceptions/executionretryrequestedexception"
+          },
+          {
+            "label": "InvalidMessageTypeException",
+            "link": "/preview/api/core-abstractions-exceptions/invalidmessagetypeexception"
+          },
+          {
+            "label": "MultipleHandlerFoundException",
+            "link": "/preview/api/core-abstractions-exceptions/multiplehandlerfoundexception"
+          },
+          {
+            "label": "NoHandlerFoundException",
+            "link": "/preview/api/core-abstractions-exceptions/nohandlerfoundexception"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Factories",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-factories"
+          },
+          {
+            "label": "IMessageDependenciesFactory",
+            "link": "/preview/api/core-abstractions-factories/imessagedependenciesfactory"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Handlers",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-handlers"
+          },
+          {
+            "label": "IAsyncExceptionInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-2"
+          },
+          {
+            "label": "IAsyncExceptionInterceptor<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-1"
+          },
+          {
+            "label": "IAsyncFinalInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-2"
+          },
+          {
+            "label": "IAsyncFinalInterceptor<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-1"
+          },
+          {
+            "label": "IAsyncHandler<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/iasynchandler-2"
+          },
+          {
+            "label": "IAsyncHandler<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/iasynchandler-1"
+          },
+          {
+            "label": "IAsyncPostInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncpostinterceptor-2"
+          },
+          {
+            "label": "IAsyncPostInterceptor<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncpostinterceptor-1"
+          },
+          {
+            "label": "IAsyncPreInterceptor<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/iasyncpreinterceptor-1"
+          },
+          {
+            "label": "IExceptionInterceptor",
+            "link": "/preview/api/core-abstractions-handlers/iexceptioninterceptor"
+          },
+          {
+            "label": "IExceptionInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/iexceptioninterceptor-2"
+          },
+          {
+            "label": "IFinalInterceptor",
+            "link": "/preview/api/core-abstractions-handlers/ifinalinterceptor"
+          },
+          {
+            "label": "IFinalInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/ifinalinterceptor-2"
+          },
+          {
+            "label": "IHandler",
+            "link": "/preview/api/core-abstractions-handlers/ihandler"
+          },
+          {
+            "label": "IHandler<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/ihandler-2"
+          },
+          {
+            "label": "IPostInterceptor",
+            "link": "/preview/api/core-abstractions-handlers/ipostinterceptor"
+          },
+          {
+            "label": "IPostInterceptor<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/ipostinterceptor-2"
+          },
+          {
+            "label": "IPreInterceptor",
+            "link": "/preview/api/core-abstractions-handlers/ipreinterceptor"
+          },
+          {
+            "label": "IPreInterceptor<TMessage>",
+            "link": "/preview/api/core-abstractions-handlers/ipreinterceptor-1"
+          },
+          {
+            "label": "IStreamHandler<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-handlers/istreamhandler-2"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Registry",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-registry"
+          },
+          {
+            "label": "IMessageRegistry",
+            "link": "/preview/api/core-abstractions-registry/imessageregistry"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Registry.Descriptors",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-registry-descriptors"
+          },
+          {
+            "label": "HandlerDescriptors",
+            "link": "/preview/api/core-abstractions-registry-descriptors/handlerdescriptors"
+          },
+          {
+            "label": "IExceptionInterceptorDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/iexceptioninterceptordescriptor"
+          },
+          {
+            "label": "IFinalInterceptorDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ifinalinterceptordescriptor"
+          },
+          {
+            "label": "IHandlerDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ihandlerdescriptor"
+          },
+          {
+            "label": "IHasMessageType",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ihasmessagetype"
+          },
+          {
+            "label": "IHasResultType",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ihasresulttype"
+          },
+          {
+            "label": "IMainHandlerDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/imainhandlerdescriptor"
+          },
+          {
+            "label": "IMessageDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/imessagedescriptor"
+          },
+          {
+            "label": "IPostInterceptorDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ipostinterceptordescriptor"
+          },
+          {
+            "label": "IPreInterceptorDescriptor",
+            "link": "/preview/api/core-abstractions-registry-descriptors/ipreinterceptordescriptor"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.Strategies",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-strategies"
+          },
+          {
+            "label": "ActualTypeOrFirstAssignableTypeMessageResolveStrategy",
+            "link": "/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy"
+          },
+          {
+            "label": "SingleAsyncHandlerMediationStrategy<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-strategies/singleasynchandlermediationstrategy-2"
+          },
+          {
+            "label": "SingleAsyncHandlerMediationStrategy<TMessage>",
+            "link": "/preview/api/core-abstractions-strategies/singleasynchandlermediationstrategy-1"
+          },
+          {
+            "label": "SingleStreamHandlerMediationStrategy<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-strategies/singlestreamhandlermediationstrategy-2"
+          }
+        ]
+      },
+      {
+        "label": "Core.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "CoreModule",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/coremodule"
+          },
+          {
+            "label": "CoreModuleBuilder",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/coremodulebuilder"
+          },
+          {
+            "label": "IModule",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/imodule"
+          },
+          {
+            "label": "IModuleBuilder",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/imodulebuilder"
+          },
+          {
+            "label": "IModuleConfiguration",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/imoduleconfiguration"
+          },
+          {
+            "label": "IModuleRegistry",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry"
+          },
+          {
+            "label": "ModuleRegistry",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/moduleregistry"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          },
+          {
+            "label": "ResultAdapterBuilder",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/resultadapterbuilder"
+          },
+          {
+            "label": "ServiceCollectionExtensions",
+            "link": "/preview/api/core-extensions-microsoftdependencyinjection/servicecollectionextensions"
+          }
+        ]
+      },
+      {
+        "label": "Core.Internal.Caching",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-internal-caching"
+          },
+          {
+            "label": "LruCacheStrategy",
+            "link": "/preview/api/core-internal-caching/lrucachestrategy"
+          }
+        ]
+      },
+      {
+        "label": "Events",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/events"
+          },
+          {
+            "label": "AsyncBroadcastMediationStrategy<TMessage>",
+            "link": "/preview/api/events/asyncbroadcastmediationstrategy-1"
+          },
+          {
+            "label": "EventMediator",
+            "link": "/preview/api/events/eventmediator"
+          }
+        ]
+      },
+      {
+        "label": "Events.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/events-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "EventModuleBuilder",
+            "link": "/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder"
+          },
+          {
+            "label": "ModuleRegistryExtensions",
+            "link": "/preview/api/events-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          }
+        ]
+      },
+      {
+        "label": "Queries",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/queries"
+          },
+          {
+            "label": "QueryMediator",
+            "link": "/preview/api/queries/querymediator"
+          }
+        ]
+      },
+      {
+        "label": "Queries.Extensions.MicrosoftDependencyInjection",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/queries-extensions-microsoftdependencyinjection"
+          },
+          {
+            "label": "QueryModuleBuilder",
+            "link": "/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder"
+          },
+          {
+            "label": "QueryModuleRegistryExtensions",
+            "link": "/preview/api/queries-extensions-microsoftdependencyinjection/querymoduleregistryextensions"
+          }
+        ]
+      }
+    ]
+  }
+}
