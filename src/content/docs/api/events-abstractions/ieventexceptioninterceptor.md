@@ -16,7 +16,7 @@ to execute when an exception occurs during the handling of any [`IEvent`](/ergos
 public interface IEventExceptionInterceptor : IEvent, IMessage, IAsyncExceptionInterceptor<IEvent, ValueTask>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L23)
 
 ## Remarks
 

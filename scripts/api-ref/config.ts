@@ -28,7 +28,12 @@ export const SIDEBAR_FILE = path.join(DOCS_ROOT, "src/generated/api-sidebar.json
  */
 export const SITE_BASE = "/ergosfare.docs";
 
-export const SOURCE_REPO = "stellayazilim/ergosfare";
+/**
+ * Capitalised because that is GitHub's canonical name for the repository; the
+ * lowercase spelling only resolves through a redirect. This feeds every
+ * "View source" link in the generated reference, so it is ~300 links per build.
+ */
+export const SOURCE_REPO = "stellayazilim/Ergosfare";
 export const SOURCE_WORKFLOW = "api_reference.yml";
 
 /**

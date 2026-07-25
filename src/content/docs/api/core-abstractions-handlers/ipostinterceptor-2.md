@@ -17,7 +17,7 @@ and may observe or replace the result.
 public interface IPostInterceptor<in TMessage, in TResult> : IPostInterceptor where TMessage : notnull where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IPostInterceptor%5BTMessage%2CTResult%5D.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IPostInterceptor%5BTMessage%2CTResult%5D.cs#L17)
 
 **Type parameters**
 

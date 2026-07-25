@@ -15,7 +15,7 @@ Represents a handler for commands implementing [`ICommand`](/ergosfare.docs/prev
 public interface ICommandHandler<in TCommand> : ICommand, IMessage, IAsyncHandler<TCommand>, IHandler where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%5D.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%5D.cs#L13)
 
 **Type parameters**
 

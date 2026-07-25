@@ -17,7 +17,7 @@ it propagates further through the pipeline.
 public interface IQueryPostInterceptor<in TQuery, TResult> : IQuery, IMessage, IAsyncPostInterceptor<TQuery, TResult>, IPostInterceptor where TQuery : IQuery<TResult> where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor%5BTQuery%2CTResult%5D.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor%5BTQuery%2CTResult%5D.cs#L22)
 
 **Type parameters**
 

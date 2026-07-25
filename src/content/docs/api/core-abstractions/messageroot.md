@@ -18,7 +18,7 @@ reflection involved.
 public abstract class MessageRoot
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L52)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L52)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

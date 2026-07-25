@@ -15,7 +15,7 @@ Initializes a new instance of the [`ExecutionAbortedException`](/ergosfare.docs/
 public class ExecutionAbortedException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionAbortedException.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionAbortedException.cs#L7)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 

@@ -19,7 +19,7 @@ and registers only when a registration call selects one of its keys, e.g.
 public sealed class DiscoveryKeyAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Attributes/DiscoveryKeyAttribute.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Attributes/DiscoveryKeyAttribute.cs#L22)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 

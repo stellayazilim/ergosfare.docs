@@ -15,7 +15,7 @@ Represents a non-generic post-interceptor for queries in the Stella.Ergosfare pi
 public interface IQueryPostInterceptor<in TQuery> : IQuery, IMessage, IAsyncPostInterceptor<IQuery>, IPostInterceptor where TQuery : IQuery
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor%5BTQuery%5D.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor%5BTQuery%5D.cs#L19)
 
 **Type parameters**
 

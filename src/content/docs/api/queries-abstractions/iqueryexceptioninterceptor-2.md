@@ -16,7 +16,7 @@ The interceptor can inspect the exception and modify or replace the query result
 public interface IQueryExceptionInterceptor<in TQuery, TResult> : IQuery, IMessage, IAsyncExceptionInterceptor<TQuery, TResult>, IExceptionInterceptor where TQuery : IQuery<TResult> where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor%5BTQuery%2CTResult%5D.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor%5BTQuery%2CTResult%5D.cs#L22)
 
 **Type parameters**
 

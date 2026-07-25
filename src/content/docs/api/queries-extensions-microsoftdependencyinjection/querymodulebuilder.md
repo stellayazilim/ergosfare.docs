@@ -16,7 +16,7 @@ as part of the query module configuration.
 public sealed class QueryModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection/QueryModuleBuilder.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection/QueryModuleBuilder.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

@@ -17,7 +17,7 @@ supporting pre/post/final interceptors and result adapters.
 public class QueryMediator : IQueryMediator, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries/QueryMediator.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries/QueryMediator.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

@@ -16,7 +16,7 @@ to execute after any query handlers have been invoked.
 public interface IQueryPostInterceptor : IQuery, IMessage, IAsyncPostInterceptor<IQuery>, IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PostInterceptors/IQueryPostInterceptor.cs#L23)
 
 ## Remarks
 

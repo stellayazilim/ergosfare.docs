@@ -15,7 +15,7 @@ Represents the mediator interface for sending commands within the application.
 public interface ICommandMediator
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommandMediator.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommandMediator.cs#L14)
 
 ## Remarks
 

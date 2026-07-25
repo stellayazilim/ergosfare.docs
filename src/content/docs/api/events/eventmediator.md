@@ -17,7 +17,7 @@ interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, C
 public sealed class EventMediator : IPublisher, IEventMediator
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events/EventMediator.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events/EventMediator.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

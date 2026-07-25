@@ -16,7 +16,7 @@ and to extract exceptions from arbitrary result objects.
 public interface IResultAdapterService
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultAdapterService.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultAdapterService.cs#L8)
 
 ## Methods
 

@@ -7,8 +7,9 @@ sidebar:
 ---
 
 This reference is generated from the XML documentation comments in the
-[Ergosfare sources](https://github.com/stellayazilim/ergosfare/tree/preview/src)
-on every docs build, so it always describes the v2 preview line, generated from the `preview` branch.
+[Ergosfare sources](https://github.com/stellayazilim/Ergosfare/tree/preview/src) and
+committed alongside the site. It covers the v2 preview line, generated from the `preview` branch, as of the last time
+`task api` was run.
 
 It is published in English only. The narrative documentation is translated; this
 section is not, because translating API descriptions away from the identifiers

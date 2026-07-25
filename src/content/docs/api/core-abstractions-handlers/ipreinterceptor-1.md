@@ -16,7 +16,7 @@ Executed before the main handler; may inspect, validate, enrich, or replace the 
 public interface IPreInterceptor<in TMessage> : IPreInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor%5BTMessage%5D.cs#L14)
 
 **Type parameters**
 

@@ -16,7 +16,7 @@ its pre-computed concrete type, and a way to obtain an instance for the current 
 public interface IHandlerReference<out THandler, out TDescriptor> where TDescriptor : IHandlerDescriptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IHandlerReference.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IHandlerReference.cs#L17)
 
 **Type parameters**
 

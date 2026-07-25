@@ -15,7 +15,7 @@ Represents a command that produces a result of type `TResult` when handled.
 public interface ICommand<TResult> : ICommand, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommand%5BTResult%5D.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommand%5BTResult%5D.cs#L11)
 
 **Type parameters**
 

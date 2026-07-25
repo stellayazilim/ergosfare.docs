@@ -22,7 +22,7 @@ generics, runtime-only registrations).
 public static class GeneratedDispatchRoots
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L15)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

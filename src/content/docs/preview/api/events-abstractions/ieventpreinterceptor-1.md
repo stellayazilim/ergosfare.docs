@@ -16,7 +16,7 @@ returns the event that continues through the pipeline — the original, or a rew
 public interface IEventPreInterceptor<TEvent> : IEvent, IMessage, IAsyncPreInterceptor<TEvent>, IPreInterceptor where TEvent : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor%5BTEvent%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor%5BTEvent%5D.cs#L18)
 
 **Type parameters**
 

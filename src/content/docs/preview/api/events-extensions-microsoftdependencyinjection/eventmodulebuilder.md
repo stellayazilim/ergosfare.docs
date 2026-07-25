@@ -15,7 +15,7 @@ Provides a builder for registering events and their types within the event modul
 public class EventModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/EventModuleBuilder.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/EventModuleBuilder.cs#L23)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

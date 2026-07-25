@@ -17,7 +17,7 @@ handles exceptions, and applies final interceptors. Supports optional result ada
 public sealed class SingleAsyncHandlerMediationStrategy<TMessage, TResult> : IMessageMediationStrategy<TMessage, ValueTask<TResult>> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleAsyncHandlerMediationStrategy%5BTMessage%2CTResult%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleAsyncHandlerMediationStrategy%5BTMessage%2CTResult%5D.cs#L14)
 
 **Type parameters**
 

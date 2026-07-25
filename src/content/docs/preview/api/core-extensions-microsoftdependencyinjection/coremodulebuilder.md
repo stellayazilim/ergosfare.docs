@@ -15,7 +15,7 @@ Provides a fluent API for registering message types into the [`IMessageRegistry`
 public class CoreModuleBuilder : IModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/CoreModuleBuilder.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/CoreModuleBuilder.cs#L14)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

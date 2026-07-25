@@ -15,7 +15,7 @@ Provides extension methods for [`ICommandMediator`](/ergosfare.docs/api/commands
 public static class CommandMediatorExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/CommandMediatorExtensions.cs#L6)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/CommandMediatorExtensions.cs#L6)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

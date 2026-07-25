@@ -15,7 +15,7 @@ Provides extension methods for configuring and registering modules with an [`IMo
 public static class ModuleRegistryExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L5)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L5)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

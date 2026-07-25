@@ -15,7 +15,7 @@ Provides a registry of message descriptors.
 public interface IMessageRegistry : IReadOnlyCollection<IMessageDescriptor>, IEnumerable<IMessageDescriptor>, IEnumerable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/IMessageRegistry.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/IMessageRegistry.cs#L14)
 
 ## Remarks
 

@@ -16,7 +16,7 @@ Produces an [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/syste
 public interface IStreamHandler<in TMessage, out TResult> : IHandler<TMessage, IAsyncEnumerable<TResult>>, IHandler where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L16)
 
 **Type parameters**
 

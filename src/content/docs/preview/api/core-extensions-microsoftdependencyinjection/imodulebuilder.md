@@ -16,7 +16,7 @@ Supports registration of individual types and bulk registration from assemblies.
 public interface IModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleBuilder.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleBuilder.cs#L9)
 
 ## Methods
 

@@ -17,7 +17,7 @@ associated with the module during setup.
 public interface IModuleConfiguration
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleConfiguration.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleConfiguration.cs#L11)
 
 ## Properties
 

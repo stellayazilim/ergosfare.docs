@@ -15,7 +15,7 @@ Describes a pre-interceptor handler for a message type.
 public interface IPreInterceptorDescriptor : IHandlerDescriptor, IHasMessageType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IPreInterceptorDescriptor.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IPreInterceptorDescriptor.cs#L12)
 
 ## Remarks
 

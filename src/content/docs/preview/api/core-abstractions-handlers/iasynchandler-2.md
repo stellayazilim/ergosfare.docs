@@ -16,7 +16,7 @@ Represents an interface for asynchronously handling messages and producing a res
 public interface IAsyncHandler<in TMessage, TResult> : IHandler where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IAsyncHandler%5BTMessage%2CTResult%5D.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IAsyncHandler%5BTMessage%2CTResult%5D.cs#L20)
 
 **Type parameters**
 

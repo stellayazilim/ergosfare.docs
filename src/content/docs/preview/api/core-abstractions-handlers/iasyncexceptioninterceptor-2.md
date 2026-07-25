@@ -18,7 +18,7 @@ exception and replace the result.
 public interface IAsyncExceptionInterceptor<in TMessage, in TResult> : IExceptionInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IAsyncExceptionHandler%5BTMessage%2CTResult%5D.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IAsyncExceptionHandler%5BTMessage%2CTResult%5D.cs#L16)
 
 **Type parameters**
 

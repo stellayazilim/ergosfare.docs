@@ -15,7 +15,7 @@ Provides extension methods for registering the event module in an [`IModuleRegis
 public static class ModuleRegistryExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/ModuleRegistryExtensions.cs#L7)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

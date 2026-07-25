@@ -15,7 +15,7 @@ Represents a descriptor for a final interceptor handler.
 public interface IFinalInterceptorDescriptor : IHandlerDescriptor, IHasMessageType, IHasResultType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IFinalInterceptorDescriptor.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IFinalInterceptorDescriptor.cs#L12)
 
 ## Remarks
 

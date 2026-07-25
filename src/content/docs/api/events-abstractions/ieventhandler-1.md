@@ -15,7 +15,7 @@ Represents an asynchronous handler for a specific event type.
 public interface IEventHandler<in TEvent> : IEvent, IMessage, IAsyncHandler<TEvent>, IHandler where TEvent : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/Handlers/IEventHandler.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/Handlers/IEventHandler.cs#L20)
 
 **Type parameters**
 

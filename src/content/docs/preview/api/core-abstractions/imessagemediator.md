@@ -16,7 +16,7 @@ and returning results from the mediation process.
 public interface IMessageMediator
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageMediator.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageMediator.cs#L8)
 
 ## Methods
 

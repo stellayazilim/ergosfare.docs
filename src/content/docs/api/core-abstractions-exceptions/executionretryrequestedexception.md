@@ -13,7 +13,7 @@ sidebar:
 public class ExecutionRetryRequestedException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionRetryRequestedException.cs#L3)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionRetryRequestedException.cs#L3)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 

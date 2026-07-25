@@ -7,8 +7,9 @@ sidebar:
 ---
 
 This reference is generated from the XML documentation comments in the
-[Ergosfare sources](https://github.com/stellayazilim/ergosfare/tree/main/src)
-on every docs build, so it always describes the stable v2 line, generated from the `main` branch.
+[Ergosfare sources](https://github.com/stellayazilim/Ergosfare/tree/main/src) and
+committed alongside the site. It covers the stable v2 line, generated from the `main` branch, as of the last time
+`task api` was run.
 
 It is published in English only. The narrative documentation is translated; this
 section is not, because translating API descriptions away from the identifiers

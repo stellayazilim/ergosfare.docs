@@ -15,7 +15,7 @@ Represents a final interceptor for commands in the pipeline.
 public interface ICommandFinalInterceptor<in TCommand> : ICommand, IMessage, IAsyncFinalInterceptor<TCommand>, IFinalInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor%5BTCommand%5D.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor%5BTCommand%5D.cs#L15)
 
 **Type parameters**
 

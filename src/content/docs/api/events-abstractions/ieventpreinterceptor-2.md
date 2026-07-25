@@ -16,7 +16,7 @@ the event before it reaches its handlers.
 public interface IEventPreInterceptor<in TEvent, TModifiedEvent> : IAsyncPreInterceptor<TEvent>, IPreInterceptor where TEvent : notnull where TModifiedEvent : TEvent
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor%5BTEvent%2CTEvent%5D.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor%5BTEvent%2CTEvent%5D.cs#L26)
 
 **Type parameters**
 

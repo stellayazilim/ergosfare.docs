@@ -15,7 +15,7 @@ Represents metadata about a handler for a specific message type.
 public interface IHandlerDescriptor : IHasMessageType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHandlerDescriptor.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IHandlerDescriptor.cs#L17)
 
 ## Remarks
 

@@ -15,7 +15,7 @@ Describes a post-interceptor handler for a message type.
 public interface IPostInterceptorDescriptor : IHandlerDescriptor, IHasMessageType, IHasResultType
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IPostInterceptorDescriptor.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Registry/Descriptors/IPostInterceptorDescriptor.cs#L13)
 
 ## Remarks
 

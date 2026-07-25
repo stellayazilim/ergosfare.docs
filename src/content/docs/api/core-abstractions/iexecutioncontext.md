@@ -17,7 +17,7 @@ and control over pipeline execution (retry, pause, continue, abort).
 public interface IExecutionContext
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Context/Abstractions/IExecutionContext.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Context/Abstractions/IExecutionContext.cs#L8)
 
 ## Properties
 

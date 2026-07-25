@@ -15,7 +15,7 @@ base placeholder interface for all attachable types in Stella.Ergosfare system
 public interface IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessage.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessage.cs#L10)
 
 ## Remarks
 

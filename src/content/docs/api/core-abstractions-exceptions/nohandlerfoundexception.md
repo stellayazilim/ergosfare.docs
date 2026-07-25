@@ -15,7 +15,7 @@ Exception thrown when no handler is found for a specific message type.
 public class NoHandlerFoundException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/NoHandlerFoundException.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/NoHandlerFoundException.cs#L8)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 

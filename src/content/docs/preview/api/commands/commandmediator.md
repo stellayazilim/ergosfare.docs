@@ -17,7 +17,7 @@ path carries no object-typed bridge, options object, or erased strategy.
 public class CommandMediator : ICommandMediator
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands/CommandMediator.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands/CommandMediator.cs#L10)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

@@ -15,7 +15,7 @@ Represents a stream query message that produces multiple results of type `TResul
 public interface IStreamQuery<out TResult> : IQuery, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IStreamQuery%5BTResult%5D.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IStreamQuery%5BTResult%5D.cs#L17)
 
 **Type parameters**
 

@@ -16,7 +16,7 @@ A result-producing message pipeline closed over its concrete message type; see
 public interface IPipelineExecutor<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor.cs#L31)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor.cs#L31)
 
 **Type parameters**
 

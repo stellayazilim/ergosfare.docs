@@ -16,7 +16,7 @@ that is agnostic of the result type. Executes after the main handler has process
 public interface IAsyncPostInterceptor<in TMessage> : IPostInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IAsyncPostInterceptor%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IAsyncPostInterceptor%5BTMessage%5D.cs#L14)
 
 **Type parameters**
 

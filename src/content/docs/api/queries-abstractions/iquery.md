@@ -15,7 +15,7 @@ Represents a query message in the system, which can be dispatched through the qu
 public interface IQuery : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQuery.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQuery.cs#L17)
 
 ## Remarks
 

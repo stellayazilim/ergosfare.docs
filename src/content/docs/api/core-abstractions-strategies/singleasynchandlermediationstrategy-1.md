@@ -15,7 +15,7 @@ Represents a mediation strategy that processes a message through a single asynch
 public sealed class SingleAsyncHandlerMediationStrategy<TMessage> : IMessageMediationStrategy<TMessage, ValueTask> where TMessage : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleAsyncHandlerMediationStrategy%5BTMessage%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Strategies/MediationStrategies/SingleAsyncHandlerMediationStrategy%5BTMessage%5D.cs#L18)
 
 **Type parameters**
 

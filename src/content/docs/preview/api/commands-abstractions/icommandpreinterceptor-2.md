@@ -16,7 +16,7 @@ before it enters the pipeline.
 public interface ICommandPreInterceptor<in TCommand, TModifiedCommand> : ICommand, IMessage, IAsyncPreInterceptor<TCommand>, IPreInterceptor where TCommand : ICommand where TModifiedCommand : TCommand
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%2CTCommand%5D.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%2CTCommand%5D.cs#L23)
 
 **Type parameters**
 

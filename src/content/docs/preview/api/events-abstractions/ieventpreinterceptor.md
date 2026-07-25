@@ -16,7 +16,7 @@ to execute before any event handlers are invoked.
 public interface IEventPreInterceptor : IEvent, IMessage, IAsyncPreInterceptor<IEvent>, IPreInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PreInterceptors/IEventPreInterceptor.cs#L24)
 
 ## Remarks
 

@@ -15,7 +15,7 @@ Factory interface for creating [`IMessageDependencies`](/ergosfare.docs/api/core
 public interface IMessageDependenciesFactory
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Factories/IMessageDependenciesFactory.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Factories/IMessageDependenciesFactory.cs#L7)
 
 ## Methods
 

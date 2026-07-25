@@ -15,4 +15,4 @@ Base command and a marker interface that can be registered by command module
 public interface ICommand : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommand.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ICommand.cs#L8)

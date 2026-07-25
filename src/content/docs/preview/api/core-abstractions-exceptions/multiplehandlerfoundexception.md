@@ -16,7 +16,7 @@ Exception thrown when multiple handlers are found for a message that expects onl
 public class MultipleHandlerFoundException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/MultipleHandlerFoundException.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/MultipleHandlerFoundException.cs#L8)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 

@@ -15,7 +15,7 @@ Represents a type-safe query message that produces a result of type `TResult`.
 public interface IQuery<TResult> : IQuery, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/IQuery%5BTResult%5D.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/IQuery%5BTResult%5D.cs#L16)
 
 **Type parameters**
 

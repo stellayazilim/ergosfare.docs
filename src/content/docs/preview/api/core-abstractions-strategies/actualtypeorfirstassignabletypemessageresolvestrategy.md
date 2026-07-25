@@ -16,7 +16,7 @@ and if not found, returns the first descriptor for a type that is assignable fro
 public sealed class ActualTypeOrFirstAssignableTypeMessageResolveStrategy : IMessageResolveStrategy
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Strategies/MessageResolveStrategies/ActualTypeOrFirstAssignableTypeMessageResolveStrategy.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Strategies/MessageResolveStrategies/ActualTypeOrFirstAssignableTypeMessageResolveStrategy.cs#L17)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

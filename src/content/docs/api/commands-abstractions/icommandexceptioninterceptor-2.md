@@ -16,7 +16,7 @@ The interceptor can inspect the exception and modify or replace the command resu
 public interface ICommandExceptionInterceptor<in TCommand, TResult> : ICommand, IMessage, IAsyncExceptionInterceptor<TCommand, TResult>, IExceptionInterceptor where TCommand : ICommand<TResult> where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%2CTResult%5D.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%2CTResult%5D.cs#L24)
 
 **Type parameters**
 

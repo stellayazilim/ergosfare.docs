@@ -16,7 +16,7 @@ producing a stream of results of type `TResult`.
 public interface IStreamQueryHandler<in TQuery, out TResult> : IQuery, IMessage, IStreamHandler<TQuery, TResult>, IHandler<TQuery, IAsyncEnumerable<TResult>>, IHandler where TQuery : IStreamQuery<out TResult>
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IStreamQueryHandler%5BTQuery%2CTResult%5D.cs#L21)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IStreamQueryHandler%5BTQuery%2CTResult%5D.cs#L21)
 
 **Type parameters**
 

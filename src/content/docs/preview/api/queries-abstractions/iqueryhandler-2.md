@@ -16,7 +16,7 @@ producing a result of type `TResult`.
 public interface IQueryHandler<in TQuery, TResult> : IQuery, IMessage, IAsyncHandler<TQuery, TResult>, IHandler where TQuery : IQuery<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IQueryHandler%5BTQuery%2CTResult%5D.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IQueryHandler%5BTQuery%2CTResult%5D.cs#L20)
 
 **Type parameters**
 

@@ -15,7 +15,7 @@ Provides extension methods for [`IModuleRegistry`](/ergosfare.docs/api/core-exte
 public static class QueryModuleRegistryExtensions
 ```
 
-[View source](https://github.com/stellayazilim/ergosfare/blob/main/src/Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection/QueryModuleRegistryExtensions.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection/QueryModuleRegistryExtensions.cs#L7)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
