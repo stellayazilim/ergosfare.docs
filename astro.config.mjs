@@ -225,8 +225,13 @@ export default defineConfig({
 }), markdoc(), react(), starlightMcp({
     siteLabel: 'Ergosfare',
     // `preview/` is a documentation line, not a content folder — telling the
-    // integration lets its tools scope answers to v1 or v2.
+    // integration lets its tools scope answers to the stable or the preview line.
     versions: ['preview'],
+    // Stamps the catalog with the commit it was built from, so a long-running MCP
+    // client can tell a redeployed catalog from the one it loaded and re-fetch.
+    // Set by Actions; undefined locally, where the integration falls back to
+    // hashing the catalog's contents.
+    revision: process.env.GITHUB_SHA,
     // The API reference is machine-generated and already reachable through the
     // structured collection below; indexing 300 more pages of it as prose would
     // only dilute search.
