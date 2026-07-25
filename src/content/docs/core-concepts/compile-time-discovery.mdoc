@@ -1,0 +1,161 @@
+---
+title: Compile-time discovery
+description: How the Ergosfare source generator finds handlers, what it emits, and how to control it.
+---
+
+Most mediators discover handlers by reflecting over assemblies at startup. Ergosfare does it
+at compile time: a Roslyn source generator walks your compilation, finds everything
+registrable, pre-computes descriptors, and writes a registration method into your project.
+
+The result is a startup path with **no reflection over handler types at all**, and a build
+where the compiler — not the runtime — tells you if something cannot be registered.
+
+## What the generator emits
+
+After a build, look in:
+
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
+
+You will find an `internal static class ErgosfareGeneratedRegistrations` in namespace
+`Stella.Ergosfare.Generated`, carrying extension methods on each module builder:
+
+```csharp
+namespace Stella.Ergosfare.Generated
+{
+    internal static class ErgosfareGeneratedRegistrations
+    {
+        public static CommandModuleBuilder RegisterGenerated(this CommandModuleBuilder builder);
+        public static CommandModuleBuilder RegisterGenerated(this CommandModuleBuilder builder, string discoveryKeyPattern);
+        // …the same pair for QueryModuleBuilder and EventModuleBuilder
+    }
+}
+```
+
+This is why `RegisterGenerated()` appears in no NuGet package and in no API reference: it
+does not exist until your project compiles. It is generated *per compilation*, already
+containing your handlers.
+
+{% aside type="tip" %}
+The class is `internal`, so `RegisterGenerated()` is only callable from the project that
+generated it. Each application generates its own.
+{% /aside %}
+
+## Using it
+
+```csharp
+using Stella.Ergosfare.Generated;
+
+builder.Services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated())
+    .AddQueryModule(q => q.RegisterGenerated())
+    .AddEventModule(e => e.RegisterGenerated()));
+```
+
+A missing `using Stella.Ergosfare.Generated;` is the single most common reason
+`RegisterGenerated()` fails to resolve.
+
+## What counts as registrable
+
+The generator looks for concrete, non-abstract types implementing any of:
+
+- a handler contract — `ICommandHandler<…>`, `IQueryHandler<…>`, `IStreamQueryHandler<…>`, `IEventHandler<…>`
+- an interceptor contract — pre, post, exception or final, in any of their arities
+- a message contract — `ICommand`, `ICommand<TResult>`, `IQuery<TResult>`, `IStreamQuery<TResult>`, `IEvent`
+
+Messages matter as much as handlers: the generator uses them to emit **dispatch roots**.
+
+## Dispatch roots
+
+For every dispatchable message the generator emits a static reference that closes the
+runtime's generic executor and invoker types over that message:
+
+```csharp
+GeneratedDispatchRoots.AddMessage<CreateProduct>();
+GeneratedDispatchRoots.AddResult<CreateProduct, Guid>();
+```
+
+Two things fall out of this:
+
+- The runtime constructs executors without `MakeGenericType`. That call survives only as a
+  fallback for open generics and runtime-only registrations.
+- Native AOT gets a **static anchor for every generic instantiation** — including
+  `record struct` messages, which shared generic code cannot cover and which would otherwise
+  fail at runtime in a trimmed build.
+
+Dispatch-root additions are idempotent, so every registration surface calls them
+unconditionally.
+
+## Cross-assembly discovery
+
+The generator also walks **referenced assemblies**. A library that ships handlers needs no
+registration code of its own — its handlers register through the consuming application's
+generated code:
+
+```csharp
+// In a class library. No AddErgosfare, no RegisterFromAssembly, nothing.
+public sealed record LibGreet(string Name) : ICommand<string>;
+
+public sealed class LibGreetHandler : ICommandHandler<LibGreet, string>
+{
+    public ValueTask<string> HandleAsync(LibGreet message, IExecutionContext context)
+        => new($"lib says hi, {message.Name}");
+}
+```
+
+The application's `RegisterGenerated()` picks it up.
+
+Internal types in a referenced assembly participate when that assembly grants
+`InternalsVisibleTo` to the consuming project.
+
+To turn reference scanning off for a project:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+</PropertyGroup>
+```
+
+### Assemblies under the `Stella.Ergosfare.*` prefix
+
+Reference scanning skips assemblies whose name begins with `Stella.Ergosfare` — that prefix
+is the library's own, and its contract interfaces (`ICommandHandler<T>` and friends) inherit
+the module markers, so scanning them would register the framework's own types. If you
+deliberately name an application assembly under that prefix, opt it back in:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorForceScanReferences>true</ErgosfareSourceGeneratorForceScanReferences>
+</PropertyGroup>
+```
+
+The property is baked into the assembly as
+`[assembly: AssemblyMetadata("ErgosfareSourceGeneratorForceScanReferences", "true")]`, which
+the generator reads per referenced assembly. Only assemblies that set it are force-included,
+so the library's own contracts are never scanned — even though they share the prefix.
+
+## Diagnostics
+
+The generator refuses to silently diverge from what runtime scanning would have registered.
+When it finds a registrable type it cannot name from generated code, it says so:
+
+| ID | Meaning |
+|---|---|
+| `ERGOSG001` | A registrable type in this compilation is not accessible from the generated registration code — usually a private or protected nested type. |
+| `ERGOSG002` | A registrable type in a referenced assembly is not visible to generated registration code — usually an internal type without `InternalsVisibleTo`. |
+
+Both are warnings, not errors: the build continues and the type is simply not registered.
+Treat them as real — a handler that silently never runs is worse than a build break.
+
+## When to use runtime scanning instead
+
+`RegisterFromAssembly(assembly)` still exists and is the right choice when the assembly is
+not known at compile time — genuine plugin scenarios where you `Assembly.LoadFrom` at
+runtime. Everything else should be generated.
+
+Both paths honour the same `[DiscoveryKey]` and `[ExcludeFromDiscovery]` attributes, so
+mixing them cannot produce two different registration sets for the same code.
+
+Next: [Discovery keys](/ergosfare.docs/core-concepts/discovery-keys) — registering only part
+of what was discovered.

@@ -1,19 +1,19 @@
 ---
 title: Ergosfare
-description: A modular mediator for CQRS-style messaging in .NET — commands, queries and events over one pipeline model.
+description: A source-generated, high-performance mediator for CQRS-style messaging in .NET — commands, queries and events over one pipeline model.
 template: splash
 hero:
-  tagline: A modular mediator for CQRS-style messaging in .NET. The v2 preview is where active development happens.
+  tagline: A source-generated mediator for .NET. All dispatch-shape work happens at compile time — never per dispatch.
   image:
     file: ../../assets/ergosfare.svg
   actions:
-    - text: Start on v2 preview
-      link: /ergosfare.docs/preview/getting-started/introduction
-      icon: right-arrow
-      variant: primary
-    - text: v1 stable docs
+    - text: Get started
       link: /ergosfare.docs/getting-started/introduction
-      icon: document
+      icon: right-arrow
+      variant: minimal
+    - text: API reference
+      link: /ergosfare.docs/api
+      icon: open-book
       variant: minimal
 ---
 
@@ -26,38 +26,36 @@ import { StarField } from "../../components/constellation/starfield.tsx"
   </div>
 
 <CardGrid stagger>
-  <Card title="Two lines, one library" icon="seti:c-sharp">
-    **v1 stable** is what you get from a plain `dotnet add package`. **v2 preview** is the
-    active line — same concepts, a much faster implementation, and close to stable.
-    [Compare them](/ergosfare.docs/getting-started/introduction#how-v1-and-v2-differ).
+  <Card title="Compile-time registration" icon="seti:c-sharp">
+    A Roslyn generator discovers handlers in your compilation *and* in referenced assemblies,
+    pre-computes their descriptors, and emits `RegisterGenerated()`. A library's handlers
+    register with no registration code in the library.
   </Card>
 
-  <Card title="Compile-time registration" icon="rocket">
-    In v2, a Roslyn generator discovers handlers in your compilation *and* in referenced
-    assemblies and emits the registration for you — no startup assembly scan, no reflection.
-    [Read more](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+  <Card title="Reflection-free dispatch" icon="rocket">
+    Generated dispatch roots close executor generics at compile time; pipeline plans pre-close
+    generic handler types. No `MakeGenericType`, no registry scan, no `AsyncLocal` on the hot
+    path.
   </Card>
 
   <Card title="Allocation you can account for" icon="approve-check">
-    v2's pooled execution contexts and `ValueTask`-first surface put 100k sequential
-    dispatches at 2.3 MB, against MediatR's 18.3 MB for the same loop.
-    [See the benchmarks](/ergosfare.docs/preview/advanced/performance).
+    Pooled execution contexts and a `ValueTask`-first surface: 100k sequential dispatches
+    allocate 2.3 MB, against MediatR's 18.3 MB for the same loop.
   </Card>
 
-  <Card title="Interceptor pipeline" icon="layers">
-    Pre, post, exception and final stages for logging, validation, authorization and cleanup
-    — attached without touching handlers, and matched covariantly across a type hierarchy.
+  <Card title="Nested dispatch, safely" icon="layers">
+    `context.CreateScope()` gives a handler an isolated child context with inherited
+    cancellation — the pattern ambient-state mediators cannot offer safely.
   </Card>
 
   <Card title="Native AOT and trimming" icon="setting">
-    v2 references every construct statically and anchors every generic instantiation,
-    `record struct` messages included.
-    [How it works](/ergosfare.docs/preview/advanced/aot-and-trimming).
+    Every construct referenced statically via `typeof`; dispatch roots anchor every generic
+    instantiation, `record struct` messages included.
   </Card>
 
   <Card title="Modular" icon="puzzle-piece">
-    Commands, Queries and Events are independent packages over a shared core. Register only
-    the modules you use — and take only the mediator interface each component needs.
+    Commands, Queries and Events are independent packages over a shared core. `IModule` is a
+    real extension point — the shipped modules use it too.
   </Card>
 </CardGrid>
 </div>

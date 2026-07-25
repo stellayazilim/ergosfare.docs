@@ -1,76 +1,100 @@
 ---
 title: Installation
-description: Installing the stable Ergosfare v1 packages, and what you would install for v2 instead.
+description: Which Ergosfare packages you need, and why the source generator is a separate one.
 ---
 
-The stable v1.x packages are published to nuget.org and install without any flags:
+Ergosfare v2 ships as pre-release packages on nuget.org. Every install needs the
+`--prerelease` flag until the v2 line goes stable.
 
-```bash
-dotnet add package Stella.Ergosfare
-```
+## The short version
 
-`Stella.Ergosfare` is an umbrella package pulling in the Commands, Queries and Events
-modules with their DI extensions.
-
-{% aside type="tip" %}
-For a new project, consider the v2 preview instead — it adds compile-time registration,
-Native AOT support and a `ValueTask`-first surface:
+For an application:
 
 ```bash
 dotnet add package Stella.Ergosfare --prerelease
 dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
 ```
 
-See the [v2 installation guide](/ergosfare.docs/preview/getting-started/installation).
+`Stella.Ergosfare` is a convenience bundle that pulls in the Commands, Queries and Events
+modules with their DI extensions. `Stella.Ergosfare.SourceGenerator` is what produces
+`RegisterGenerated()`.
+
+{% aside type="caution" %}
+The source generator is a **separate package on purpose**. Without it there is no
+`RegisterGenerated()` and you fall back to `RegisterFromAssembly(...)`, which scans at
+runtime. Everything still works, but you lose compile-time registration and the AOT
+guarantees that come with it.
 {% /aside %}
 
-## Picking packages
+## Requirements
 
-Each module is independent; the umbrella package is a convenience:
+- **.NET 9.0 or .NET 10.0.** The libraries multi-target `net9.0;net10.0`.
+- **C# `latest`.** The generated registration code is deliberately conservative, but the
+  abstractions use current language features.
+
+## Picking packages deliberately
+
+The umbrella package is convenient, not required. Each module is independent:
 
 | Package | What it gives you |
 |---|---|
 | `Stella.Ergosfare` | Umbrella — Commands + Queries + Events + DI extensions |
-| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, handler and interceptor contracts |
+| `Stella.Ergosfare.SourceGenerator` | Compile-time discovery, `RegisterGenerated()`, dispatch roots |
+| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, attributes, handler contracts |
 | `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptors |
 | `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handlers and interceptors |
 | `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptors |
-| `Stella.Ergosfare.Core` | Runtime: registry, pipeline, dispatch |
-| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, module builders |
+| `Stella.Ergosfare.Core` | Runtime: registry, pipeline plans, dispatch |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, module builders |
 
-A library that only declares messages and handlers needs just the relevant `.Abstractions`
-package:
+### Library that only declares messages and handlers
+
+Reference just the abstractions. This keeps the library free of the runtime and of any DI
+container dependency:
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands.Abstractions
+dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
 ```
 
-On v1 that library's handlers still have to be registered by the application, which means
-the application must scan the library's assembly explicitly:
+The library needs **no registration code**. When an application that references it runs the
+source generator, the generator walks referenced assemblies and registers those handlers
+through the application's own `RegisterGenerated()`. See
+[Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery).
+
+### Application that only uses commands
+
+```bash
+dotnet add package Stella.Ergosfare.Commands --prerelease
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+## Verifying the generator is running
+
+The generator writes a single file into your compilation. After a build you can find it at:
+
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
+
+Open it and you should see an `internal static class ErgosfareGeneratedRegistrations` in
+namespace `Stella.Ergosfare.Generated`. If `RegisterGenerated()` does not resolve in your
+startup code, the usual cause is a missing using:
 
 ```csharp
-.AddCommandModule(c => c
-    .RegisterFromAssembly(Assembly.GetExecutingAssembly())
-    .RegisterFromAssembly(typeof(SomeTypeInTheLibrary).Assembly))
+using Stella.Ergosfare.Generated;
 ```
 
-On v2 the source generator walks referenced assemblies for you and the second call
-disappears — see
-[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+## Reference scanning
 
-## Requirements
+By default the generator also inspects referenced assemblies so that handlers shipped by
+libraries register automatically. To turn that off for a project:
 
-The v1 line targets `net9.0` and `net10.0`.
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+</PropertyGroup>
+```
 
-## Versioning
-
-| Branch | Line | Tags | NuGet |
-|---|---|---|---|
-| `main` | stable v1.x | `vX.Y.Z` | stable |
-| `preview` | v2 | `v2.0.0-preview.N` | pre-release |
-
-Stable fixes land on `main` first and are merged into `preview` regularly, so nothing you
-depend on here disappears when you move up. The full policy is in
-[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/main/COMPATIBILITY.md).
-
-Next: [Quick start](/ergosfare.docs/getting-started/quick-start).
+Next: [Quick start](/ergosfare.docs/getting-started/quick-start) wires up a command, a query
+and an event in one file.

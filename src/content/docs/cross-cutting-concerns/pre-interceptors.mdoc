@@ -1,0 +1,165 @@
+---
+title: Pre-interceptors
+description: Validation, authorization, enrichment and short-circuiting before the handler runs.
+---
+
+A pre-interceptor runs before the main handler and returns the message the rest of the
+pipeline will see. That return value is the whole design: a pre-interceptor can pass the
+message through unchanged, replace it, or abort the pipeline outright.
+
+```csharp
+public sealed class LogCommands : ICommandPreInterceptor
+{
+    private readonly ILogger<LogCommands> _logger;
+
+    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
+
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Registered automatically by [compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery) —
+there is nothing to add at startup.
+
+## Validation
+
+Validation is the canonical pre-interceptor: it belongs before the handler, it applies to
+many messages, and it has nothing to do with the operation itself.
+
+```csharp
+public sealed class ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>
+    where TCommand : ICommand
+{
+    private readonly IEnumerable<IValidator<TCommand>> _validators;
+
+    public ValidateCommands(IEnumerable<IValidator<TCommand>> validators)
+        => _validators = validators;
+
+    public async ValueTask<TCommand> HandleAsync(TCommand command, IExecutionContext context)
+    {
+        foreach (var validator in _validators)
+        {
+            var result = await validator.ValidateAsync(command, context.CancellationToken);
+            if (!result.IsValid)
+                throw new ValidationException(result.Errors);
+        }
+
+        return command;
+    }
+}
+```
+
+Throwing propagates to the [exception interceptors](/ergosfare.docs/cross-cutting-concerns/exception-interceptors),
+which is usually where you want a validation failure translated into a response shape.
+
+{% aside type="note" %}
+An open generic interceptor like `ValidateCommands<TCommand>` cannot be closed by the source
+generator, so it registers through the runtime fallback. Register it explicitly if you need
+it in a trimmed or AOT build.
+{% /aside %}
+
+## Authorization and short-circuiting
+
+When the pipeline should stop without an exception, call `Abort`:
+
+```csharp
+public sealed class RequirePermission : ICommandPreInterceptor<DeleteProduct>
+{
+    private readonly ICurrentUser _user;
+
+    public RequirePermission(ICurrentUser user) => _user = user;
+
+    public ValueTask<DeleteProduct> HandleAsync(DeleteProduct command, IExecutionContext context)
+    {
+        if (!_user.Can("products:delete"))
+            context.Abort();
+
+        return ValueTask.FromResult(command);
+    }
+}
+```
+
+If the command produces a result, `Abort` needs one — nothing downstream will produce it:
+
+```csharp
+context.Abort(Guid.Empty);   // CreateProduct : ICommand<Guid>
+```
+
+An abort skips the remaining pre-interceptors, the handler and the post stage. **Final
+interceptors still run**, which is what makes them safe for cleanup.
+
+## Enriching the context
+
+Anything a pre-interceptor puts in the context is visible to the handler and to every later
+stage of the same dispatch:
+
+```csharp
+public sealed class ResolveTenant : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    {
+        context.Set("tenant", _tenants.Current);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Read it back with `context.Get<Tenant>("tenant")`, or `TryGet` when absence is possible.
+
+## Rewriting the message
+
+A pre-interceptor has no result to carry, so the single-parameter form returns the command
+type directly — rewriting is just returning a new instance:
+
+```csharp
+public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+        => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+}
+```
+
+The handler receives the trimmed record. So does every pre-interceptor after this one — the
+stage is a chain, each link seeing the previous link's output.
+
+Reach for the two-parameter form only when you return a *different*, derived command type;
+`TModified` must derive from `TCommand`.
+
+## Ordering
+
+Within the pre stage: direct registrations first, then covariant ones, each ordered by
+`[Weight]` descending.
+
+```csharp
+[Weight(200)] public sealed class Authorize  : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(100)] public sealed class Validate   : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(10)]  public sealed class LogCommand : ICommandPreInterceptor<DeleteProduct> { … }
+```
+
+Authorize, then validate, then log — which is the order you want, since there is no reason to
+validate a request the caller is not allowed to make.
+
+See [Groups and weights](/ergosfare.docs/cross-cutting-concerns/groups-and-weights) for the
+full ordering rules and for restricting interceptors to a subset of dispatches.
+
+## Coverage
+
+| Interface | `HandleAsync` |
+|---|---|
+| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, IExecutionContext)` |
+| `ICommandPreInterceptor<TCommand>` | `ValueTask<TCommand>(TCommand, IExecutionContext)` |
+| `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, IExecutionContext)` |
+
+The non-generic form intercepts any command, so it returns `object`. The single-parameter
+form knows the command type and returns it — a pre-interceptor carries no result, so the
+message is the only thing there is to return. The two-parameter form returns a different,
+derived type.
+
+Queries and events offer the same three shapes as `IQueryPreInterceptor…` and
+`IEventPreInterceptor…`.
+
+Next: [Post-interceptors](/ergosfare.docs/cross-cutting-concerns/post-interceptors).

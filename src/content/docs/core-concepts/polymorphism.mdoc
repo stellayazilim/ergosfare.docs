@@ -1,0 +1,124 @@
+---
+title: Polymorphism
+description: Covariant handler and interceptor matching, direct-before-indirect ordering, and how event broadcast uses both.
+---
+
+A handler or interceptor registered against a base type or interface applies to **every
+message assignable to it**. Ergosfare resolves this when it builds the pipeline plan — once
+per message type — so covariant matching costs nothing per dispatch.
+
+## Why it matters
+
+Without covariance, a logging interceptor has to be registered once per command type, or take
+`object` and lose all type information. With it, one registration covers a hierarchy:
+
+```csharp
+public interface IAuditedCommand : ICommand;
+
+public sealed record CreateProduct(string Name) : IAuditedCommand;
+public sealed record DeleteProduct(Guid Id)    : IAuditedCommand;
+public sealed record Heartbeat()               : ICommand;      // not audited
+
+public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
+{
+    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, IExecutionContext context)
+    {
+        _audit.Log(command);
+        return ValueTask.FromResult(command);
+    }
+}
+```
+
+`CreateProduct` and `DeleteProduct` go through `AuditTrail`. `Heartbeat` does not.
+
+## Direct before indirect
+
+Within a pipeline stage, entries fall into two groups:
+
+- **Direct** — registered against the message's own type.
+- **Indirect (covariant)** — registered against a base type or interface of the message.
+
+Direct entries always run first. Within each group, `[Weight]` orders descending. The
+ordering is computed when the plan is built, so it is stable and identical for every dispatch
+of that message type.
+
+```
+CreateProduct pre-interceptors, in order:
+  1. ICommandPreInterceptor<CreateProduct>        [Weight(50)]   ← direct
+  2. ICommandPreInterceptor<CreateProduct>        [Weight(10)]   ← direct
+  3. ICommandPreInterceptor<IAuditedCommand>      [Weight(99)]   ← indirect
+  4. ICommandPreInterceptor                       [Weight(0)]    ← indirect
+```
+
+Note that the high-weight indirect interceptor still runs after the low-weight direct one.
+Weight orders *within* a group, it does not promote across groups.
+
+## Contravariance in handler contracts
+
+The message type parameter on handler and interceptor contracts is declared `in`:
+
+```csharp
+public interface ICommandHandler<in TCommand, TResult> : …
+public interface IAsyncPreInterceptor<in TMessage> : …
+```
+
+That is what makes a handler for a base type usable where a derived message is expected. The
+generic variance is enforced by the compiler; Ergosfare's plan builder just walks the type's
+assignability graph to find matches.
+
+## Events broadcast covariantly too
+
+Event publication delivers to every matching handler, not just the ones registered against
+the exact event type:
+
+```csharp
+public interface IDomainEvent : IEvent;
+
+public sealed record OrderPlaced(Guid Id) : IDomainEvent;
+
+public sealed class SendConfirmation : IEventHandler<OrderPlaced>  { … }  // direct
+public sealed class AppendToOutbox   : IEventHandler<IDomainEvent> { … }  // indirect
+```
+
+Publishing an `OrderPlaced` runs `SendConfirmation` first, then `AppendToOutbox` — the same
+direct-before-indirect rule as interceptors.
+
+{% aside type="note" %}
+Covariant delivery to *handlers* is new in v2. On the v1 line, only interceptors matched
+covariantly; event handlers had to be registered against the exact event type. See
+[Migrating from v1](/ergosfare.docs/migration/v1-to-v2).
+{% /aside %}
+
+An outbox or an audit sink registered against `IDomainEvent` therefore sees every domain
+event with one registration — which is usually what you want, and occasionally not.
+
+## Opting out
+
+When a message should skip covariantly matched interceptors, mark the message:
+
+```csharp
+[ExcludeFromPipeline]
+public sealed record Heartbeat : ICommand;
+```
+
+`Heartbeat` no longer picks up the blanket `ICommandPreInterceptor`. Interceptors registered
+against `Heartbeat` itself still run — those were written for it deliberately — and main
+handlers are never affected.
+
+Scoping the exclusion to particular groups is also possible:
+
+```csharp
+[ExcludeFromPipeline("logging", "metrics")]
+public sealed record Tick : ICommand;
+```
+
+See [Groups and weights](/ergosfare.docs/cross-cutting-concerns/groups-and-weights).
+
+## Cost
+
+None per dispatch. Assignability is walked once, when the plan for a `(message type, group
+set)` pair is first built; every later dispatch of that shape reads a pre-ordered array. The
+generic handler types involved are closed at that same moment, so invocation goes through
+typed members with no object-typed bridge.
+
+Next: [Plugins](/ergosfare.docs/core-concepts/plugins).

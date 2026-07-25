@@ -1,19 +1,19 @@
 ---
 title: Ergosfare
-description: .NET'te CQRS tarzı mesajlaşma için modüler bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
+description: .NET için kaynak-üretimli, yüksek performanslı bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
 template: splash
 hero:
-  tagline: .NET'te CQRS tarzı mesajlaşma için modüler bir mediator. Aktif geliştirme v2 preview hattında yapılıyor.
+  tagline: .NET için kaynak-üretimli bir mediator. Dispatch'in şekliyle ilgili tüm iş derleme zamanında yapılır — her dispatch'te değil.
   image:
     file: ../../../assets/ergosfare.svg
   actions:
-    - text: v2 preview ile başla
+    - text: Başla
       link: /ergosfare.docs/tr/preview/getting-started/introduction
       icon: right-arrow
-      variant: primary
-    - text: v1 stable dokümanları
-      link: /ergosfare.docs/tr/getting-started/introduction
-      icon: document
+      variant: minimal
+    - text: API referansı
+      link: /ergosfare.docs/api
+      icon: open-book
       variant: minimal
 ---
 
@@ -26,40 +26,36 @@ import { StarField } from "../../../components/constellation/starfield.tsx"
   </div>
 
 <CardGrid stagger>
-  <Card title="Tek kütüphane, iki hat" icon="seti:c-sharp">
-    **v1 stable**, düz bir `dotnet add package` ile geleni. **v2 preview** ise aktif hat —
-    aynı kavramlar, çok daha hızlı bir uygulama ve stable'a yakın.
-    [Karşılaştır](/ergosfare.docs/tr/getting-started/introduction#v1-ve-v2-fark%C4%B1).
+  <Card title="Derleme zamanı kayıt" icon="seti:c-sharp">
+    Bir Roslyn üreteci, handler'ları hem sizin derlemenizde *hem de* referans verilen
+    assembly'lerde bulur, descriptor'larını önceden hesaplar ve `RegisterGenerated()` metodunu
+    üretir. Bir kütüphanenin handler'ları, kütüphanede tek satır kayıt kodu olmadan kaydolur.
   </Card>
 
-  <Card title="Derleme zamanı kayıt" icon="rocket">
-    v2'de bir Roslyn üreteci handler'ları hem sizin derlemenizde *hem de* referans verilen
-    assembly'lerde bulur ve kaydı sizin için üretir — başlangıçta assembly taraması yok,
-    reflection yok.
-    [Devamı](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+  <Card title="Reflection'sız dispatch" icon="rocket">
+    Üretilen dispatch root'ları executor generic'lerini derleme zamanında kapatır; pipeline
+    planları generic handler tiplerini önceden kapatır. Sıcak yolda `MakeGenericType` yok,
+    registry taraması yok, `AsyncLocal` yok.
   </Card>
 
   <Card title="Hesabı verilebilir allocation" icon="approve-check">
-    v2'nin havuzlanmış execution context'leri ve `ValueTask` öncelikli yüzeyi, 100 bin ardışık
-    dispatch'i 2.3 MB'a indiriyor — aynı döngüde MediatR'ın 18.3 MB'ına karşılık.
-    [Ölçümler](/ergosfare.docs/tr/preview/advanced/performance).
+    Havuzlanmış execution context'ler ve `ValueTask` öncelikli bir yüzey: 100 bin ardışık
+    dispatch 2.3 MB ayırıyor — aynı döngüde MediatR'ın 18.3 MB'ına karşılık.
   </Card>
 
-  <Card title="Interceptor pipeline'ı" icon="layers">
-    Loglama, doğrulama, yetkilendirme ve temizlik için pre, post, exception ve final
-    aşamaları — handler'lara dokunmadan takılır ve tip hiyerarşisi boyunca kovaryant eşleşir.
+  <Card title="Güvenli iç içe dispatch" icon="layers">
+    `context.CreateScope()`, handler'a kendi item'ları temiz ve iptal token'ı miras alınmış bir
+    alt bağlam verir — ambient state kullanan mediator'ların güvenle sunamadığı desen.
   </Card>
 
   <Card title="Native AOT ve trimming" icon="setting">
-    v2 her yapıyı statik olarak referanslar ve `record struct` mesajlar dahil her generic
-    örneklemeyi sabitler.
-    [Nasıl çalışıyor](/ergosfare.docs/tr/preview/advanced/aot-and-trimming).
+    Her yapı `typeof` ile statik olarak referanslanır; dispatch root'ları `record struct`
+    mesajlar dahil her generic örneklemeyi sabitler.
   </Card>
 
   <Card title="Modüler" icon="puzzle-piece">
-    Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. Sadece
-    kullandığınız modülleri kaydedin — ve her bileşene yalnızca ihtiyacı olan mediator
-    arayüzünü verin.
+    Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. `IModule` gerçek
+    bir genişletme noktasıdır — dahili modüller de onu kullanır.
   </Card>
 </CardGrid>
 </div>

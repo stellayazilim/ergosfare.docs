@@ -1,0 +1,122 @@
+---
+title: Post-interceptors
+description: Shaping, caching and auditing the result after a handler succeeds.
+---
+
+A post-interceptor runs after the main handler and returns the result the caller will
+receive. Like the pre stage, the return value is the point: a post-interceptor can observe
+the result, replace it, or derive a new one.
+
+```csharp
+public sealed class AuditCreation : ICommandPostInterceptor<CreateProduct, Guid>
+{
+    private readonly IAuditLog _audit;
+
+    public AuditCreation(IAuditLog audit) => _audit = audit;
+
+    public ValueTask<Guid> HandleAsync(
+        CreateProduct command, Guid result, IExecutionContext context)
+    {
+        _audit.Record("product.created", result);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+{% aside type="caution" %}
+Post-interceptors run **only on success**. If the handler threw, or a pre-interceptor called
+`Abort()`, the post stage is skipped entirely. Anything that must run regardless belongs in a
+[final interceptor](/ergosfare.docs/cross-cutting-concerns/final-interceptors).
+{% /aside %}
+
+## Shaping a result
+
+The typed two-parameter form is the one to reach for when you are transforming:
+
+```csharp
+public sealed class MaskSecrets : IQueryPostInterceptor<GetUser, UserDto>
+{
+    public ValueTask<UserDto> HandleAsync(
+        GetUser query, UserDto result, IExecutionContext context)
+        => ValueTask.FromResult(result with { Email = Mask(result.Email) });
+}
+```
+
+Each post-interceptor in the stage sees the previous one's output, so transformations
+compose in `[Weight]` order.
+
+## Caching
+
+Populate the cache after a successful query, and check it in the matching pre-interceptor:
+
+```csharp
+public sealed class CacheProduct : IQueryPostInterceptor<GetProduct, Product?>
+{
+    private readonly IMemoryCache _cache;
+
+    public CacheProduct(IMemoryCache cache) => _cache = cache;
+
+    public ValueTask<Product?> HandleAsync(
+        GetProduct query, Product? result, IExecutionContext context)
+    {
+        if (result is not null)
+            _cache.Set(query.Id, result, TimeSpan.FromMinutes(5));
+
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+The read side belongs in a pre-interceptor that calls `context.Abort(cached)` on a hit — that
+skips the handler entirely.
+
+## Blanket auditing
+
+The non-generic form applies to every command in the module. It receives the result as
+`object`, since there is no single type it could be:
+
+```csharp
+public sealed class RecordOutcome : ICommandPostInterceptor
+{
+    public ValueTask<object> HandleAsync(
+        ICommand command, object result, IExecutionContext context)
+    {
+        _metrics.Increment($"command.{command.GetType().Name}.ok");
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+Because this matches covariantly, a message can opt out with `[ExcludeFromPipeline]` — see
+[Polymorphism](/ergosfare.docs/core-concepts/polymorphism#opting-out).
+
+## Events
+
+An event has no result, so the event post-interceptor receives the `ValueTask` representing
+the handler invocation rather than a value:
+
+```csharp
+public sealed class LogPublished : IEventPostInterceptor<OrderPlaced>
+{
+    public ValueTask<object> HandleAsync(
+        OrderPlaced @event, ValueTask result, IExecutionContext context)
+    {
+        _logger.LogInformation("Published {Event}", @event.Id);
+        return ValueTask.FromResult<object>(result);
+    }
+}
+```
+
+There is no two-parameter typed form for event post-interceptors, for the same reason.
+
+## Coverage
+
+| Interface | `HandleAsync` |
+|---|---|
+| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, IExecutionContext)` |
+| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, IExecutionContext)` |
+| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, IExecutionContext)` |
+| `IQueryPostInterceptor` / `<TQuery>` / `<TQuery, TResult>` | as above |
+| `IEventPostInterceptor` / `<TEvent>` | `ValueTask<object>(TEvent, ValueTask, IExecutionContext)` |
+
+Next: [Exception interceptors](/ergosfare.docs/cross-cutting-concerns/exception-interceptors).

@@ -1,0 +1,172 @@
+---
+title: Migrating from v1 to v2
+description: The breaking changes on the v2 line, in the order you will hit them, with the replacement for each.
+---
+
+v2 removes two long-deprecated APIs, moves the whole surface to `ValueTask`, and replaces
+runtime assembly scanning with compile-time registration. This page lists what breaks and
+what to do about it.
+
+{% aside type="caution" %}
+v2 ships as `2.0.0-preview.N` pre-releases and APIs may still change between previews. The
+stable v1.x line remains on [`main`](https://github.com/stellayazilim/Ergosfare/tree/main).
+{% /aside %}
+
+## 1. `AmbientExecutionContext` is gone
+
+Deprecated since v1.2.0, removed in v2. The dispatch path now carries **zero `AsyncLocal`
+state**, which is what makes nested and parallel dispatch predictable.
+
+```csharp
+// v1
+var tenant = AmbientExecutionContext.Current.Get<string>("tenant");
+
+// v2 — the context is a parameter on every handler and interceptor
+public ValueTask HandleAsync(DoThing command, IExecutionContext context)
+{
+    var tenant = context.Get<string>("tenant");
+    …
+}
+```
+
+If a helper deep in your call stack needed the ambient context, pass `IExecutionContext`
+down to it, or read what it needs in the handler and pass that.
+
+**`CreateScope` changed shape too.** It no longer takes a context to install:
+
+```csharp
+// v1
+using (var _ = context.CreateScope(new ExecutionContext())) { … }
+
+// v2 — returns a struct scope carrying a child context you pass explicitly
+using var scope = context.CreateScope();
+await _commands.SendAsync(new Inner(), scope.Context);
+```
+
+See [Nested dispatch](/ergosfare.docs/core-concepts/nested-dispatch).
+
+## 2. `Task` becomes `ValueTask`
+
+Handlers, interceptors and the mediator facades all return `ValueTask` /
+`ValueTask<TResult>`. Synchronously completing handlers now allocate nothing.
+
+```csharp
+// v1
+public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    => Task.FromResult(Guid.NewGuid());
+
+// v2
+public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    => ValueTask.FromResult(Guid.NewGuid());
+```
+
+Mechanical replacements:
+
+| v1 | v2 |
+|---|---|
+| `Task` | `ValueTask` |
+| `Task<T>` | `ValueTask<T>` |
+| `Task.CompletedTask` | `ValueTask.CompletedTask` |
+| `Task.FromResult(x)` | `ValueTask.FromResult(x)` |
+
+{% aside type="caution" %}
+`ValueTask` must not be awaited twice or stored for later. If you were caching a returned
+`Task`, call `.AsTask()` on the `ValueTask` first.
+{% /aside %}
+
+## 3. Three-parameter `TModifiedResult` interceptors are gone
+
+Deprecated in v1.4.0, removed in v2. The two-parameter typed interfaces now expose the typed
+`HandleAsync` directly:
+
+```csharp
+// v1
+public class Stamp : ICommandPostInterceptor<CreateProduct, Guid, Guid> { … }
+
+// v2
+public sealed class Stamp : ICommandPostInterceptor<CreateProduct, Guid>
+{
+    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, IExecutionContext context)
+        => ValueTask.FromResult(result);
+}
+```
+
+## 4. `RegisterFromAssembly` → `RegisterGenerated`
+
+Still supported, but no longer the default path. Add the generator package and swap the call:
+
+```bash
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
+
+```csharp
+// v1
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterFromAssembly(Assembly.GetExecutingAssembly())));
+
+// v2
+using Stella.Ergosfare.Generated;      // required — this is where the method lives
+
+services.AddErgosfare(o => o
+    .AddCommandModule(c => c.RegisterGenerated()));
+```
+
+This is the change that gets you compile-time registration, reflection-free dispatch and a
+clean Native AOT publish. Keep `RegisterFromAssembly` only for assemblies genuinely loaded at
+runtime.
+
+Watch for `ERGOSG001` / `ERGOSG002` after the switch: they flag types the generator found but
+cannot name, which runtime scanning would have registered silently. See
+[Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery#diagnostics).
+
+## 5. Event broadcast now matches handlers covariantly
+
+In v1, only interceptors matched covariantly; event handlers had to name the exact event
+type. In v2 a handler registered against a base type or interface receives every assignable
+event.
+
+```csharp
+public sealed class AppendToOutbox : IEventHandler<IDomainEvent> { … }
+```
+
+**This can activate handlers that were previously dormant.** If you have an
+`IEventHandler<IEvent>` or similar broad registration in a v1 codebase, it now runs for every
+event. Narrow it, or opt individual messages out with
+[`[ExcludeFromPipeline]`](/ergosfare.docs/cross-cutting-concerns/groups-and-weights).
+
+## 6. Typed dispatch everywhere
+
+Interceptor object roots and default-interface-method bridges were removed; invocation is
+generic end to end. This affects you only if you implemented Ergosfare's internal
+abstractions directly — normal handler and interceptor code is unaffected.
+
+## What is new and worth adopting
+
+Nothing here is required, but these are the reasons to be on v2 at all:
+
+- [Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery), including
+  cross-assembly registration with no code in the library.
+- [Discovery keys](/ergosfare.docs/core-concepts/discovery-keys) for registration-time
+  feature gating.
+- [Final interceptors](/ergosfare.docs/cross-cutting-concerns/final-interceptors) — the stage
+  that always runs.
+- [`[ExcludeFromPipeline]`](/ergosfare.docs/cross-cutting-concerns/groups-and-weights) for
+  keeping high-volume messages out of blanket interceptors.
+- [Nested dispatch scopes](/ergosfare.docs/core-concepts/nested-dispatch).
+- [Native AOT support](/ergosfare.docs/advanced/aot-and-trimming) that actually holds under
+  `PublishAot`.
+
+## Suggested order
+
+1. Add the source generator package, switch to `RegisterGenerated()`, fix `ERGOSG*` warnings.
+2. Replace `Task` with `ValueTask` across handlers and interceptors — the compiler finds
+   every site.
+3. Remove `AmbientExecutionContext` usages; thread `IExecutionContext` instead.
+4. Collapse three-parameter interceptors to their two-parameter form.
+5. Audit broad `IEventHandler<…>` registrations for the new covariant delivery.
+6. Then adopt what is new, at whatever pace suits you.
+
+The full list of changes is in
+[CHANGELOG.md](https://github.com/stellayazilim/ergosfare/blob/preview/CHANGELOG.md); the
+support policy is in
+[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/preview/COMPATIBILITY.md).

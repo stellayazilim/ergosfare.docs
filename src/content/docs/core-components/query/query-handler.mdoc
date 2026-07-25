@@ -1,0 +1,110 @@
+---
+title: Defining a query handler
+description: IQueryHandler and IStreamQueryHandler — returning a value, or streaming one row at a time.
+---
+
+A query handler implements `IQueryHandler<TQuery, TResult>`:
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
+{
+    private readonly IProductStore _store;
+
+    public GetProductHandler(IProductStore store) => _store = store;
+
+    public ValueTask<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+        => _store.FindAsync(query.Id, context.CancellationToken);
+}
+```
+
+As everywhere else: `ValueTask` return, cancellation on the context, dependencies through the
+constructor, and no registration call — the source generator finds it.
+
+## One handler per query
+
+Like commands, a query has exactly one main handler. Two registrations for the same query
+type raise `MultipleHandlerFoundException` at dispatch.
+
+## Streaming
+
+`IStreamQueryHandler<TQuery, TResult>` returns `IAsyncEnumerable<TResult>` instead:
+
+Note the method name: streaming handlers implement **`StreamAsync`**, not `HandleAsync`, and
+there is no separate cancellation-token parameter.
+
+```csharp
+public sealed class StreamProductsHandler : IStreamQueryHandler<StreamProducts, Product>
+{
+    private readonly IProductStore _store;
+
+    public StreamProductsHandler(IProductStore store) => _store = store;
+
+    public async IAsyncEnumerable<Product> StreamAsync(
+        StreamProducts query, IExecutionContext context)
+    {
+        // Read what you need off the context before the first yield: from here on the
+        // method body runs during the consumer's enumeration, not during the dispatch call.
+        var cancellationToken = context.CancellationToken;
+
+        await foreach (var page in _store.PagesAsync(query.PageSize, cancellationToken))
+            foreach (var product in page)
+                yield return product;
+    }
+}
+```
+
+{% aside type="caution" %}
+An iterator method body does not start running until the consumer enumerates it. Capture
+anything you need from `IExecutionContext` into locals before the first `yield return` rather
+than touching `context` inside the loop — see
+[Execution context](/ergosfare.docs/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+{% /aside %}
+
+Consume it with `await foreach`:
+
+```csharp
+await foreach (var product in _queries.StreamAsync(new StreamProducts(100), ct))
+    await WriteAsync(product);
+```
+
+## Returning "not found"
+
+If the query is declared `IQuery<Product?>`, returning `null` is the contract and callers must
+handle it. If it is declared `IQuery<Product>`, throw — and let an
+[exception interceptor](/ergosfare.docs/cross-cutting-concerns/exception-interceptors)
+translate that into whatever the edge of your application returns:
+
+```csharp
+public ValueTask<Product> HandleAsync(GetProduct query, IExecutionContext context)
+    => _store.FindAsync(query.Id, context.CancellationToken)
+        ?? throw new KeyNotFoundException($"Product {query.Id} not found");
+```
+
+Pick one and be consistent across the codebase; mixing the two is what makes callers write
+both a null check and a try/catch.
+
+## Caching
+
+The pipeline is a better place for caching than the handler, because it keeps the handler
+about the data:
+
+- A [pre-interceptor](/ergosfare.docs/cross-cutting-concerns/pre-interceptors) checks the
+  cache and calls `context.Abort(cached)` on a hit, skipping the handler entirely.
+- A [post-interceptor](/ergosfare.docs/cross-cutting-concerns/post-interceptors) populates
+  the cache on the way out.
+
+Scope both to a marker interface such as `ICacheableQuery` so only the queries you opted in
+pay for it.
+
+## Lifetimes
+
+Handlers resolve from the calling DI scope on every dispatch. A query handler that holds a
+`DbContext` should be **scoped**, matching the context's own lifetime — a singleton handler
+capturing a scoped dependency is the usual source of "cannot access a disposed object" at
+runtime. See
+[Configuring Ergosfare](/ergosfare.docs/getting-started/configuring#handler-lifetimes).
+
+Next: [Defining an event](/ergosfare.docs/core-components/event/event-definition).

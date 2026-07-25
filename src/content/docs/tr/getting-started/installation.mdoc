@@ -1,77 +1,99 @@
 ---
 title: Kurulum
-description: Kararlı Ergosfare v1 paketlerinin kurulumu ve onun yerine v2 için ne kurulacağı.
+description: Hangi Ergosfare paketlerine ihtiyacınız var ve kaynak üreteci neden ayrı bir paket.
 ---
 
-Kararlı v1.x paketleri nuget.org'da yayınlanıyor ve hiçbir bayrak gerektirmeden kuruluyor:
+Ergosfare v2, nuget.org üzerinde ön-sürüm paketleri olarak yayınlanıyor. v2 hattı kararlı hale
+gelene kadar her kurulum `--prerelease` bayrağına ihtiyaç duyar.
 
-```bash
-dotnet add package Stella.Ergosfare
-```
+## Kısa yol
 
-`Stella.Ergosfare`, Command, Query ve Event modüllerini DI uzantılarıyla birlikte getiren bir
-şemsiye pakettir.
-
-{% aside type="tip" %}
-Yeni bir proje için v2 preview'ı değerlendirin — derleme zamanı kayıt, Native AOT desteği ve
-`ValueTask` öncelikli bir yüzey getiriyor:
+Bir uygulama için:
 
 ```bash
 dotnet add package Stella.Ergosfare --prerelease
 dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
 ```
 
-Bkz. [v2 kurulum rehberi](/ergosfare.docs/tr/preview/getting-started/installation).
+`Stella.Ergosfare`, Command, Query ve Event modüllerini DI uzantılarıyla birlikte getiren bir
+kolaylık paketidir. `Stella.Ergosfare.SourceGenerator` ise `RegisterGenerated()` metodunu üreten
+pakettir.
+
+{% aside type="caution" %}
+Kaynak üreteci **bilinçli olarak ayrı bir pakettir**. O olmadan `RegisterGenerated()` da olmaz
+ve çalışma zamanında tarama yapan `RegisterFromAssembly(...)` yoluna düşersiniz. Her şey yine
+çalışır, ama derleme zamanı kaydını ve onunla gelen AOT garantilerini kaybedersiniz.
 {% /aside %}
 
-## Paket seçimi
+## Gereksinimler
 
-Her modül bağımsızdır; şemsiye paket bir kolaylıktır:
+- **.NET 9.0 veya .NET 10.0.** Kütüphaneler `net9.0;net10.0` hedefliyor.
+- **C# `latest`.** Üretilen kayıt kodu bilinçli olarak muhafazakârdır, ancak soyutlamalar güncel
+  dil özelliklerini kullanır.
+
+## Paketleri bilinçli seçmek
+
+Şemsiye paket kolaylıktır, zorunluluk değil. Her modül bağımsızdır:
 
 | Paket | Ne veriyor |
 |---|---|
 | `Stella.Ergosfare` | Şemsiye — Command + Query + Event + DI uzantıları |
-| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, handler ve interceptor sözleşmeleri |
+| `Stella.Ergosfare.SourceGenerator` | Derleme zamanı keşif, `RegisterGenerated()`, dispatch root'ları |
+| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, attribute'lar, handler sözleşmeleri |
 | `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptor'ları |
 | `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handler ve interceptor'ları |
 | `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptor'ları |
-| `Stella.Ergosfare.Core` | Çalışma zamanı: registry, pipeline, dispatch |
-| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, modül builder'ları |
+| `Stella.Ergosfare.Core` | Çalışma zamanı: registry, pipeline planları, dispatch |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, modül builder'ları |
 
-Yalnızca mesaj ve handler tanımlayan bir kütüphaneye sadece ilgili `.Abstractions` paketi
-yeter:
+### Yalnızca mesaj ve handler tanımlayan kütüphane
+
+Sadece abstractions paketine referans verin. Böylece kütüphane çalışma zamanından ve herhangi
+bir DI container bağımlılığından uzak kalır:
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands.Abstractions
+dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
 ```
 
-v1'de o kütüphanenin handler'larını yine de uygulama kaydetmek zorundadır; yani uygulama
-kütüphanenin assembly'sini de açıkça taramalıdır:
-
-```csharp
-.AddCommandModule(c => c
-    .RegisterFromAssembly(Assembly.GetExecutingAssembly())
-    .RegisterFromAssembly(typeof(KutuphanedekiBirTip).Assembly))
-```
-
-v2'de kaynak üreteci referans verilen assembly'leri sizin için geziyor ve ikinci çağrı
-ortadan kalkıyor — bkz.
+Kütüphanenin **hiç kayıt koduna ihtiyacı yoktur**. Ona referans veren bir uygulama kaynak
+üretecini çalıştırdığında, üreteç referans verilen assembly'leri gezer ve o handler'ları
+uygulamanın kendi `RegisterGenerated()` çağrısı üzerinden kaydeder. Bkz.
 [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
 
-## Gereksinimler
+### Yalnızca command kullanan uygulama
 
-v1 hattı `net9.0` ve `net10.0` hedefliyor.
+```bash
+dotnet add package Stella.Ergosfare.Commands --prerelease
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+```
 
-## Sürümleme
+## Üretecin çalıştığını doğrulama
 
-| Dal | Hat | Etiketler | NuGet |
-|---|---|---|---|
-| `main` | kararlı v1.x | `vX.Y.Z` | stable |
-| `preview` | v2 | `v2.0.0-preview.N` | ön-sürüm |
+Üreteç derlemenize tek bir dosya yazar. Bir build'den sonra şurada bulabilirsiniz:
 
-Kararlı düzeltmeler önce `main`'e iner ve düzenli olarak `preview`'a merge edilir; yani
-buradaki hiçbir bağımlılığınız yukarı çıktığınızda kaybolmaz. Politikanın tamamı
-[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/main/COMPATIBILITY.md)
-dosyasında.
+```
+obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
+```
 
-Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/getting-started/quick-start).
+Dosyayı açtığınızda `Stella.Ergosfare.Generated` namespace'i içinde
+`internal static class ErgosfareGeneratedRegistrations` görmelisiniz. Başlangıç kodunuzda
+`RegisterGenerated()` çözülmüyorsa, sebep neredeyse her zaman eksik bir using'dir:
+
+```csharp
+using Stella.Ergosfare.Generated;
+```
+
+## Referans taraması
+
+Üreteç varsayılan olarak referans verilen assembly'leri de inceler, böylece kütüphanelerin
+gönderdiği handler'lar otomatik kaydolur. Bir proje için kapatmak isterseniz:
+
+```xml
+<PropertyGroup>
+  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+</PropertyGroup>
+```
+
+Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — bir command, bir
+query ve bir event'i tek dosyada bağlıyor.

@@ -1,0 +1,95 @@
+---
+title: Defining an event
+description: IEvent — broadcast to any number of handlers, including handlers registered against a base type.
+---
+
+An event states that something happened. Unlike a command, it is **broadcast**: any number of
+handlers may react, including none.
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+
+public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+```
+
+There is one shape only — `IEvent`. An event has no result, because there is no single
+handler whose answer would count.
+
+## Commands versus events
+
+| | Command | Event |
+|---|---|---|
+| Intent | do this | this happened |
+| Handlers | exactly one | zero or more |
+| Result | optional (`ICommand<TResult>`) | none |
+| Naming | imperative — `CreateProduct` | past tense — `ProductCreated` |
+| Adding a handler | a configuration error | the normal way to extend |
+
+The past-tense naming is not decoration. If you find yourself wanting a result back from an
+event, or wanting exactly one handler to own it, what you have is a command.
+
+## Covariant broadcast
+
+Event handlers match [covariantly](/ergosfare.docs/core-concepts/polymorphism). A handler
+registered against a base type or interface receives every assignable event:
+
+```csharp
+public interface IDomainEvent : IEvent;
+
+public sealed record ProductCreated(Guid Id, string Name) : IDomainEvent;
+public sealed record ProductDeleted(Guid Id)              : IDomainEvent;
+
+public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
+{
+    public ValueTask HandleAsync(IDomainEvent @event, IExecutionContext context)
+        => _outbox.AppendAsync(@event, context.CancellationToken);
+}
+```
+
+One registration, and every domain event added later is covered. Handlers registered for the
+event's own type run **before** covariantly matched ones.
+
+{% aside type="note" %}
+Covariant delivery to event *handlers* is new in v2. On the v1 line only interceptors matched
+covariantly — event handlers had to name the exact event type. See
+[Migrating from v1](/ergosfare.docs/migration/v1-to-v2).
+{% /aside %}
+
+## Events carry data, not references
+
+An event is often consumed after the fact — by an outbox, an audit log, a projection. Put the
+values in it rather than an entity the handler has to reload against a `DbContext` that may
+already be gone:
+
+```csharp
+public sealed record ProductCreated(Guid Id, string Name, decimal Price) : IEvent;   // good
+public sealed record ProductCreated(Product Entity) : IEvent;                        // fragile
+```
+
+## Publishing
+
+```csharp
+await _events.PublishAsync(new ProductCreated(id, name));
+```
+
+The call completes when every matching handler has completed. `PublishAsync` takes an optional
+`EventMediationSettings` and a `CancellationToken`, and has an `IExecutionContext` overload
+for [nested dispatch](/ergosfare.docs/core-concepts/nested-dispatch) — which is how you
+publish from inside a command handler:
+
+```csharp
+public async ValueTask HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+{
+    using var scope = ctx.CreateScope();
+    await _events.PublishAsync(new OrderPlaced(msg.OrderId), scope.Context);
+}
+```
+
+## Controlling registration
+
+`[DiscoveryKey]`, `[ExcludeFromDiscovery]` and `[ExcludeFromPipeline]` apply to events as to
+any other message. `[ExcludeFromPipeline]` is particularly useful on high-frequency events
+that should not go through the blanket interceptors — it affects covariantly matched
+*interceptors*, never handlers.
+
+Next: [Defining an event handler](/ergosfare.docs/core-components/event/event-handler).

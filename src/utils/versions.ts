@@ -12,7 +12,7 @@ export interface DocsVersionInfo {
 }
 
 export const DOCS_VERSIONS: DocsVersionInfo[] = [
-  { id: "stable", segment: "", label: "v1 (stable)", labelTr: "v1 (kararlı)" },
+  { id: "stable", segment: "", label: "v2 (stable)", labelTr: "v2 (kararlı)" },
   { id: "preview", segment: "preview", label: "v2 (preview)", labelTr: "v2 (önizleme)" },
 ];
 
