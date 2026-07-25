@@ -128,17 +128,48 @@ function typeLink(uid: string | undefined, resolve: UidResolver): string {
   return target?.href ? `[${code(name)}](${target.href})` : code(name);
 }
 
-function sourceLink(item: Item, version: DocsVersion): string {
-  const remote = item.source?.remote;
-  if (!remote?.path) return "";
+/**
+ * Repository-relative path of the file a symbol was declared in, or undefined
+ * when it cannot be determined.
+ *
+ * docfx normally reports this as `source.remote.path`, but it only resolves the
+ * remote when it can read the git repository — and it cannot inside the
+ * `.worktrees/<ref>` checkouts the local pipeline builds the non-checked-out
+ * lines from. There `source.path` is an absolute filesystem path instead, which
+ * would silently drop every "View source" link from that line and make the two
+ * documented lines differ for no real reason.
+ *
+ * Every documented project lives under `src/`, so slicing from the last `src`
+ * segment recovers the repository-relative path. Scanning from the end keeps a
+ * checkout that itself sits under a directory called `src` from being cut short.
+ */
+function repoRelativeSource(item: Item): string | undefined {
+  const remotePath = item.source?.remote?.path;
+  if (remotePath) return remotePath;
+
+  const raw = item.source?.path;
+  if (!raw) return undefined;
+
+  const segments = raw.replaceAll("\\", "/").split("/");
+  const srcIndex = segments.lastIndexOf("src");
+  if (srcIndex === -1) return undefined;
+  return segments.slice(srcIndex).join("/");
+}
+
+/** `github.com/.../blob/<ref>/<path>#L<line>` for a symbol, or "" if unknown. */
+function sourceUrlFor(item: Item, version: DocsVersion): string | undefined {
+  const relative = repoRelativeSource(item);
+  if (!relative) return undefined;
   const line = item.source?.startLine ? `#L${item.source.startLine}` : "";
   // Generic type files are named `ICommandHandler[TCommand,TResult].cs`; the
   // brackets have to be escaped or they terminate the Markdown link early.
-  const encoded = remote.path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-  return `[View source](${sourceBrowseBase(version)}/${encoded}${line})`;
+  const encoded = relative.split("/").map(encodeURIComponent).join("/");
+  return `${sourceBrowseBase(version)}/${encoded}${line}`;
+}
+
+function sourceLink(item: Item, version: DocsVersion): string {
+  const url = sourceUrlFor(item, version);
+  return url ? `[View source](${url})` : "";
 }
 
 function csharpBlock(content: string | undefined): string {
@@ -390,7 +421,6 @@ function catalogEntry(
   version: DocsVersion,
 ): CatalogType {
   const namespace = type.namespace!;
-  const remote = type.source?.remote;
 
   const members: CatalogMember[] = (type.children ?? [])
     .map((uid) => model.members.get(uid))
@@ -432,12 +462,7 @@ function catalogEntry(
     inherits: type.inheritance?.map((u) => plainTypeName(u, resolve)),
     implements: type.implements?.map((u) => plainTypeName(u, resolve)),
     docUrl: typeHref(version, type.uid, namespace),
-    sourceUrl: remote?.path
-      ? `${sourceBrowseBase(version)}/${remote.path
-          .split("/")
-          .map(encodeURIComponent)
-          .join("/")}${type.source?.startLine ? `#L${type.source.startLine}` : ""}`
-      : undefined,
+    sourceUrl: sourceUrlFor(type, version),
     members,
   };
 }

@@ -19,11 +19,15 @@ import type { CatalogType, NamespaceGroup, Page } from "./transform.ts";
 
 const LANDING_PAGE = "index.md";
 
+/**
+ * Both documented lines carry v2, so the landing page is the same on either side
+ * apart from the branch it points at — the `Core.Internal` caveat is a fact about
+ * the v2 surface, not about one line.
+ */
 function defaultLanding(version: DocsVersion): string {
-  const isPreview = version.id === "v2";
   return `---
 title: API Reference
-description: Generated reference for every public type in the Ergosfare ${version.id} packages.
+description: Generated reference for every public type in the Ergosfare v2 packages.
 sidebar:
   label: Overview
   order: 0
@@ -38,23 +42,13 @@ section is not, because translating API descriptions away from the identifiers
 and signatures they describe creates mismatches against the real code.
 
 Pick a namespace from the sidebar to browse its types.
-${
-  isPreview
-    ? `
+
 :::note
 Everything below \`Stella.Ergosfare.Core.Internal\` is public because the runtime
 needs it to be, not because it is part of the supported surface. Prefer the
 abstractions it implements.
 :::
-`
-    : `
-:::tip
-This is the stable v1 surface. The [v2 preview line](/ergosfare.docs/preview/api)
-is where active development happens — see
-[Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2).
-:::
-`
-}`;
+`;
 }
 
 interface SidebarLinkEntry {

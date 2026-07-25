@@ -7,9 +7,9 @@ v2 removes two long-deprecated APIs, moves the whole surface to `ValueTask`, and
 runtime assembly scanning with compile-time registration. This page lists what breaks and
 what to do about it.
 
-{% aside type="caution" %}
-v2 ships as `2.0.0-preview.N` pre-releases and APIs may still change between previews. The
-stable v1.x line remains on [`main`](https://github.com/stellayazilim/Ergosfare/tree/main).
+{% aside %}
+v2 is the stable line. v1.x receives no further work, so this migration is the supported path
+forward — everything below applies to a stable release, not to a moving preview.
 {% /aside %}
 
 ## 1. `AmbientExecutionContext` is gone
@@ -96,7 +96,7 @@ public sealed class Stamp : ICommandPostInterceptor<CreateProduct, Guid>
 Still supported, but no longer the default path. Add the generator package and swap the call:
 
 ```bash
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 ```csharp
@@ -167,6 +167,6 @@ Nothing here is required, but these are the reasons to be on v2 at all:
 6. Then adopt what is new, at whatever pace suits you.
 
 The full list of changes is in
-[CHANGELOG.md](https://github.com/stellayazilim/ergosfare/blob/preview/CHANGELOG.md); the
+[CHANGELOG.md](https://github.com/stellayazilim/ergosfare/blob/main/CHANGELOG.md); the
 support policy is in
-[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/preview/COMPATIBILITY.md).
+[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/main/COMPATIBILITY.md).

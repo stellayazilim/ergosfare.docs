@@ -38,7 +38,8 @@ function apiReferenceCollection() {
 
 /**
  * Sidebar entries for the generated API Reference, keyed by documented line
- * (`v1` for stable at the site root, `v2` for the preview line under /preview).
+ * (`stable` for the site root, `preview` for the line under /preview). The keys
+ * come from `VERSIONS` in scripts/api-ref/config.ts.
  *
  * The fragment is written by `npm run gen_api_ref` and is git-ignored, so a
  * fresh checkout has no file here. Falling back to empty groups keeps
@@ -141,7 +142,7 @@ export default defineConfig({
                     { label: "v1 to v2", slug: "migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]
             },
-            ...apiReferenceSidebar('v1'),
+            ...apiReferenceSidebar('stable'),
 
             // --------------------------------------------------------- v2 preview
             {
@@ -204,7 +205,7 @@ export default defineConfig({
                     { label: "v1 to v2", slug: "preview/migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]
             },
-            ...apiReferenceSidebar('v2'),
+            ...apiReferenceSidebar('preview'),
         ],
         customCss: [
         './src/styles/global.css'

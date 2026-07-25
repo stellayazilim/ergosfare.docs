@@ -3,16 +3,17 @@ title: Kurulum
 description: Hangi Ergosfare paketlerine ihtiyacınız var ve kaynak üreteci neden ayrı bir paket.
 ---
 
-Ergosfare v2, nuget.org üzerinde ön-sürüm paketleri olarak yayınlanıyor. v2 hattı kararlı hale
-gelene kadar her kurulum `--prerelease` bayrağına ihtiyaç duyar.
+Ergosfare v2, nuget.org üzerindeki kararlı hattır; düz bir `dotnet add package` yeterlidir.
+Geliştirme hâlindeki hattı istiyorsanız [önizleme dokümantasyonuna](/ergosfare.docs/tr/preview/getting-started/installation)
+bakın.
 
 ## Kısa yol
 
 Bir uygulama için:
 
 ```bash
-dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 `Stella.Ergosfare`, Command, Query ve Event modüllerini DI uzantılarıyla birlikte getiren bir
@@ -52,20 +53,20 @@ Sadece abstractions paketine referans verin. Böylece kütüphane çalışma zam
 bir DI container bağımlılığından uzak kalır:
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+dotnet add package Stella.Ergosfare.Commands.Abstractions
 ```
 
 Kütüphanenin **hiç kayıt koduna ihtiyacı yoktur**. Ona referans veren bir uygulama kaynak
 üretecini çalıştırdığında, üreteç referans verilen assembly'leri gezer ve o handler'ları
 uygulamanın kendi `RegisterGenerated()` çağrısı üzerinden kaydeder. Bkz.
-[Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+[Derleme zamanı keşif](/ergosfare.docs/tr/core-concepts/compile-time-discovery).
 
 ### Yalnızca command kullanan uygulama
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands --prerelease
-dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare.Commands
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 ## Üretecin çalıştığını doğrulama
@@ -95,5 +96,5 @@ gönderdiği handler'lar otomatik kaydolur. Bir proje için kapatmak isterseniz:
 </PropertyGroup>
 ```
 
-Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — bir command, bir
+Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/getting-started/quick-start) — bir command, bir
 query ve bir event'i tek dosyada bağlıyor.

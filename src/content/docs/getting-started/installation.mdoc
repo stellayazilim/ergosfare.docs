@@ -3,16 +3,17 @@ title: Installation
 description: Which Ergosfare packages you need, and why the source generator is a separate one.
 ---
 
-Ergosfare v2 ships as pre-release packages on nuget.org. Every install needs the
-`--prerelease` flag until the v2 line goes stable.
+Ergosfare v2 is the stable line on nuget.org, so a plain `dotnet add package` gets it. If you
+want the in-development line instead, the [preview docs](/ergosfare.docs/preview/getting-started/installation)
+cover it.
 
 ## The short version
 
 For an application:
 
 ```bash
-dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 `Stella.Ergosfare` is a convenience bundle that pulls in the Commands, Queries and Events
@@ -53,7 +54,7 @@ Reference just the abstractions. This keeps the library free of the runtime and 
 container dependency:
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+dotnet add package Stella.Ergosfare.Commands.Abstractions
 ```
 
 The library needs **no registration code**. When an application that references it runs the
@@ -64,9 +65,9 @@ through the application's own `RegisterGenerated()`. See
 ### Application that only uses commands
 
 ```bash
-dotnet add package Stella.Ergosfare.Commands --prerelease
-dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare.Commands
+dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 ## Verifying the generator is running

@@ -9,8 +9,8 @@ event ve hepsini tek satır elle kayıt olmadan kaydeden başlangıç kodu.
 ## Adım 1 — Kurulum
 
 ```bash
-dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+dotnet add package Stella.Ergosfare
+dotnet add package Stella.Ergosfare.SourceGenerator
 ```
 
 ## Adım 2 — Bir command ve handler'ı tanımlayın
@@ -168,12 +168,12 @@ Kayıt gerekmez — üreteç onu tıpkı bir handler gibi bulur.
 Bir pre-interceptor `void` yerine mesajı döndürür, çünkü onu *yeniden yazma* hakkı vardır:
 döndürdüğünüz şey bir sonraki aşamanın gördüğü şeydir. Yukarıdaki gibi mesajı değiştirmeden
 döndürmek, geçiş (pass-through) durumudur. Bkz.
-[Interceptorlar](/ergosfare.docs/tr/preview/core-concepts/interceptors).
+[Interceptorlar](/ergosfare.docs/tr/core-concepts/interceptors).
 {% /aside %}
 
 ## Sırada ne var
 
-- [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery) — üreteç ne görüyor, nasıl kontrol edilir.
-- [Interceptorlar](/ergosfare.docs/tr/preview/core-concepts/interceptors) — dört aşama ve nasıl birleştikleri.
-- [Yürütme bağlamı](/ergosfare.docs/tr/preview/core-concepts/execution-context) — havuzlama, yaşam süresi ve getirdiği kurallar.
-- [İç içe dispatch](/ergosfare.docs/tr/preview/core-concepts/nested-dispatch) — handler içinden mediator çağırmak.
+- [Derleme zamanı keşif](/ergosfare.docs/tr/core-concepts/compile-time-discovery) — üreteç ne görüyor, nasıl kontrol edilir.
+- [Interceptorlar](/ergosfare.docs/tr/core-concepts/interceptors) — dört aşama ve nasıl birleştikleri.
+- [Yürütme bağlamı](/ergosfare.docs/tr/core-concepts/execution-context) — havuzlama, yaşam süresi ve getirdiği kurallar.
+- [İç içe dispatch](/ergosfare.docs/tr/core-concepts/nested-dispatch) — handler içinden mediator çağırmak.
