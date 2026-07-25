@@ -4,12 +4,11 @@ on:
   push:
     branches: ["main"]   # Deploy only when main branch is updated
   workflow_dispatch:      # Allow manual trigger
-  repository_dispatch:
-    # Sent by stellayazilim/ergosfare when the public API surface changes. It no
-    # longer refreshes anything by itself — the API reference is committed, so a
-    # rebuild republishes whatever is in the tree. Treat the dispatch as a signal
-    # that someone needs to run `task api` and commit the result.
-    types: [api-changed]
+  # There is no repository_dispatch trigger any more. It existed so the Ergosfare
+  # repo could tell this one that the public API surface had changed, back when
+  # the reference was generated during this workflow. It is generated locally and
+  # committed now, so a rebuild would only republish what is already in the tree —
+  # refreshing it means running `task api` in the superproject and committing.
 
 permissions:
   contents: read

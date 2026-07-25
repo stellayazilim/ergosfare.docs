@@ -1,22 +1,21 @@
 /**
  * Stage 1 — obtain DocFX ManagedReference YAML for each documented line.
  *
- * Two sources, picked automatically:
- *
- *   local   The docs site is checked out as the `docs/` submodule of the
- *           Ergosfare superproject and `docfx` is on PATH, so we can build the
- *           metadata right here. No network, no CI minutes — this is what you
- *           get while writing docs.
- *
- *   remote  Anywhere else (notably the docs repo's own Pages workflow, which has
- *           no .NET SDK): dispatch `api_reference.yml` in the Ergosfare repo and
- *           pull down the artifact it uploads for each version.
+ * Runs locally only. The docs site is checked out as the `docs/` submodule of the
+ * Ergosfare superproject and `docfx` is on PATH, so the metadata is built right
+ * here — no network, no CI minutes. Refs that are not the checked-out one are
+ * built from a git worktree under `.worktrees/<ref>`, so every documented line is
+ * covered without switching branches.
  *
  * Results land in `.api-cache/<version-id>/` as flat directories of `*.yml`.
  *
- * The local path can only build the ref that is actually checked out in the
- * superproject. Other versions fall back to the artifact download, so working on
- * docs while sitting on `preview` never forces a stable-branch checkout.
+ * There used to be a remote source for environments without a .NET SDK — notably
+ * the docs repo's own Pages workflow — which dispatched `api_reference.yml` in the
+ * Ergosfare repo and downloaded the artifact it uploaded per version. That
+ * workflow is gone: the generated reference is committed now, so the deploy only
+ * builds what is in the tree. The code for that path is still below and still
+ * correct; it is guarded rather than deleted so restoring the workflow is enough
+ * to bring it back.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -282,6 +281,19 @@ export function fetchMetadata(options: FetchOptions = {}): void {
   }
 
   if (remote.length === 0) return;
+
+  // The remote path dispatched `api_reference.yml` in the Ergosfare repo, which
+  // has been removed: the API reference is generated locally and committed, so
+  // nothing needs docfx to run in CI. Everything below still works and is kept
+  // deliberately — restoring the workflow is all it takes to bring the path back
+  // — but it cannot succeed while the workflow is absent, and failing here with
+  // the reason beats a confusing `gh: workflow not found` further down.
+  throw new Error(
+    `Cannot build ${remote.map((v) => v.id).join(", ")} locally, and the remote ` +
+      `fallback is disabled: ${SOURCE_WORKFLOW} no longer exists in ${SOURCE_REPO}. ` +
+      `Run this from the Ergosfare superproject with docfx on PATH — it builds ` +
+      `every documented line, using a git worktree for refs that are not checked out.`,
+  );
 
   if (!hasCommand("gh")) {
     throw new Error(
