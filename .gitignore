@@ -22,15 +22,20 @@ pnpm-debug.log*
 
 /docs/
 
-# API reference — regenerated from the Ergosfare sources by `npm run gen_api_ref`
-# on every build, once per documented line. Committing it would mean reviewing
-# ~330 machine-written files whenever a doc comment changes.
+# The generated API reference IS committed, deliberately.
+#
+# It used to be produced during the Pages deploy, which needed a cross-repo PAT
+# to dispatch docfx in stellayazilim/Ergosfare and pull the metadata back. That
+# secret was never configured, so the generation step silently skipped on every
+# deploy and the whole /api section 404'd in production while working fine
+# locally — a failure mode with no error anywhere.
+#
+# Committing the output removes the secret, the dispatch and the failure mode:
+# the deploy just builds what is in the tree. The cost is ~340 machine-written
+# files (~2.5 MB) to regenerate whenever the public API surface changes:
+#
+#   task api        # from the superproject — refreshes both documented lines
+#
+# Only docfx's intermediate metadata stays out; it is rebuilt from the .NET
+# sources and nothing reads it after the conversion.
 .api-cache/
-/src/content/docs/api/
-/src/content/docs/preview/api/
-/src/generated/
-
-# Machine-readable catalog for the MCP server. Generated alongside the pages and
-# copied into the build by Astro, so it ships as a static asset without ever
-# being committed.
-/public/api-catalog.json

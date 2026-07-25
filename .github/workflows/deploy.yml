@@ -5,8 +5,10 @@ on:
     branches: ["main"]   # Deploy only when main branch is updated
   workflow_dispatch:      # Allow manual trigger
   repository_dispatch:
-    # Sent by stellayazilim/ergosfare when the public API surface changes, so the
-    # generated API Reference does not go stale between docs commits.
+    # Sent by stellayazilim/ergosfare when the public API surface changes. It no
+    # longer refreshes anything by itself — the API reference is committed, so a
+    # rebuild republishes whatever is in the tree. Treat the dispatch as a signal
+    # that someone needs to run `task api` and commit the result.
     types: [api-changed]
 
 permissions:
@@ -21,10 +23,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # Mapped to an env var so steps can branch on its presence — the `secrets`
-      # context is not available in `if:` conditions, but `env` is.
-      ERGOSFARE_API_TOKEN: ${{ secrets.ERGOSFARE_API_TOKEN }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -39,22 +37,12 @@ jobs:
       - name: Install dependencies
         run: npm install --frozen-lockfile
 
-      - name: Generate API reference
-        # Optional. With a token, the generator dispatches api_reference.yml in
-        # the Ergosfare repo and converts the ManagedReference artifact into
-        # Starlight pages. Without one, the site still deploys — just without the
-        # generated API reference, and the MCP catalog without its api collection.
-        if: env.ERGOSFARE_API_TOKEN != ''
-        run: npm run gen_api_ref
-        env:
-          GH_TOKEN: ${{ env.ERGOSFARE_API_TOKEN }}
-
-      - name: Note skipped API reference
-        if: env.ERGOSFARE_API_TOKEN == ''
-        run: |
-          echo "::warning::ERGOSFARE_API_TOKEN not set — deploying without the generated"
-          echo "::warning::API reference. Add a PAT with Actions read+write on"
-          echo "::warning::stellayazilim/ergosfare as ERGOSFARE_API_TOKEN to enable it."
+      # The API reference is generated locally and committed, so there is nothing
+      # to fetch here. It used to be produced at deploy time, which needed a
+      # cross-repo PAT to dispatch docfx in stellayazilim/Ergosfare; that secret
+      # was never set, so the step skipped on every run and /api 404'd in
+      # production while working locally. Regenerate with `task api` from the
+      # superproject when the public API surface changes.
 
       - name: Build Astro site
         run: npm run build
