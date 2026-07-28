@@ -133,11 +133,11 @@ function typeLink(uid: string | undefined, resolve: UidResolver): string {
  * when it cannot be determined.
  *
  * docfx normally reports this as `source.remote.path`, but it only resolves the
- * remote when it can read the git repository — and it cannot inside the
- * `.worktrees/<ref>` checkouts the local pipeline builds the non-checked-out
- * lines from. There `source.path` is an absolute filesystem path instead, which
- * would silently drop every "View source" link from that line and make the two
- * documented lines differ for no real reason.
+ * remote when it can read the git repository — and it cannot inside the scratch
+ * exports the local pipeline builds the non-checked-out lines from, which carry
+ * no `.git` at all. There `source.path` is an absolute filesystem path instead,
+ * which would silently drop every "View source" link from that line and make the
+ * two documented lines differ for no real reason.
  *
  * Every documented project lives under `src/`, so slicing from the last `src`
  * segment recovers the repository-relative path. Scanning from the end keeps a
