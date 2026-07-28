@@ -59,9 +59,10 @@ time, and pipeline plans pre-close generic handler types. `MakeGenericType` surv
 a fallback for open generics and runtime-only registrations.
 
 **Allocation you can account for.** Pooled execution contexts, a `ValueTask`-first surface
-and synchronous fast paths put 100 000 sequential dispatches at ~2.3 MB, against MediatR's
-18.3 MB for the same loop. See [Performance](/ergosfare.docs/preview/advanced/performance) for the
-full benchmark, including the shape where MediatR wins.
+and synchronous fast paths put 100 000 sequential dispatches at ~2.3 MB in ~3.0 ms, against
+MediatR's 18.3 MB and ~5.8 ms for the same loop. See
+[Performance](/ergosfare.docs/preview/advanced/performance) for the full benchmark, the
+scope-per-request shape, and where the margins are narrow.
 
 **Nested dispatch, safely.** `context.CreateScope()` gives a handler an isolated child
 context with inherited cancellation for mediator calls inside handlers — the pattern

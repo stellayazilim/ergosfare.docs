@@ -62,8 +62,9 @@ zamanında kapatır, pipeline planları da generic handler tiplerini önceden ka
 kalır.
 
 **Hesabı verilebilir allocation.** Havuzlanmış execution context'ler, `ValueTask` öncelikli bir
-yüzey ve senkron hızlı yollar; 100 bin ardışık dispatch'i ~2.3 MB'a indiriyor — aynı döngüde
-MediatR'ın 18.3 MB'ına karşılık. Tam ölçüm ve MediatR'ın kazandığı senaryo için
+yüzey ve senkron hızlı yollar; 100 bin ardışık dispatch'i ~3.0 ms'de ~2.3 MB'a indiriyor —
+aynı döngüde MediatR'ın ~5.8 ms ve 18.3 MB'ına karşılık. Tam ölçüm, istek başına scope
+senaryosu ve farkın daraldığı yerler için
 [Performans](/ergosfare.docs/tr/preview/advanced/performance) sayfasına bakın.
 
 **Güvenli iç içe dispatch.** `context.CreateScope()`, handler içindeki mediator çağrıları için

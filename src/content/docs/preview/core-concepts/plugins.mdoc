@@ -53,14 +53,21 @@ internal class CommandModule : IModule
     {
         _builder(new CommandModuleBuilder(configuration.MessageRegistry));
 
-        configuration.Services.TryAddScoped<ICommandMediator, CommandMediator>();
+        configuration.Services.TryAddTransient<ICommandMediator, CommandMediator>();
     }
 }
 ```
 
 Two responsibilities: run the user's registration lambda against a builder, and add the
-module's own facade to DI. `TryAddScoped` rather than `AddScoped`, so registering a module
-twice is harmless.
+module's own facade to DI. `TryAdd` rather than `Add`, so registering a module twice is
+harmless.
+
+**Transient, not scoped.** A mediator facade is stateless — the only thing it captures is the
+provider that resolved it, and a transient service is handed the resolving scope's provider
+just as a scoped one is, so handlers still resolve from the calling scope. Registering it
+scoped would take the scope's lock and write the instance into the scope's resolved-services
+dictionary on every dispatch that creates its own scope, with nothing to amortize it. Follow
+this in your own module. See [Performance](/ergosfare.docs/preview/advanced/performance#mediator-lifetime).
 
 ## Writing your own module
 
@@ -79,7 +86,7 @@ public sealed class SagaModule : IModule
     {
         _builder(new SagaModuleBuilder(configuration.MessageRegistry));
 
-        configuration.Services.TryAddScoped<ISagaMediator, SagaMediator>();
+        configuration.Services.TryAddTransient<ISagaMediator, SagaMediator>();
     }
 }
 

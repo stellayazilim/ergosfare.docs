@@ -4,8 +4,9 @@
  * Runs locally only. The docs site is checked out as the `docs/` submodule of the
  * Ergosfare superproject and `docfx` is on PATH, so the metadata is built right
  * here — no network, no CI minutes. Refs that are not the checked-out one are
- * built from a git worktree under `.worktrees/<ref>`, so every documented line is
- * covered without switching branches.
+ * exported into a scratch directory under the OS temp dir, so every documented
+ * line is covered without switching branches and without a second source tree
+ * inside the repository.
  *
  * Results land in `.api-cache/<version-id>/` as flat directories of `*.yml`.
  *
@@ -19,6 +20,7 @@
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   cacheDirFor,
@@ -79,37 +81,89 @@ function hasSuperproject(): boolean {
 }
 
 /**
+ * Export a commit's tracked tree into `dir` with `git archive` — a plain file
+ * export, not a checkout, so the superproject's index and worktree list are
+ * untouched. Submodule gitlinks are skipped; docfx only needs `src/`.
+ */
+function exportCommit(commit: string, dir: string): boolean {
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+
+  const tarball = path.join(dir, ".export.tar");
+  const archive = run("git", ["archive", "--format=tar", "-o", tarball, commit], {
+    cwd: SUPERPROJECT_ROOT,
+    quiet: true,
+  });
+  if (!archive.ok) return false;
+
+  // Extract from `dir` with a relative name rather than passing an absolute path:
+  // GNU tar reads `C:/…` as a remote `host:path` spec and refuses with
+  // "Cannot connect to C: resolve failed". A relative name has no colon to parse.
+  const extract = run("tar", ["-xf", ".export.tar"], { cwd: dir, quiet: true });
+  fs.rmSync(tarball, { force: true });
+
+  if (!extract.ok) {
+    console.warn(`[1/3] extract failed: ${extract.stderr.trim()}`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Directory to run docfx in for a version.
  *
- * The checked-out ref is used directly. Every other documented line gets a git
- * worktree under `.worktrees/<ref>` — that keeps a full local run possible while
+ * The checked-out ref is used directly. Every other documented line is exported
+ * to `<tmp>/ergosfare-api-ref/<ref>` — that keeps a full local run possible while
  * sitting on `preview`, instead of forcing a branch switch or a round trip
  * through CI just to refresh the stable API reference.
  *
- * The worktree is left in place: creating it is the slow part, and refreshing it
- * later is a cheap fetch + checkout.
+ * This used to be a git worktree under `.worktrees/<ref>`. It was gitignored, but
+ * it still put a second copy of the whole source tree *inside* the checkout, which
+ * breaks tools that scan the repository for project files — BenchmarkDotNet
+ * refuses to run at all when it finds the same project name three times. An export
+ * outside the repository has neither problem.
+ *
+ * The export is cached per commit: re-running while the ref has not moved reuses
+ * the directory, and a moved ref re-exports from scratch.
  */
 function localBuildDir(version: DocsVersion): string | null {
   if (!hasSuperproject()) return null;
   if (superprojectRef() === version.ref) return SUPERPROJECT_ROOT;
 
-  const worktree = path.join(SUPERPROJECT_ROOT, ".worktrees", version.ref);
+  const resolved = run("git", ["rev-parse", version.ref], {
+    cwd: SUPERPROJECT_ROOT,
+    quiet: true,
+  });
+  if (!resolved.ok) {
+    console.warn(
+      `[1/3] fetch(${version.id}): ${version.ref} unavailable (${resolved.stderr.trim()}), falling back to CI`,
+    );
+    return null;
+  }
 
-  if (!fs.existsSync(path.join(worktree, "src"))) {
-    console.log(`[1/3] fetch(${version.id}): creating worktree for ${version.ref}`);
-    const add = run("git", ["worktree", "add", worktree, version.ref], {
-      cwd: SUPERPROJECT_ROOT,
-      quiet: true,
-    });
-    if (!add.ok) {
+  const commit = resolved.stdout.trim();
+  const exportDir = path.join(
+    os.tmpdir(),
+    "ergosfare-api-ref",
+    version.ref.replace(/[^\w.-]+/g, "-"),
+  );
+  const stamp = path.join(exportDir, ".exported-commit");
+  const cached =
+    fs.existsSync(path.join(exportDir, "src")) &&
+    fs.existsSync(stamp) &&
+    fs.readFileSync(stamp, "utf8").trim() === commit;
+
+  if (!cached) {
+    console.log(
+      `[1/3] fetch(${version.id}): exporting ${version.ref} (${commit.slice(0, 7)})`,
+    );
+    if (!exportCommit(commit, exportDir)) {
       console.warn(
-        `[1/3] fetch(${version.id}): worktree unavailable (${add.stderr.trim()}), falling back to CI`,
+        `[1/3] fetch(${version.id}): export failed, falling back to CI`,
       );
       return null;
     }
-  } else {
-    run("git", ["checkout", version.ref], { cwd: worktree, quiet: true });
-    run("git", ["pull", "--ff-only"], { cwd: worktree, quiet: true });
+    fs.writeFileSync(stamp, commit);
   }
 
   // `main` predates these files; the checked-out ref's copy keeps both lines
@@ -117,11 +171,11 @@ function localBuildDir(version: DocsVersion): string | null {
   for (const file of ["docfx.json", "docfx.filter.yml"]) {
     fs.copyFileSync(
       path.join(SUPERPROJECT_ROOT, file),
-      path.join(worktree, file),
+      path.join(exportDir, file),
     );
   }
 
-  return worktree;
+  return exportDir;
 }
 
 function resetCache(dir: string): void {
@@ -291,8 +345,9 @@ export function fetchMetadata(options: FetchOptions = {}): void {
   throw new Error(
     `Cannot build ${remote.map((v) => v.id).join(", ")} locally, and the remote ` +
       `fallback is disabled: ${SOURCE_WORKFLOW} no longer exists in ${SOURCE_REPO}. ` +
-      `Run this from the Ergosfare superproject with docfx on PATH — it builds ` +
-      `every documented line, using a git worktree for refs that are not checked out.`,
+      `Run this from the Ergosfare superproject with docfx and tar on PATH — it ` +
+      `builds every documented line, exporting refs that are not checked out to a ` +
+      `scratch directory under the OS temp dir.`,
   );
 
   if (!hasCommand("gh")) {
