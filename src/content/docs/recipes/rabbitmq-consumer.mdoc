@@ -1,0 +1,199 @@
+---
+title: "RabbitMQ: consuming a queue into the event pipeline"
+description: A BackgroundService that bridges a RabbitMQ queue into IEventMediator — the envelope, a type allow-list, scope-per-delivery dispatch, and an honest ack policy.
+---
+
+Ergosfare is an in-process mediator; it does not talk to brokers. That is a feature: the
+broker client stays a thin adapter at the edge, and everything behind `PublishAsync` —
+covariant handler matching, interceptors, groups, execution context — applies to a message
+that arrived over the wire exactly as it applies to one raised in process.
+
+This recipe builds that adapter for RabbitMQ: a `BackgroundService` that consumes a queue
+and publishes each delivery into the event pipeline. It uses the async-first
+`RabbitMQ.Client` 7.x API.
+
+```bash
+dotnet add package RabbitMQ.Client
+```
+
+## The envelope
+
+A queue carries bytes, so something on the wire has to say which event a delivery is.
+A minimal envelope carries the event's name and its serialized payload:
+
+```csharp
+public sealed record EventEnvelope(string EventType, JsonElement Payload);
+```
+
+`JsonElement` keeps the payload as parsed JSON instead of a doubly-encoded string — one
+parse for the envelope, one targeted deserialization for the payload, no intermediate
+`string` allocation.
+
+## The type allow-list
+
+Do not resolve `EventType` with `Type.GetType(...)`. A queue is an input boundary:
+resolving arbitrary type names from message content lets anyone who can write to the queue
+pick which types your process instantiates, and it breaks under trimming, where unreferenced
+types no longer exist. An explicit allow-list solves both:
+
+```csharp
+public sealed class WireEventRegistry
+{
+    private readonly Dictionary<string, Type> _types;
+
+    public WireEventRegistry(params Type[] eventTypes)
+        => _types = eventTypes.ToDictionary(static t => t.Name, static t => t);
+
+    public Type? Resolve(string eventType) => _types.GetValueOrDefault(eventType);
+}
+```
+
+Every type in the list is referenced by a `typeof` at registration, so the trimmer keeps it
+and the boundary only ever materializes events you chose.
+
+## The consumer
+
+The skeleton: one connection and channel for the service's lifetime, a durable queue, and
+manual acks — the broker must not consider a delivery done before the pipeline ran.
+
+```csharp
+public sealed class RabbitMqEventConsumer(
+    IServiceScopeFactory scopeFactory,
+    WireEventRegistry wireEvents,
+    IConnectionFactory connectionFactory,
+    string queueName) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await using var connection = await connectionFactory.CreateConnectionAsync(stoppingToken);
+        await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+
+        await channel.QueueDeclareAsync(queueName, durable: true, exclusive: false,
+            autoDelete: false, cancellationToken: stoppingToken);
+
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        consumer.ReceivedAsync += (_, delivery) => HandleDeliveryAsync(channel, delivery, stoppingToken);
+
+        await channel.BasicConsumeAsync(queueName, autoAck: false, consumer, stoppingToken);
+
+        await Task.Delay(Timeout.Infinite, stoppingToken);
+    }
+}
+```
+
+## Dispatching a delivery
+
+The interesting part. Piece by piece:
+
+```csharp
+private async Task HandleDeliveryAsync(
+    IChannel channel, BasicDeliverEventArgs delivery, CancellationToken ct)
+{
+    try
+    {
+        var envelope = JsonSerializer.Deserialize<EventEnvelope>(delivery.Body.Span);
+
+        if (envelope is null
+            || wireEvents.Resolve(envelope.EventType) is not { } eventType
+            || envelope.Payload.Deserialize(eventType) is not IEvent @event)
+        {
+            // Unknown or malformed: requeueing can only fail again. Nack without
+            // requeue and let a dead-letter exchange keep the evidence.
+            await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false,
+                requeue: false, cancellationToken: ct);
+            return;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var events = scope.ServiceProvider.GetRequiredService<IEventMediator>();
+
+        var settings = new EventMediationSettings();
+        settings.Items["rabbitmq:deliveryTag"] = delivery.DeliveryTag;
+        settings.Items["rabbitmq:redelivered"] = delivery.Redelivered;
+
+        await events.PublishAsync(@event, settings, ct);
+
+        await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, cancellationToken: ct);
+    }
+    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+    {
+        // Shutting down: leave the delivery unacked and the broker redelivers it.
+    }
+    catch
+    {
+        // A handler or interceptor threw. First failure gets one retry; a redelivered
+        // failure goes to the dead-letter exchange instead of looping forever.
+        await channel.BasicNackAsync(delivery.DeliveryTag, multiple: false,
+            requeue: !delivery.Redelivered, cancellationToken: CancellationToken.None);
+    }
+}
+```
+
+**A scope per delivery.** Handlers resolve from the provider of the scope that dispatched
+them, so a scope per delivery gives every message the same isolation an ASP.NET request
+gets — scoped `DbContext`s and unit-of-work services just work. This is the shape the
+dispatch path is optimized for: resolving `IEventMediator` builds a single facade object
+over a shared dispatch engine, and the scoped-dispatch numbers on the
+[performance page](/ergosfare.docs/advanced/performance/) include exactly this cost.
+
+**The runtime type decides the pipeline.** The variable is typed `IEvent`, so this takes
+the interface-erased publish path: the pipeline is resolved from `@event.GetType()`, and
+covariant handlers match as usual. Polymorphic dispatch at the boundary is first-class,
+not a degraded mode.
+
+**Transport metadata rides the context.** Anything put into `Settings.Items` is visible to
+every handler and interceptor in the dispatch through the execution context:
+
+```csharp
+public sealed class OrderPlacedHandler : IEventHandler<OrderPlaced>
+{
+    public ValueTask HandleAsync(OrderPlaced @event, IExecutionContext context)
+    {
+        if (context.TryGet<bool>("rabbitmq:redelivered", out var redelivered) && redelivered)
+        {
+            // second attempt — be idempotent about side effects
+        }
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+**Ack only after the pipeline.** `PublishAsync` completes when every matched handler and
+interceptor has run, so the ack really means "processed". The nack policy is deliberately
+boring: malformed and unknown messages never requeue, handler failures requeue exactly
+once. Declare the queue with a dead-letter exchange so nacked deliveries land somewhere
+inspectable instead of vanishing.
+
+## Wiring
+
+```csharp
+builder.Services.AddErgosfare(o => o.AddEventModule(e => e.RegisterGenerated()));
+
+builder.Services.AddSingleton<IConnectionFactory>(new ConnectionFactory { HostName = "localhost" });
+builder.Services.AddSingleton(new WireEventRegistry(typeof(OrderPlaced), typeof(OrderCancelled)));
+
+builder.Services.AddHostedService(sp => new RabbitMqEventConsumer(
+    sp.GetRequiredService<IServiceScopeFactory>(),
+    sp.GetRequiredService<WireEventRegistry>(),
+    sp.GetRequiredService<IConnectionFactory>(),
+    queueName: "orders"));
+```
+
+The events themselves are ordinary Ergosfare events — `RegisterGenerated()` discovers their
+handlers at compile time like any other; nothing about arriving over a queue changes their
+registration.
+
+## Notes
+
+* **No handlers is a silent success by default.** An event nobody handles completes
+  normally and gets acked. If an unhandled wire event should be an error in your system,
+  publish with `new EventMediationSettings { ThrowIfNoHandlerFound = true }` and the nack
+  path takes over.
+* **Ordering and concurrency.** One consumer processes deliveries sequentially. For
+  parallelism, raise the channel's prefetch and run multiple consumers — per-delivery
+  scopes already isolate them from each other.
+* **Native AOT.** The dispatch side is AOT-clean (see
+  [Native AOT and trimming](/ergosfare.docs/advanced/aot-and-trimming/)), but
+  `JsonSerializer.Deserialize(Type)` here is reflection-based serialization — on AOT,
+  switch the envelope handling to a source-generated `JsonSerializerContext`.

@@ -138,6 +138,11 @@ export default defineConfig({
                 ]
             },
             {
+                label: "Recipes", translations: { tr: "Tarifler" }, items: [
+                    { label: "RabbitMQ consumer", slug: "recipes/rabbitmq-consumer", translations: { tr: "RabbitMQ Consumer" } },
+                ]
+            },
+            {
                 label: "Migration", translations: { tr: "Geçiş" }, items: [
                     { label: "v1 to v2", slug: "migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]
@@ -198,6 +203,11 @@ export default defineConfig({
                     { label: "Performance", slug: "preview/advanced/performance", translations: { tr: "Performans" } },
                     { label: "Native AOT and trimming", slug: "preview/advanced/aot-and-trimming", translations: { tr: "Native AOT ve Trimming" } },
                     { label: "Experimental APIs", slug: "preview/advanced/experimental-apis", translations: { tr: "Deneysel API'ler" } },
+                ]
+            },
+            {
+                label: "Recipes", translations: { tr: "Tarifler" }, items: [
+                    { label: "RabbitMQ consumer", slug: "preview/recipes/rabbitmq-consumer", translations: { tr: "RabbitMQ Consumer" } },
                 ]
             },
             {
