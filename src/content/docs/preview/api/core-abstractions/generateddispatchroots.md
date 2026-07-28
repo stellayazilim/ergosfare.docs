@@ -22,7 +22,7 @@ generics, runtime-only registrations).
 public static class GeneratedDispatchRoots
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L15)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L16)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -71,6 +71,27 @@ Roots the streaming dispatch generics of a message type. Idempotent.
 | --- | --- |
 | `TMessage` |  |
 | `TResult` |  |
+
+### `AddVoidPlan<TMessage, THandler>()`
+
+```csharp
+public static void AddVoidPlan<TMessage, THandler>() where TMessage : notnull, IMessage where THandler : class, IAsyncHandler<TMessage>
+```
+
+Roots a compile-time pipeline plan for a void message whose entire pipeline is a
+single async handler: the dispatch executor closes over both the message and the
+handler type, so the handler is invoked devirtualized — no contract pattern match.
+The plan is advisory: the executor re-validates the actual pipeline against the
+registry on every version change and falls back to the runtime dispatch shape
+whenever the pipeline no longer matches (interceptors registered at runtime, a
+different handler resolved, adapters configured). Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `THandler` |  |
 
 ### `FindMessage(Type)`
 
@@ -127,3 +148,21 @@ The stream dispatch root of the (message, result) pair, or `null` when none was 
 **Returns**
 
 [`MessageResultRoot`](/ergosfare.docs/preview/api/core-abstractions/messageresultroot)
+
+### `FindVoidPlan(Type)`
+
+```csharp
+public static VoidPlanRoot? FindVoidPlan(Type messageType)
+```
+
+The void pipeline plan of the message type, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`VoidPlanRoot`](/ergosfare.docs/preview/api/core-abstractions/voidplanroot)
