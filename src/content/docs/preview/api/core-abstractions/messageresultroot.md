@@ -3,7 +3,7 @@ title: "MessageResultRoot"
 description: "A dispatch root closed over a concrete (message, result) pair; see MessageRoot."
 sidebar:
   label: "MessageResultRoot"
-  order: 17
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -16,7 +16,7 @@ A dispatch root closed over a concrete (message, result) pair; see
 public abstract class MessageResultRoot
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L77)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L97)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

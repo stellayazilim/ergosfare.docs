@@ -14,10 +14,10 @@ handlers are always invoked through their typed members — including for the
 interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`](/ergosfare.docs/preview/api/events/eventmediator#publishasyncievent-eventmediationsettings-cancellationtoken) overload.
 
 ```csharp
-public sealed class EventMediator : IPublisher, IEventMediator
+public class EventMediator : IPublisher, IEventMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events/EventMediator.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events/EventMediator.cs#L19)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -25,13 +25,9 @@ public sealed class EventMediator : IPublisher, IEventMediator
 
 ## Remarks
 
-The event mediator is responsible for broadcasting events to all registered handlers
-and orchestrating the event handling pipeline. Unlike commands, which are handled by
-exactly one handler, events can be handled by multiple handlers, allowing for decoupled
-communication between different parts of the application.
-In the publish-subscribe pattern, events represent notifications about something that
-has happened in the system. The event mediator helps maintain separation between the
-event publishers and the event subscribers (handlers).
+Unsealed so the DI registration can bind the engine-backed constructor through a
+single-constructor derived shape; the facade carries no state a derived type could
+corrupt.
 
 ## Constructors
 
@@ -41,9 +37,8 @@ event publishers and the event subscribers (handlers).
 public EventMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IResultAdapterService? resultAdapterService, IMessageMediator messageMediator)
 ```
 
-Mediates events through broadcast pipelines closed over each event's runtime type, so
-handlers are always invoked through their typed members — including for the
-interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`](/ergosfare.docs/preview/api/events/eventmediator#publishasyncievent-eventmediationsettings-cancellationtoken) overload.
+Wraps an existing [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) — the original construction shape,
+kept for direct construction and foreign mediator implementations.
 
 **Parameters**
 
@@ -53,13 +48,24 @@ interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, C
 | `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/preview/api/core-abstractions/iresultadapterservice) |  |
 | `messageMediator` | [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) |  |
 
-The event mediator is responsible for broadcasting events to all registered handlers
-and orchestrating the event handling pipeline. Unlike commands, which are handled by
-exactly one handler, events can be handled by multiple handlers, allowing for decoupled
-communication between different parts of the application.
-In the publish-subscribe pattern, events represent notifications about something that
-has happened in the system. The event mediator helps maintain separation between the
-event publishers and the event subscribers (handlers).
+### `EventMediator(MessageDispatchEngine, IServiceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy, IResultAdapterService?)`
+
+```csharp
+public EventMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IResultAdapterService? resultAdapterService)
+```
+
+Engine-backed construction: publishes go straight to the process-wide engine's
+broadcast plan with `serviceProvider` as the handler-resolution
+scope, making the facade the only object built per resolution.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `engine` | [`MessageDispatchEngine`](/ergosfare.docs/preview/api/core/messagedispatchengine) | The singleton dispatch engine. |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
+| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) | Resolve strategy used to find broadcast pipelines. |
+| `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/preview/api/core-abstractions/iresultadapterservice) | Result adapters applied by broadcast strategies. |
 
 ## Methods
 
