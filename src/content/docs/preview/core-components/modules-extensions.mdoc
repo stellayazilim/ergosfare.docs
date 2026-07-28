@@ -49,7 +49,9 @@ services.AddErgosfare(o => o
 ```
 
 Each `AddXModule` constructs a module, hands it your registration lambda, and registers the
-module's mediator with `TryAddScoped` — so calling it twice is harmless.
+module's mediator with `TryAddTransient` — so calling it twice is harmless. The facades are
+transient because they are stateless and a transient still resolves against the calling
+scope; see [Performance](/ergosfare.docs/preview/advanced/performance#mediator-lifetime).
 
 Only add what you use. An application that never publishes events should not register the
 event module; `IEventMediator` then simply is not resolvable, which is a better failure than
