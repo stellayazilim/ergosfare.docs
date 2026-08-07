@@ -17,7 +17,7 @@ path carries no object-typed bridge, options object, or erased strategy.
 public class CommandMediator : ICommandMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands/CommandMediator.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands/CommandMediator.cs#L11)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -31,15 +31,31 @@ public class CommandMediator : ICommandMediator
 public CommandMediator(IMessageMediator messageMediator)
 ```
 
-Mediates command messages through the pipeline executor closed over the command's
-runtime type: handlers are always invoked through their typed members, and the dispatch
-path carries no object-typed bridge, options object, or erased strategy.
+Wraps an existing [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) — the original construction shape,
+kept for direct construction and foreign mediator implementations.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `messageMediator` | [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) |  |
+
+### `CommandMediator(MessageDispatchEngine, IServiceProvider)`
+
+```csharp
+public CommandMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
+```
+
+Engine-backed construction: dispatches go straight to the process-wide engine with
+`serviceProvider` as the handler-resolution scope, making the
+facade the only object built per resolution.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `engine` | [`MessageDispatchEngine`](/ergosfare.docs/api/core/messagedispatchengine) | The singleton dispatch engine. |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
 
 ## Methods
 

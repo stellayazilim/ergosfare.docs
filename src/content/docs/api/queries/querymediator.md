@@ -31,9 +31,8 @@ public class QueryMediator : IQueryMediator, IMessage
 public QueryMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IMessageMediator messageMediator)
 ```
 
-The default implementation of [`IQueryMediator`](/ergosfare.docs/api/queries-abstractions/iquerymediator).
-Handles both standard queries and streaming queries using the internal message mediation pipeline,
-supporting pre/post/final interceptors and result adapters.
+Wraps an existing [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) — the original construction shape,
+kept for direct construction and foreign mediator implementations.
 
 **Parameters**
 
@@ -41,6 +40,24 @@ supporting pre/post/final interceptors and result adapters.
 | --- | --- | --- |
 | `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) |  |
 | `messageMediator` | [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) |  |
+
+### `QueryMediator(MessageDispatchEngine, IServiceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy)`
+
+```csharp
+public QueryMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy)
+```
+
+Engine-backed construction: queries go straight to the process-wide engine with
+`serviceProvider` as the handler-resolution scope, making the
+facade the only object built per resolution.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `engine` | [`MessageDispatchEngine`](/ergosfare.docs/api/core/messagedispatchengine) | The singleton dispatch engine. |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
+| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) | Resolve strategy used by the streaming path. |
 
 ## Methods
 

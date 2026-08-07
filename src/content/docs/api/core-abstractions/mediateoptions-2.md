@@ -3,7 +3,7 @@ title: "MediateOptions<TMessage, TResult>"
 description: "Options for controlling the behavior of message mediation for a specific message type and result type."
 sidebar:
   label: "MediateOptions<TMessage, TResult>"
-  order: 16
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  

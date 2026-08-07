@@ -3,7 +3,7 @@ title: "ResultAdapterService"
 description: "Implementation of IResultAdapterService that manages a collection of IResultAdapter instances and provides exception lookup functionality."
 sidebar:
   label: "ResultAdapterService"
-  order: 1
+  order: 2
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core`](/ergosfare.docs/api/core)  

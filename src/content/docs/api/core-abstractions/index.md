@@ -6,7 +6,7 @@ sidebar:
   order: 0
 ---
 
-The `Stella.Ergosfare.Core.Abstractions` namespace contains 20 public types.
+The `Stella.Ergosfare.Core.Abstractions` namespace contains 26 public types.
 
 | Type | Kind | Summary |
 | --- | --- | --- |
@@ -25,8 +25,14 @@ The `Stella.Ergosfare.Core.Abstractions` namespace contains 20 public types.
 | [`IPipelineExecutor<TResult>`](/ergosfare.docs/api/core-abstractions/ipipelineexecutor-1) | Interface | A result-producing message pipeline closed over its concrete message type; see [`IPipelineExecutor`](/ergosfare.docs/api/core-abstractions/ipipelineexecutor). |
 | [`IResultAdapter`](/ergosfare.docs/api/core-abstractions/iresultadapter) | Interface | Defines a contract for adapting and inspecting result objects of arbitrary types to extract exceptions without throwing them directly. |
 | [`IResultAdapterService`](/ergosfare.docs/api/core-abstractions/iresultadapterservice) | Interface | Provides a central service to manage multiple [`IResultAdapter`](/ergosfare.docs/api/core-abstractions/iresultadapter) instances and to extract exceptions from arbitrary result objects. |
+| [`IResultPlanRootVisitor<TReturn, TState>`](/ergosfare.docs/api/core-abstractions/iresultplanrootvisitor-2) | Interface | Generic re-entry point for consumers of [`ResultPlanRoot`](/ergosfare.docs/api/core-abstractions/resultplanroot). |
+| [`IVoidPlanRootVisitor<TReturn, TState>`](/ergosfare.docs/api/core-abstractions/ivoidplanrootvisitor-2) | Interface | Generic re-entry point for consumers of [`VoidPlanRoot`](/ergosfare.docs/api/core-abstractions/voidplanroot). |
 | [`MediateOptions<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions/mediateoptions-2) | Class | Options for controlling the behavior of message mediation for a specific message type and result type. |
 | [`MessageResultRoot`](/ergosfare.docs/api/core-abstractions/messageresultroot) | Class | A dispatch root closed over a concrete (message, result) pair; see [`MessageRoot`](/ergosfare.docs/api/core-abstractions/messageroot). |
 | [`MessageResultRoot<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions/messageresultroot-2) | Class | The concrete closure of [`MessageResultRoot`](/ergosfare.docs/api/core-abstractions/messageresultroot); instantiated by generated code. |
 | [`MessageRoot`](/ergosfare.docs/api/core-abstractions/messageroot) | Class | A dispatch root closed over a concrete message type. A consumer implements [`IMessageRootVisitor<TReturn, TState>`](/ergosfare.docs/api/core-abstractions/imessagerootvisitor-2) to re-enter a generic context with the root's type argument and construct its closed dispatch component there — no reflection involved. |
 | [`MessageRoot<TMessage>`](/ergosfare.docs/api/core-abstractions/messageroot-1) | Class | The concrete closure of [`MessageRoot`](/ergosfare.docs/api/core-abstractions/messageroot); instantiated by generated code. |
+| [`ResultPlanRoot`](/ergosfare.docs/api/core-abstractions/resultplanroot) | Class | A compile-time pipeline plan closed over a result-producing message, its result type and its sole async handler; the result-producing counterpart of [`VoidPlanRoot`](/ergosfare.docs/api/core-abstractions/voidplanroot). |
+| [`ResultPlanRoot<TMessage, TResult, THandler>`](/ergosfare.docs/api/core-abstractions/resultplanroot-3) | Class | The concrete closure of [`ResultPlanRoot`](/ergosfare.docs/api/core-abstractions/resultplanroot); instantiated by generated code. |
+| [`VoidPlanRoot`](/ergosfare.docs/api/core-abstractions/voidplanroot) | Class | A compile-time pipeline plan closed over a void message and its sole async handler; see [`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>()`](/ergosfare.docs/api/core-abstractions/generateddispatchroots#addvoidplantmessage-thandler) and [`MessageRoot`](/ergosfare.docs/api/core-abstractions/messageroot) for the visitor re-entry pattern. |
+| [`VoidPlanRoot<TMessage, THandler>`](/ergosfare.docs/api/core-abstractions/voidplanroot-2) | Class | The concrete closure of [`VoidPlanRoot`](/ergosfare.docs/api/core-abstractions/voidplanroot); instantiated by generated code. |
