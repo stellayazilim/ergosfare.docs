@@ -3,7 +3,7 @@ title: "VoidPlanRoot"
 description: "A compile-time pipeline plan closed over a void message and its sole async handler; see GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>() and MessageR…"
 sidebar:
   label: "VoidPlanRoot"
-  order: 22
+  order: 25
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -17,7 +17,7 @@ see [`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>()`](/ergosfare.docs
 public abstract class VoidPlanRoot
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L123)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L166)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

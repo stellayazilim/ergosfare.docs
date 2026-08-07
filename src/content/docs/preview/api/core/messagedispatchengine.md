@@ -134,3 +134,45 @@ Result-producing counterpart of
 **Returns**
 
 `ValueTask<TResult>`
+
+### `DispatchVoidAsync<TMessage>(TMessage, IServiceProvider, IDictionary<object, object?>?, CancellationToken)`
+
+```csharp
+public ValueTask DispatchVoidAsync<TMessage>(TMessage message, IServiceProvider serviceProvider, IDictionary<object, object?>? items = null, CancellationToken cancellationToken = default) where TMessage : notnull, IMessage
+```
+
+Typed void dispatch: when the compile-time `TMessage` is the
+message's runtime type (the overwhelmingly common concrete-typed call), the
+executor comes from a static-generic holder instead of the type-keyed dictionary —
+the last lookup on the group-less hot path. A base-typed generic call falls back to
+resolving by the runtime type, so dispatch semantics are identical to
+[`MessageDispatchEngine.DispatchAsync(object, IServiceProvider, IDictionary<object, object?>?, CancellationToken, IEnumerable<string>?)`](/ergosfare.docs/preview/api/core/messagedispatchengine#dispatchasyncobject-iserviceprovider-idictionaryobject-object-cancellationtoken-ienumerablestring);
+group-filtered dispatches stay on that overload.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` | The compile-time message type. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `message` | `TMessage` | The message to dispatch. |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The scope provider handlers resolve against. |
+| `items` | `IDictionary<object, object>` | Optional contextual items exposed to the pipeline. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the dispatch. |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+
+Deliberately NOT a `DispatchAsync` overload: a same-name generic would join
+the candidate set of every explicit `DispatchAsync<T>(msg, ...)` call, and
+whenever the message expression is convertible to the type argument (an echo-typed
+result dispatch — legal since `ICommand<TResult> : ICommand : IMessage`) the
+identity conversion would out-rank the result overload's `object` parameter,
+silently rerouting a result dispatch through the void pipeline or breaking the
+caller with a return-type mismatch. The distinct name keeps the typed fast path
+out of that candidate set entirely.
