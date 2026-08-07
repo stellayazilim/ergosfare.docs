@@ -3,7 +3,7 @@ title: "IVoidPlanRootVisitor<TReturn, TState>"
 description: "Generic re-entry point for consumers of VoidPlanRoot."
 sidebar:
   label: "IVoidPlanRootVisitor<TReturn, TState>"
-  order: 16
+  order: 17
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -15,7 +15,7 @@ Generic re-entry point for consumers of [`VoidPlanRoot`](/ergosfare.docs/preview
 public interface IVoidPlanRootVisitor<out TReturn, in TState>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L140)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L202)
 
 **Type parameters**
 

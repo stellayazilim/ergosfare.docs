@@ -3,7 +3,7 @@ title: "MessageRoot"
 description: "A dispatch root closed over a concrete message type."
 sidebar:
   label: "MessageRoot"
-  order: 20
+  order: 21
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -18,7 +18,7 @@ reflection involved.
 public abstract class MessageRoot
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L72)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L115)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

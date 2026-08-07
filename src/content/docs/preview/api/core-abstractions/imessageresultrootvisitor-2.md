@@ -15,7 +15,7 @@ Generic re-entry point for consumers of [`MessageResultRoot`](/ergosfare.docs/pr
 public interface IMessageResultRootVisitor<out TReturn, in TState>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L112)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L155)
 
 **Type parameters**
 

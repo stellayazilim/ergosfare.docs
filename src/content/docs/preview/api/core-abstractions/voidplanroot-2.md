@@ -3,7 +3,7 @@ title: "VoidPlanRoot<TMessage, THandler>"
 description: "The concrete closure of VoidPlanRoot; instantiated by generated code."
 sidebar:
   label: "VoidPlanRoot<TMessage, THandler>"
-  order: 23
+  order: 26
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -15,7 +15,7 @@ The concrete closure of [`VoidPlanRoot`](/ergosfare.docs/preview/api/core-abstra
 public sealed class VoidPlanRoot<TMessage, THandler> : VoidPlanRoot where TMessage : notnull, IMessage where THandler : class, IAsyncHandler<TMessage>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L130)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L180)
 
 **Type parameters**
 
@@ -25,6 +25,16 @@ public sealed class VoidPlanRoot<TMessage, THandler> : VoidPlanRoot where TMessa
 | `THandler` |  |
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`VoidPlanRoot`](/ergosfare.docs/preview/api/core-abstractions/voidplanroot)
+
+## Constructors
+
+### `VoidPlanRoot()`
+
+```csharp
+public VoidPlanRoot()
+```
+
+Creates a plan without a compile-time construction path.
 
 ## Methods
 

@@ -57,6 +57,51 @@ Roots the result-producing dispatch generics of a message type. Idempotent.
 | `TMessage` |  |
 | `TResult` |  |
 
+### `AddResultPlan<TMessage, TResult, THandler>()`
+
+```csharp
+public static void AddResultPlan<TMessage, TResult, THandler>() where TMessage : notnull, IMessage where THandler : class, IAsyncHandler<TMessage, TResult>
+```
+
+Result-producing counterpart of [`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>()`](/ergosfare.docs/preview/api/core-abstractions/generateddispatchroots#addvoidplantmessage-thandler):
+roots a compile-time pipeline plan for a message whose entire pipeline is a single
+async result handler, so the dispatch executor invokes it devirtualized. The plan
+is advisory and re-validated per registry version exactly like the void plan.
+Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `TResult` |  |
+| `THandler` |  |
+
+### `AddResultPlan<TMessage, TResult, THandler>(Func<THandler>)`
+
+```csharp
+public static void AddResultPlan<TMessage, TResult, THandler>(Func<THandler> directHandlerFactory) where TMessage : notnull, IMessage where THandler : class, IAsyncHandler<TMessage, TResult>
+```
+
+Variant of [`GeneratedDispatchRoots.AddResultPlan<TMessage, TResult, THandler>()`](/ergosfare.docs/preview/api/core-abstractions/generateddispatchroots#addresultplantmessage-tresult-thandler) carrying the
+compile-time handler construction path; see
+[`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>(Func<THandler>)`](/ergosfare.docs/preview/api/core-abstractions/generateddispatchroots#addvoidplantmessage-thandlerfuncthandler) for the contract.
+Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `TResult` |  |
+| `THandler` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `directHandlerFactory` | `Func<THandler>` |  |
+
 ### `AddStream<TMessage, TResult>()`
 
 ```csharp
@@ -92,6 +137,34 @@ different handler resolved, adapters configured). Idempotent.
 | --- | --- |
 | `TMessage` |  |
 | `THandler` |  |
+
+### `AddVoidPlan<TMessage, THandler>(Func<THandler>)`
+
+```csharp
+public static void AddVoidPlan<TMessage, THandler>(Func<THandler> directHandlerFactory) where TMessage : notnull, IMessage where THandler : class, IAsyncHandler<TMessage>
+```
+
+Variant of [`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>()`](/ergosfare.docs/preview/api/core-abstractions/generateddispatchroots#addvoidplantmessage-thandler) carrying a compile-time
+construction path for the handler: the generator emits
+`static () => new THandler()` for handlers with an accessible parameterless
+constructor that are not disposable. The factory is advisory like the plan itself —
+the executor uses it only after verifying at runtime that the handler's DI
+registration is the module's own plain transient one (no user factory, no lifetime
+override, not memoized), where container resolution and direct construction are
+semantically identical. Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `THandler` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `directHandlerFactory` | `Func<THandler>` |  |
 
 ### `FindMessage(Type)`
 
@@ -129,6 +202,25 @@ The result dispatch root of the (message, result) pair, or `null` when none was 
 **Returns**
 
 [`MessageResultRoot`](/ergosfare.docs/preview/api/core-abstractions/messageresultroot)
+
+### `FindResultPlan(Type, Type)`
+
+```csharp
+public static ResultPlanRoot? FindResultPlan(Type messageType, Type resultType)
+```
+
+The result pipeline plan of the (message, result) pair, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `resultType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`ResultPlanRoot`](/ergosfare.docs/preview/api/core-abstractions/resultplanroot)
 
 ### `FindStream(Type, Type)`
 
