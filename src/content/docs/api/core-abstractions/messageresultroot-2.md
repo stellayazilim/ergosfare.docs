@@ -3,7 +3,7 @@ title: "MessageResultRoot<TMessage, TResult>"
 description: "The concrete closure of MessageResultRoot; instantiated by generated code."
 sidebar:
   label: "MessageResultRoot<TMessage, TResult>"
-  order: 18
+  order: 20
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
@@ -15,7 +15,7 @@ The concrete closure of [`MessageResultRoot`](/ergosfare.docs/api/core-abstracti
 public sealed class MessageResultRoot<TMessage, TResult> : MessageResultRoot where TMessage : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L84)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GeneratedDispatchRoots.cs#L147)
 
 **Type parameters**
 

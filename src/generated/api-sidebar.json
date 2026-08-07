@@ -79,6 +79,14 @@
             "link": "/api/core-abstractions/iresultadapterservice"
           },
           {
+            "label": "IResultPlanRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions/iresultplanrootvisitor-2"
+          },
+          {
+            "label": "IVoidPlanRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions/ivoidplanrootvisitor-2"
+          },
+          {
             "label": "MediateOptions<TMessage, TResult>",
             "link": "/api/core-abstractions/mediateoptions-2"
           },
@@ -97,6 +105,22 @@
           {
             "label": "MessageRoot<TMessage>",
             "link": "/api/core-abstractions/messageroot-1"
+          },
+          {
+            "label": "ResultPlanRoot",
+            "link": "/api/core-abstractions/resultplanroot"
+          },
+          {
+            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
+            "link": "/api/core-abstractions/resultplanroot-3"
+          },
+          {
+            "label": "VoidPlanRoot",
+            "link": "/api/core-abstractions/voidplanroot"
+          },
+          {
+            "label": "VoidPlanRoot<TMessage, THandler>",
+            "link": "/api/core-abstractions/voidplanroot-2"
           }
         ]
       },
@@ -423,6 +447,10 @@
           {
             "label": "Overview",
             "link": "/api/core"
+          },
+          {
+            "label": "MessageDispatchEngine",
+            "link": "/api/core/messagedispatchengine"
           },
           {
             "label": "ResultAdapterService",
