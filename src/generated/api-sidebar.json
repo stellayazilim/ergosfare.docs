@@ -858,8 +858,16 @@
             "link": "/preview/api/core-abstractions/executioncontextscope"
           },
           {
+            "label": "GeneratedDescriptorCatalog",
+            "link": "/preview/api/core-abstractions/generateddescriptorcatalog"
+          },
+          {
             "label": "GeneratedDispatchRoots",
             "link": "/preview/api/core-abstractions/generateddispatchroots"
+          },
+          {
+            "label": "GroupSet",
+            "link": "/preview/api/core-abstractions/groupset"
           },
           {
             "label": "IExecutionContext",
@@ -1308,6 +1316,68 @@
         ]
       },
       {
+        "label": "Core.Abstractions.DispatchRoots",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-dispatchroots"
+          },
+          {
+            "label": "GeneratedDispatchRoots",
+            "link": "/preview/api/core-abstractions-dispatchroots/generateddispatchroots"
+          },
+          {
+            "label": "IMessageResultRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/imessageresultrootvisitor-2"
+          },
+          {
+            "label": "IMessageRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/imessagerootvisitor-2"
+          },
+          {
+            "label": "IResultPlanRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/iresultplanrootvisitor-2"
+          },
+          {
+            "label": "IVoidPlanRootVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/ivoidplanrootvisitor-2"
+          },
+          {
+            "label": "MessageResultRoot",
+            "link": "/preview/api/core-abstractions-dispatchroots/messageresultroot"
+          },
+          {
+            "label": "MessageResultRoot<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-dispatchroots/messageresultroot-2"
+          },
+          {
+            "label": "MessageRoot",
+            "link": "/preview/api/core-abstractions-dispatchroots/messageroot"
+          },
+          {
+            "label": "MessageRoot<TMessage>",
+            "link": "/preview/api/core-abstractions-dispatchroots/messageroot-1"
+          },
+          {
+            "label": "ResultPlanRoot",
+            "link": "/preview/api/core-abstractions-dispatchroots/resultplanroot"
+          },
+          {
+            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
+            "link": "/preview/api/core-abstractions-dispatchroots/resultplanroot-3"
+          },
+          {
+            "label": "VoidPlanRoot",
+            "link": "/preview/api/core-abstractions-dispatchroots/voidplanroot"
+          },
+          {
+            "label": "VoidPlanRoot<TMessage, THandler>",
+            "link": "/preview/api/core-abstractions-dispatchroots/voidplanroot-2"
+          }
+        ]
+      },
+      {
         "label": "Core.Abstractions.Exceptions",
         "collapsed": true,
         "items": [
@@ -1506,6 +1576,44 @@
           {
             "label": "IPreInterceptorDescriptor",
             "link": "/preview/api/core-abstractions-registry-descriptors/ipreinterceptordescriptor"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.StagedPlans",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-stagedplans"
+          },
+          {
+            "label": "IStagedResultPlanVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-stagedplans/istagedresultplanvisitor-2"
+          },
+          {
+            "label": "IStagedVoidPlanVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-stagedplans/istagedvoidplanvisitor-2"
+          },
+          {
+            "label": "StagedPlanComposition",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedplancomposition"
+          },
+          {
+            "label": "StagedResultPlan",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedresultplan"
+          },
+          {
+            "label": "StagedResultPlan<TMessage, TResult>",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedresultplan-2"
+          },
+          {
+            "label": "StagedVoidPlan",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedvoidplan"
+          },
+          {
+            "label": "StagedVoidPlan<TMessage>",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedvoidplan-1"
           }
         ]
       },

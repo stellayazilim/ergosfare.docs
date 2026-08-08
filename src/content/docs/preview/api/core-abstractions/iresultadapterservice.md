@@ -3,7 +3,7 @@ title: "IResultAdapterService"
 description: "Provides a central service to manage multiple IResultAdapter instances and to extract exceptions from arbitrary result objects."
 sidebar:
   label: "IResultAdapterService"
-  order: 15
+  order: 17
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

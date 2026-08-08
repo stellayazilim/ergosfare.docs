@@ -3,7 +3,7 @@ title: "IMessageMediationStrategy<TMessage, TMessageResult>"
 description: "Defines a strategy for mediating messages of a specific type and producing results of a specific type."
 sidebar:
   label: "IMessageMediationStrategy<TMessage, TMessageResult>"
-  order: 7
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

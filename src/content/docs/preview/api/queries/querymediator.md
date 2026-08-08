@@ -61,6 +61,34 @@ facade the only object built per resolution.
 
 ## Methods
 
+### `QueryAsync<TResult>(IQuery<TResult>, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask<TResult> QueryAsync<TResult>(IQuery<TResult> query, GroupSet groups, CancellationToken cancellationToken = default)
+```
+
+Executes a query under a canonical group filter — no settings object, and with a
+reused [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) the grouped executor lookup matches on a single
+reference check. An empty set routes to the group-less fast lane.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IQuery<TResult>` |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+`ValueTask<TResult>`
+
 ### `QueryAsync<TResult>(IQuery<TResult>, IExecutionContext, QueryMediationSettings?)`
 
 ```csharp
@@ -115,6 +143,35 @@ The query is processed through the mediation pipeline, including pre/post/final 
 **Returns**
 
 `ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) representing the asynchronous execution of the query.
+
+### `StreamAsync<TResult>(IStreamQuery<TResult>, GroupSet, CancellationToken)`
+
+```csharp
+public IAsyncEnumerable<TResult> StreamAsync<TResult>(IStreamQuery<TResult> query, GroupSet groups, CancellationToken cancellationToken = default)
+```
+
+Streaming counterpart of
+[`QueryMediator.QueryAsync<TResult>(IQuery<TResult>, GroupSet, CancellationToken)`](/ergosfare.docs/preview/api/queries/querymediator#queryasynctresultiquerytresult-groupset-cancellationtoken):
+the group filter flows into the invoker's plan slot directly, with no settings
+object on the way.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IStreamQuery<TResult>` |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+`IAsyncEnumerable<TResult>`
 
 ### `StreamAsync<TResult>(IStreamQuery<TResult>, QueryMediationSettings?, CancellationToken)`
 

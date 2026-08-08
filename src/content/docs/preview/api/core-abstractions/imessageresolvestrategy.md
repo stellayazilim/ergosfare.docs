@@ -3,7 +3,7 @@ title: "IMessageResolveStrategy"
 description: "Interface Stella.Ergosfare.Core.Abstractions.IMessageResolveStrategy in the Ergosfare API reference."
 sidebar:
   label: "IMessageResolveStrategy"
-  order: 9
+  order: 11
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

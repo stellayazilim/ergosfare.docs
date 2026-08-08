@@ -3,7 +3,7 @@ title: "IPipelineExecutor<TResult>"
 description: "A result-producing message pipeline closed over its concrete message type; see IPipelineExecutor."
 sidebar:
   label: "IPipelineExecutor<TResult>"
-  order: 13
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -16,7 +16,7 @@ A result-producing message pipeline closed over its concrete message type; see
 public interface IPipelineExecutor<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor.cs#L31)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IPipelineExecutor%5BTResult%5D.cs#L7)
 
 **Type parameters**
 

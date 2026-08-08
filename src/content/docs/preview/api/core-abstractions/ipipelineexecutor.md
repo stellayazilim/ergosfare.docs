@@ -3,7 +3,7 @@ title: "IPipelineExecutor"
 description: "A message pipeline closed over its concrete message type, built once per message type and cached process-wide."
 sidebar:
   label: "IPipelineExecutor"
-  order: 12
+  order: 14
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

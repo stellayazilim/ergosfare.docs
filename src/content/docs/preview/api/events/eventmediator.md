@@ -89,6 +89,28 @@ Publishes a non-generic event asynchronously through the mediation pipeline.
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous publish operation.
 
+### `PublishAsync(IEvent, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask PublishAsync(IEvent @event, GroupSet groups, CancellationToken cancellationToken = default)
+```
+
+Publishes an event under a canonical group filter — no settings object, and with a
+reused [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) the grouped broadcast plan matches on a single
+reference check. An empty set publishes the default pipeline.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+
 ### `PublishAsync(IEvent, IExecutionContext, EventMediationSettings?)`
 
 ```csharp
@@ -137,3 +159,32 @@ Publishes a strongly-typed event asynchronously through the mediation pipeline.
 **Returns**
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous publish operation.
+
+### `PublishAsync<TEvent>(TEvent, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask PublishAsync<TEvent>(TEvent @event, GroupSet groups, CancellationToken cancellationToken = default) where TEvent : notnull
+```
+
+Strongly-typed counterpart of
+[`EventMediator.PublishAsync(IEvent, GroupSet, CancellationToken)`](/ergosfare.docs/preview/api/events/eventmediator#publishasyncievent-groupset-cancellationtoken); the invoker comes
+from the static-generic holder when the runtime type is exactly
+`TEvent`.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TEvent` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event` | `TEvent` |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)

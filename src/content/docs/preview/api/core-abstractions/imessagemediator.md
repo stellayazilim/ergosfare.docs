@@ -3,7 +3,7 @@ title: "IMessageMediator"
 description: "Defines a mediator responsible for dispatching messages to their corresponding handlers and returning results from the mediation process."
 sidebar:
   label: "IMessageMediator"
-  order: 8
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

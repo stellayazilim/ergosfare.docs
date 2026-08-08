@@ -3,7 +3,7 @@ title: "IExecutionContext"
 description: "Represents the execution context for message handling and mediation."
 sidebar:
   label: "IExecutionContext"
-  order: 3
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

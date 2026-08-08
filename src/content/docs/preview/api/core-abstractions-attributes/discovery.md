@@ -19,7 +19,7 @@ evaluates the same rules at compile time.
 public static class Discovery
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/Discovery.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/Discovery.cs#L11)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 

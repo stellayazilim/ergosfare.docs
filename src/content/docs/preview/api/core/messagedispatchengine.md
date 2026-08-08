@@ -138,7 +138,7 @@ Result-producing counterpart of
 ### `DispatchVoidAsync<TMessage>(TMessage, IServiceProvider, IDictionary<object, object?>?, CancellationToken)`
 
 ```csharp
-public ValueTask DispatchVoidAsync<TMessage>(TMessage message, IServiceProvider serviceProvider, IDictionary<object, object?>? items = null, CancellationToken cancellationToken = default) where TMessage : notnull, IMessage
+public ValueTask DispatchVoidAsync<TMessage>(TMessage message, IServiceProvider serviceProvider, IDictionary<object, object?>? items = null, CancellationToken cancellationToken = default) where TMessage : IMessage
 ```
 
 Typed void dispatch: when the compile-time `TMessage` is the
