@@ -3,7 +3,7 @@ title: "ResultPlanRoot"
 description: "A compile-time pipeline plan closed over a result-producing message, its result type and its sole async handler; the result-producing counterpart of VoidPlan…"
 sidebar:
   label: "ResultPlanRoot"
-  order: 23
+  order: 25
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

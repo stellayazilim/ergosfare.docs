@@ -3,7 +3,7 @@ title: "IMessageDependencies"
 description: "Represents the resolved pipeline of a message type: the fixed set of handler and interceptor references per stage, ordered and ready to resolve per dispatch."
 sidebar:
   label: "IMessageDependencies"
-  order: 6
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

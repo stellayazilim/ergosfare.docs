@@ -3,7 +3,7 @@ title: "IResultPlanRootVisitor<TReturn, TState>"
 description: "Generic re-entry point for consumers of ResultPlanRoot."
 sidebar:
   label: "IResultPlanRootVisitor<TReturn, TState>"
-  order: 16
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

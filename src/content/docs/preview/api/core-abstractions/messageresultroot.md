@@ -3,7 +3,7 @@ title: "MessageResultRoot"
 description: "A dispatch root closed over a concrete (message, result) pair; see MessageRoot."
 sidebar:
   label: "MessageResultRoot"
-  order: 19
+  order: 21
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

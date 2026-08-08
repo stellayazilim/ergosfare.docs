@@ -3,7 +3,7 @@ title: "IHandlerReference<THandler, TDescriptor>"
 description: "A resolvable reference to a pipeline handler: the descriptor it was registered with, its pre-computed concrete type, and a way to obtain an instance for the…"
 sidebar:
   label: "IHandlerReference<THandler, TDescriptor>"
-  order: 4
+  order: 6
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

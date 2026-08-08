@@ -1,0 +1,52 @@
+---
+title: "IMessageResultRootVisitor<TReturn, TState>"
+description: "Generic re-entry point for consumers of MessageResultRoot."
+sidebar:
+  label: "IMessageResultRootVisitor<TReturn, TState>"
+  order: 2
+---
+
+**Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  
+**Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
+
+Generic re-entry point for consumers of [`MessageResultRoot`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/messageresultroot).
+
+```csharp
+public interface IMessageResultRootVisitor<out TReturn, in TState>
+```
+
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/DispatchRoots/IMessageResultRootVisitor.cs#L2)
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TReturn` |  |
+| `TState` |  |
+
+## Methods
+
+### `Visit<TMessage, TResult>(TState)`
+
+```csharp
+TReturn Visit<TMessage, TResult>(TState state) where TMessage : IMessage
+```
+
+Called with the root's message and result types as the generic arguments.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `state` | `TState` |  |
+
+**Returns**
+
+`TReturn`

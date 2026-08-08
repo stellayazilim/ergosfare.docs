@@ -3,7 +3,7 @@ title: "IResultAdapter"
 description: "Defines a contract for adapting and inspecting result objects of arbitrary types to extract exceptions without throwing them directly."
 sidebar:
   label: "IResultAdapter"
-  order: 14
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

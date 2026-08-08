@@ -3,7 +3,7 @@ title: "VoidPlanRoot<TMessage, THandler>"
 description: "The concrete closure of VoidPlanRoot; instantiated by generated code."
 sidebar:
   label: "VoidPlanRoot<TMessage, THandler>"
-  order: 26
+  order: 28
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

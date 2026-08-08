@@ -79,6 +79,28 @@ Sends a void command through the executor pipeline.
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
+### `SendAsync(ICommand, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask SendAsync(ICommand commandConstruct, GroupSet groups, CancellationToken cancellationToken = default)
+```
+
+Sends a void command under a canonical group filter — no settings object, and with
+a reused [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) the grouped executor lookup matches on a single
+reference check. An empty set routes to the group-less fast lane.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+
 ### `SendAsync(ICommand, IExecutionContext, CommandMediationSettings?)`
 
 ```csharp
@@ -127,6 +149,33 @@ Sends a typed command through the executor pipeline and returns its result.
 **Returns**
 
 `ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) representing the asynchronous operation and containing the command result.
+
+### `SendAsync<TResult>(ICommand<TResult>, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, GroupSet groups, CancellationToken cancellationToken = default)
+```
+
+Result-producing counterpart of
+[`CommandMediator.SendAsync(ICommand, GroupSet, CancellationToken)`](/ergosfare.docs/preview/api/commands/commandmediator#sendasyncicommand-groupset-cancellationtoken).
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | `ICommand<TResult>` |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+
+**Returns**
+
+`ValueTask<TResult>`
 
 ### `SendAsync<TResult>(ICommand<TResult>, IExecutionContext, CommandMediationSettings?)`
 

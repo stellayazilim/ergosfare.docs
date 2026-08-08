@@ -3,7 +3,7 @@ title: "GeneratedDispatchRoots"
 description: "Process-wide store of generically instantiated dispatch roots, populated by source-generated registration code."
 sidebar:
   label: "GeneratedDispatchRoots"
-  order: 2
+  order: 3
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
