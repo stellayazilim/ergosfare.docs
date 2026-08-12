@@ -3,7 +3,7 @@ title: "IEventPreInterceptor"
 description: "Represents a non-generic pre-interceptor for events, allowing custom logic to execute before any event handlers are invoked."
 sidebar:
   label: "IEventPreInterceptor"
-  order: 13
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
@@ -31,10 +31,10 @@ this interceptor automatically in the event mediation pipeline.
 
 ## Methods
 
-### `HandleAsync(IEvent, IExecutionContext)`
+### `HandleAsync(IEvent, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(IEvent @event, IExecutionContext executionContext)
+ValueTask HandleAsync(IEvent @event, ErgosfareContext executionContext)
 ```
 
 Handles the event asynchronously before the main handlers are invoked.
@@ -44,7 +44,7 @@ Handles the event asynchronously before the main handlers are invoked.
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event to be processed. |
-| `executionContext` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The execution context for the current mediation pipeline. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
 
 **Returns**
 

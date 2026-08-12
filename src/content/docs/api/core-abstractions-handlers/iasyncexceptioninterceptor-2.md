@@ -31,14 +31,14 @@ public interface IAsyncExceptionInterceptor<in TMessage, in TResult> : IExceptio
 
 This is a standalone asynchronous contract — it does not inherit the synchronous
 [`IExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptor-2), and there is no object-typed
-default implementation: the pipeline invokes [`IAsyncExceptionInterceptor<TMessage, TResult>.HandleAsync(TMessage, TResult?, Exception, IExecutionContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-2#handleasynctmessage-tresult-exception-iexecutioncontext) directly.
+default implementation: the pipeline invokes [`IAsyncExceptionInterceptor<TMessage, TResult>.HandleAsync(TMessage, TResult?, Exception, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-2#handleasynctmessage-tresult-exception-ergosfarecontext) directly.
 
 ## Methods
 
-### `HandleAsync(TMessage, TResult?, Exception, IExecutionContext)`
+### `HandleAsync(TMessage, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask<object?> HandleAsync(TMessage message, TResult? result, Exception exception, IExecutionContext context)
+ValueTask<object?> HandleAsync(TMessage message, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
 Handles an exception thrown while processing the message.
@@ -50,7 +50,7 @@ Handles an exception thrown while processing the message.
 | `message` | `TMessage` | The message whose processing threw. |
 | `result` | `TResult` | The result produced so far, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that was thrown. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

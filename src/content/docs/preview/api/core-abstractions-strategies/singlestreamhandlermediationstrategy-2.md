@@ -3,7 +3,7 @@ title: "SingleStreamHandlerMediationStrategy<TMessage, TResult>"
 description: "Implements a mediation strategy for a single asynchronous streaming handler."
 sidebar:
   label: "SingleStreamHandlerMediationStrategy<TMessage, TResult>"
-  order: 4
+  order: 3
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Strategies`](/ergosfare.docs/preview/api/core-abstractions-strategies)  
@@ -32,10 +32,10 @@ public sealed class SingleStreamHandlerMediationStrategy<TMessage, TResult> : IM
 
 ## Constructors
 
-### `SingleStreamHandlerMediationStrategy(IResultAdapterService?, CancellationToken)`
+### `SingleStreamHandlerMediationStrategy(CancellationToken)`
 
 ```csharp
-public SingleStreamHandlerMediationStrategy(IResultAdapterService? resultAdapterService, CancellationToken cancellationToken)
+public SingleStreamHandlerMediationStrategy(CancellationToken cancellationToken)
 ```
 
 Implements a mediation strategy for a single asynchronous streaming handler.
@@ -46,15 +46,14 @@ handles exceptions, and applies final interceptors. Supports chunked streaming r
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/preview/api/core-abstractions/iresultadapterservice) |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
 
 ## Methods
 
-### `Mediate(TMessage, IMessageDependencies, IExecutionContext, IServiceProvider)`
+### `Mediate(TMessage, IMessageDependencies, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-public IAsyncEnumerable<TResult> Mediate(TMessage message, IMessageDependencies messageDependencies, IExecutionContext context, IServiceProvider serviceProvider)
+public IAsyncEnumerable<TResult> Mediate(TMessage message, IMessageDependencies messageDependencies, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
 Mediates the message by invoking the streaming handler along with pre-, post-, exception-, and final interceptors.
@@ -66,7 +65,7 @@ Supports chunked streaming results with early abortion or exception handling.
 | --- | --- | --- |
 | `message` | `TMessage` | The message to be handled. |
 | `messageDependencies` | [`IMessageDependencies`](/ergosfare.docs/preview/api/core-abstractions/imessagedependencies) | The dependencies of the message, including the registered handlers and interceptors. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this dispatch runs in; handlers and interceptors resolve from it. |
 
 **Returns**
@@ -78,4 +77,4 @@ Supports chunked streaming results with early abortion or exception handling.
 | Type | Condition |
 | --- | --- |
 | [`MultipleHandlerFoundException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/multiplehandlerfoundexception) | Thrown if more than one handler is registered for the message. |
-| [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) | Thrown if no handler is registered for the message. |
+| [`NoHandlerFoundException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/nohandlerfoundexception) | Thrown if no handler is registered for the message. |

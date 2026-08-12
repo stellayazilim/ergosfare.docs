@@ -79,6 +79,29 @@ Sends a void command through the executor pipeline.
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
+### `SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`
+
+```csharp
+public ValueTask SendAsync(ICommand commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
+```
+
+Sends a void command under an externally owned execution context — the
+nested-dispatch path: a handler opens a scope on its own context and passes the
+child here. The caller owns the context's lifetime; cancellation flows from the
+context.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
+| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings) |  |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+
 ### `SendAsync(ICommand, GroupSet, CancellationToken)`
 
 ```csharp
@@ -96,29 +119,6 @@ reference check. An empty set routes to the group-less fast lane.
 | `commandConstruct` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
 | `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
-
-### `SendAsync(ICommand, IExecutionContext, CommandMediationSettings?)`
-
-```csharp
-public ValueTask SendAsync(ICommand commandConstruct, IExecutionContext context, CommandMediationSettings? commandMediationSettings = null)
-```
-
-Sends a void command under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context and passes the
-child here. The caller owns the context's lifetime; cancellation flows from the
-context.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `commandConstruct` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings) |  |
 
 **Returns**
 
@@ -150,6 +150,33 @@ Sends a typed command through the executor pipeline and returns its result.
 
 `ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) representing the asynchronous operation and containing the command result.
 
+### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, CommandMediationSettings?)`
+
+```csharp
+public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
+```
+
+Result-producing counterpart of
+[`CommandMediator.SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`](/ergosfare.docs/preview/api/commands/commandmediator#sendasyncicommand-ergosfarecontext-commandmediationsettings).
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | `ICommand<TResult>` |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
+| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings) |  |
+
+**Returns**
+
+`ValueTask<TResult>`
+
 ### `SendAsync<TResult>(ICommand<TResult>, GroupSet, CancellationToken)`
 
 ```csharp
@@ -172,33 +199,6 @@ Result-producing counterpart of
 | `commandConstruct` | `ICommand<TResult>` |  |
 | `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
-
-### `SendAsync<TResult>(ICommand<TResult>, IExecutionContext, CommandMediationSettings?)`
-
-```csharp
-public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, IExecutionContext context, CommandMediationSettings? commandMediationSettings = null)
-```
-
-Result-producing counterpart of
-[`CommandMediator.SendAsync(ICommand, IExecutionContext, CommandMediationSettings?)`](/ergosfare.docs/preview/api/commands/commandmediator#sendasyncicommand-iexecutioncontext-commandmediationsettings).
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `commandConstruct` | `ICommand<TResult>` |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings) |  |
 
 **Returns**
 

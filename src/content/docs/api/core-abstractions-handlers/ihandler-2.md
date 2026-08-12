@@ -3,7 +3,7 @@ title: "IHandler<TMessage, TResult>"
 description: "Represents a strongly-typed handler for processing messages of type TMessage and producing a result of type TResult."
 sidebar:
   label: "IHandler<TMessage, TResult>"
-  order: 15
+  order: 17
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
@@ -33,10 +33,10 @@ handlers exclusively through their typed members.
 
 ## Methods
 
-### `Handle(TMessage, IExecutionContext)`
+### `Handle(TMessage, ErgosfareContext)`
 
 ```csharp
-TResult Handle(TMessage message, IExecutionContext context)
+TResult Handle(TMessage message, ErgosfareContext context)
 ```
 
 Handles a message of type `TMessage` and returns a strongly-typed result.
@@ -46,7 +46,7 @@ Handles a message of type `TMessage` and returns a strongly-typed result.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The message to handle. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

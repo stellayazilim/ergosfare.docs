@@ -16,7 +16,7 @@ to all registered handlers of the specified `TMessage`.
 public sealed class AsyncBroadcastMediationStrategy<TMessage> : IMessageMediationStrategy<TMessage, ValueTask> where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events/AsyncBroadcastMediationStrategy.cs#L32)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events/AsyncBroadcastMediationStrategy.cs#L31)
 
 **Type parameters**
 
@@ -69,10 +69,10 @@ Since this strategy is intended for event broadcasting, results are not adapted
 
 ## Methods
 
-### `Mediate(TMessage, IMessageDependencies, IExecutionContext, IServiceProvider)`
+### `Mediate(TMessage, IMessageDependencies, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-public ValueTask Mediate(TMessage message, IMessageDependencies messageDependencies, IExecutionContext context, IServiceProvider serviceProvider)
+public ValueTask Mediate(TMessage message, IMessageDependencies messageDependencies, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
 Mediates the given message by broadcasting it sequentially to all registered
@@ -85,7 +85,7 @@ handlers: the event's own handlers first, then the covariantly matched ones
 | --- | --- | --- |
 | `message` | `TMessage` | The message to be processed. |
 | `messageDependencies` | [`IMessageDependencies`](/ergosfare.docs/api/core-abstractions/imessagedependencies) | The dependencies required for message handling, including the registered handlers and the pre-, post-, exception- and final-interceptor stages. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this dispatch runs in; handlers and interceptors resolve from it. |
 
 **Returns**

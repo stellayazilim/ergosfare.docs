@@ -3,7 +3,7 @@ title: "IStreamQuery<TResult>"
 description: "Represents a stream query message that produces multiple results of type TResult over time."
 sidebar:
   label: "IStreamQuery<TResult>"
-  order: 15
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  

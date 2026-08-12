@@ -3,7 +3,7 @@ title: "IHandler"
 description: "Marker interface identifying message handlers for registration and storage."
 sidebar:
   label: "IHandler"
-  order: 14
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  

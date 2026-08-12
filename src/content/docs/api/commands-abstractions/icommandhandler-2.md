@@ -3,7 +3,7 @@ title: "ICommandHandler<TCommand, TResult>"
 description: "Represents a handler for commands that produce a strongly-typed result."
 sidebar:
   label: "ICommandHandler<TCommand, TResult>"
-  order: 12
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  

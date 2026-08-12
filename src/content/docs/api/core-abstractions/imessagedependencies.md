@@ -3,7 +3,7 @@ title: "IMessageDependencies"
 description: "Represents the resolved pipeline of a message type: the fixed set of handler and interceptor references per stage, ordered and ready to resolve per dispatch."
 sidebar:
   label: "IMessageDependencies"
-  order: 6
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
@@ -16,7 +16,7 @@ interceptor references per stage, ordered and ready to resolve per dispatch.
 public interface IMessageDependencies
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessageDependencies.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessageDependencies.cs#L15)
 
 ## Remarks
 
@@ -31,71 +31,71 @@ treat them differently (e.g. single-handler validation applies to direct handler
 ### `ExceptionInterceptors`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IExceptionInterceptor, IExceptionInterceptorDescriptor>> ExceptionInterceptors { get; }
+IReadOnlyList<IHandlerReference<IExceptionInterceptor>> ExceptionInterceptors { get; }
 ```
 
 Gets the exception interceptors for the message (direct first, then indirect).
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IExceptionInterceptor, IExceptionInterceptorDescriptor>>`
+`IReadOnlyList<IHandlerReference<IExceptionInterceptor>>`
 
 ### `FinalInterceptors`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IFinalInterceptor, IFinalInterceptorDescriptor>> FinalInterceptors { get; }
+IReadOnlyList<IHandlerReference<IFinalInterceptor>> FinalInterceptors { get; }
 ```
 
 Gets the final interceptors for the message (direct first, then indirect).
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IFinalInterceptor, IFinalInterceptorDescriptor>>`
+`IReadOnlyList<IHandlerReference<IFinalInterceptor>>`
 
 ### `Handlers`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IHandler, IMainHandlerDescriptor>> Handlers { get; }
+IReadOnlyList<IHandlerReference<IHandler>> Handlers { get; }
 ```
 
 Gets the direct main handlers for the message.
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IHandler, IMainHandlerDescriptor>>`
+`IReadOnlyList<IHandlerReference<IHandler>>`
 
 ### `IndirectHandlers`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IHandler, IMainHandlerDescriptor>> IndirectHandlers { get; }
+IReadOnlyList<IHandlerReference<IHandler>> IndirectHandlers { get; }
 ```
 
 Gets the indirect main handlers for the message (registered for an assignable message type).
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IHandler, IMainHandlerDescriptor>>`
+`IReadOnlyList<IHandlerReference<IHandler>>`
 
 ### `PostInterceptors`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IPostInterceptor, IPostInterceptorDescriptor>> PostInterceptors { get; }
+IReadOnlyList<IHandlerReference<IPostInterceptor>> PostInterceptors { get; }
 ```
 
 Gets the post-interceptors for the message (direct first, then indirect).
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IPostInterceptor, IPostInterceptorDescriptor>>`
+`IReadOnlyList<IHandlerReference<IPostInterceptor>>`
 
 ### `PreInterceptors`
 
 ```csharp
-IReadOnlyList<IHandlerReference<IPreInterceptor, IPreInterceptorDescriptor>> PreInterceptors { get; }
+IReadOnlyList<IHandlerReference<IPreInterceptor>> PreInterceptors { get; }
 ```
 
 Gets the pre-interceptors for the message (direct first, then indirect).
 
 **Returns**
 
-`IReadOnlyList<IHandlerReference<IPreInterceptor, IPreInterceptorDescriptor>>`
+`IReadOnlyList<IHandlerReference<IPreInterceptor>>`

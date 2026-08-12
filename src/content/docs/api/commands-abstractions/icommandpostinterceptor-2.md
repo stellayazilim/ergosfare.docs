@@ -3,7 +3,7 @@ title: "ICommandPostInterceptor<TCommand, TResult>"
 description: "Represents a type-safe post-interceptor for commands with a strongly-typed result."
 sidebar:
   label: "ICommandPostInterceptor<TCommand, TResult>"
-  order: 16
+  order: 19
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
@@ -35,10 +35,10 @@ returns it.
 
 ## Methods
 
-### `HandleAsync(TCommand, TResult, IExecutionContext)`
+### `HandleAsync(TCommand, TResult, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult> HandleAsync(TCommand command, TResult commandResult, IExecutionContext context)
+ValueTask<TResult> HandleAsync(TCommand command, TResult commandResult, ErgosfareContext context)
 ```
 
 Handles the post-processing of a command asynchronously.
@@ -49,7 +49,7 @@ Handles the post-processing of a command asynchronously.
 | --- | --- | --- |
 | `command` | `TCommand` | The command that was executed. |
 | `commandResult` | `TResult` | The result produced by the command handler. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

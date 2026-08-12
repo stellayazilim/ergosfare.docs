@@ -3,7 +3,7 @@ title: "GeneratedDispatchRoots"
 description: "Process-wide store of generically instantiated dispatch roots, populated by source-generated registration code."
 sidebar:
   label: "GeneratedDispatchRoots"
-  order: 1
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  
@@ -26,7 +26,40 @@ public static class GeneratedDispatchRoots
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
+## Properties
+
+### `FrozenCompositionEntries`
+
+```csharp
+public static IEnumerable<FrozenComposition> FrozenCompositionEntries { get; }
+```
+
+Every compiled table entry. The one enumeration the table offers, and only for
+setup-time questions a per-message lookup cannot answer — chiefly "which
+participant types exist at all", which container registration intersects with its
+own selection to decide what to register for resolution.
+
+**Returns**
+
+`IEnumerable<FrozenComposition>`
+
 ## Methods
+
+### `AddFrozenComposition(FrozenComposition)`
+
+```csharp
+public static void AddFrozenComposition(FrozenComposition composition)
+```
+
+Roots a message's frozen pipeline composition — the pipeline shape produced at
+compile time. Generated module initializers populate the process-wide table as
+assemblies load; each entry is immutable after publication. Idempotent.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `composition` | [`FrozenComposition`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencomposition) |  |
 
 ### `AddMessage<TMessage>()`
 
@@ -66,7 +99,8 @@ public static void AddResultPlan<TMessage, TResult, THandler>() where TMessage :
 Result-producing counterpart of [`GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>()`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/generateddispatchroots#addvoidplantmessage-thandler):
 roots a compile-time pipeline plan for a message whose entire pipeline is a single
 async result handler, so the dispatch executor invokes it devirtualized. The plan
-is advisory and re-validated per registry version exactly like the void plan.
+is advisory and validated against the container's selected frozen composition,
+exactly like the void plan.
 Idempotent.
 
 **Type parameters**
@@ -157,8 +191,9 @@ public static void AddStagedPlan<TMessage>(StagedVoidPlan<TMessage> plan) where 
 Roots a staged pipeline plan for a void message whose pipeline carries interceptor
 stages: bespoke straight-line code for the whole pipeline, replacing the runtime
 strategy's generic machinery. Advisory exactly like the single-handler plans — the
-hosting executor re-validates the plan's [`StagedPlanComposition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplancomposition) against
-the registry per version and falls back to the runtime strategy on any mismatch.
+hosting executor validates the plan's [`StagedPlanComposition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplancomposition) against
+the container's selected frozen composition and falls back to the general strategy
+on any mismatch.
 Idempotent.
 
 **Type parameters**
@@ -197,10 +232,9 @@ public static void AddVoidPlan<TMessage, THandler>() where TMessage : IMessage w
 Roots a compile-time pipeline plan for a void message whose entire pipeline is a
 single async handler: the dispatch executor closes over both the message and the
 handler type, so the handler is invoked devirtualized — no contract pattern match.
-The plan is advisory: the executor re-validates the actual pipeline against the
-registry on every version change and falls back to the runtime dispatch shape
-whenever the pipeline no longer matches (interceptors registered at runtime, a
-different handler resolved, adapters configured). Idempotent.
+The plan is advisory: the executor validates it against the container's selected
+frozen composition and falls back to the general dispatch shape whenever the
+composition does not match. Idempotent.
 
 **Type parameters**
 
@@ -266,6 +300,33 @@ semantically identical. Idempotent.
 | Name | Type | Description |
 | --- | --- | --- |
 | `directHandlerFactory` | `Func<THandler>` |  |
+
+### `FindFrozenComposition(Type)`
+
+```csharp
+public static FrozenComposition? FindFrozenComposition(Type messageType)
+```
+
+The frozen composition serving a runtime message type. An exact entry wins; on a
+miss the type's ancestor chain is walked and the nearest frozen entry serves it —
+how runtime-generated subtypes (EF/Castle proxies, mocks) are served without any
+registry — with the outcome cached per runtime type, misses included. A type whose
+whole ancestor chain is foreign resolves to `null`: the caller's
+no-handler guard, the one deliberately remaining corner.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`FrozenComposition`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencomposition)
+
+Generic runtime types normalize to their definitions, mirroring the runtime
+message-resolve strategy. The ladder cache assumes the load-time-append contract:
+entries appended after a type's first miss resolution are not re-consulted for it.
 
 ### `FindMessage(Type)`
 

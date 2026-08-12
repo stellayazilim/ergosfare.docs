@@ -19,20 +19,24 @@
             "link": "/api/core-abstractions"
           },
           {
-            "label": "ExecutionContextScope",
-            "link": "/api/core-abstractions/executioncontextscope"
+            "label": "ErgosfareContext",
+            "link": "/api/core-abstractions/ergosfarecontext"
           },
           {
-            "label": "GeneratedDispatchRoots",
-            "link": "/api/core-abstractions/generateddispatchroots"
+            "label": "ErgosfareContextScope",
+            "link": "/api/core-abstractions/ergosfarecontextscope"
           },
           {
-            "label": "IExecutionContext",
-            "link": "/api/core-abstractions/iexecutioncontext"
+            "label": "ExperimentalIds",
+            "link": "/api/core-abstractions/experimentalids"
           },
           {
-            "label": "IHandlerReference<THandler, TDescriptor>",
-            "link": "/api/core-abstractions/ihandlerreference-2"
+            "label": "GroupSet",
+            "link": "/api/core-abstractions/groupset"
+          },
+          {
+            "label": "IHandlerReference<THandler>",
+            "link": "/api/core-abstractions/ihandlerreference-1"
           },
           {
             "label": "IMessage",
@@ -51,18 +55,6 @@
             "link": "/api/core-abstractions/imessagemediator"
           },
           {
-            "label": "IMessageResolveStrategy",
-            "link": "/api/core-abstractions/imessageresolvestrategy"
-          },
-          {
-            "label": "IMessageResultRootVisitor<TReturn, TState>",
-            "link": "/api/core-abstractions/imessageresultrootvisitor-2"
-          },
-          {
-            "label": "IMessageRootVisitor<TReturn, TState>",
-            "link": "/api/core-abstractions/imessagerootvisitor-2"
-          },
-          {
             "label": "IPipelineExecutor",
             "link": "/api/core-abstractions/ipipelineexecutor"
           },
@@ -71,56 +63,24 @@
             "link": "/api/core-abstractions/ipipelineexecutor-1"
           },
           {
-            "label": "IResultAdapter",
-            "link": "/api/core-abstractions/iresultadapter"
+            "label": "IResultAdapter<TResult>",
+            "link": "/api/core-abstractions/iresultadapter-1"
           },
           {
-            "label": "IResultAdapterService",
-            "link": "/api/core-abstractions/iresultadapterservice"
+            "label": "IResultMaterializer<TResult>",
+            "link": "/api/core-abstractions/iresultmaterializer-1"
           },
           {
-            "label": "IResultPlanRootVisitor<TReturn, TState>",
-            "link": "/api/core-abstractions/iresultplanrootvisitor-2"
+            "label": "Result",
+            "link": "/api/core-abstractions/result"
           },
           {
-            "label": "IVoidPlanRootVisitor<TReturn, TState>",
-            "link": "/api/core-abstractions/ivoidplanrootvisitor-2"
+            "label": "Result<TValue>",
+            "link": "/api/core-abstractions/result-1"
           },
           {
-            "label": "MediateOptions<TMessage, TResult>",
-            "link": "/api/core-abstractions/mediateoptions-2"
-          },
-          {
-            "label": "MessageResultRoot",
-            "link": "/api/core-abstractions/messageresultroot"
-          },
-          {
-            "label": "MessageResultRoot<TMessage, TResult>",
-            "link": "/api/core-abstractions/messageresultroot-2"
-          },
-          {
-            "label": "MessageRoot",
-            "link": "/api/core-abstractions/messageroot"
-          },
-          {
-            "label": "MessageRoot<TMessage>",
-            "link": "/api/core-abstractions/messageroot-1"
-          },
-          {
-            "label": "ResultPlanRoot",
-            "link": "/api/core-abstractions/resultplanroot"
-          },
-          {
-            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
-            "link": "/api/core-abstractions/resultplanroot-3"
-          },
-          {
-            "label": "VoidPlanRoot",
-            "link": "/api/core-abstractions/voidplanroot"
-          },
-          {
-            "label": "VoidPlanRoot<TMessage, THandler>",
-            "link": "/api/core-abstractions/voidplanroot-2"
+            "label": "Unit",
+            "link": "/api/core-abstractions/unit"
           }
         ]
       },
@@ -151,6 +111,14 @@
           {
             "label": "GroupAttribute",
             "link": "/api/core-abstractions-attributes/groupattribute"
+          },
+          {
+            "label": "IgnoreResultAdapterAttribute",
+            "link": "/api/core-abstractions-attributes/ignoreresultadapterattribute"
+          },
+          {
+            "label": "ResultAdapterAttribute",
+            "link": "/api/core-abstractions-attributes/resultadapterattribute"
           },
           {
             "label": "WeightAttribute",
@@ -197,6 +165,18 @@
           {
             "label": "ICommandExceptionInterceptor<TCommand>",
             "link": "/api/commands-abstractions/icommandexceptioninterceptor-1"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TCommand, TException>",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptorfor-2"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TCommand, TResult, TException>",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptorfor-3"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TException>",
+            "link": "/api/commands-abstractions/icommandexceptioninterceptorfor-1"
           },
           {
             "label": "ICommandFinalInterceptor",
@@ -271,6 +251,18 @@
           {
             "label": "IQueryExceptionInterceptor<TQuery, TResult>",
             "link": "/api/queries-abstractions/iqueryexceptioninterceptor-2"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TException>",
+            "link": "/api/queries-abstractions/iqueryexceptioninterceptorfor-1"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TQuery, TException>",
+            "link": "/api/queries-abstractions/iqueryexceptioninterceptorfor-2"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TQuery, TResult, TException>",
+            "link": "/api/queries-abstractions/iqueryexceptioninterceptorfor-3"
           },
           {
             "label": "IQueryFinalInterceptor",
@@ -367,6 +359,14 @@
             "link": "/api/events-abstractions/ieventexceptioninterceptor-1"
           },
           {
+            "label": "IEventExceptionInterceptorFor<TEvent, TException>",
+            "link": "/api/events-abstractions/ieventexceptioninterceptorfor-2"
+          },
+          {
+            "label": "IEventExceptionInterceptorFor<TException>",
+            "link": "/api/events-abstractions/ieventexceptioninterceptorfor-1"
+          },
+          {
             "label": "IEventFinalInterceptor",
             "link": "/api/events-abstractions/ieventfinalinterceptor"
           },
@@ -451,24 +451,110 @@
           {
             "label": "MessageDispatchEngine",
             "link": "/api/core/messagedispatchengine"
-          },
-          {
-            "label": "ResultAdapterService",
-            "link": "/api/core/resultadapterservice"
           }
         ]
       },
       {
-        "label": "Core.Abstractions.Caching",
+        "label": "Core.Abstractions.DispatchRoots",
         "collapsed": true,
         "items": [
           {
             "label": "Overview",
-            "link": "/api/core-abstractions-caching"
+            "link": "/api/core-abstractions-dispatchroots"
           },
           {
-            "label": "IDescriptorCacheStrategy",
-            "link": "/api/core-abstractions-caching/idescriptorcachestrategy"
+            "label": "FrozenComposition",
+            "link": "/api/core-abstractions-dispatchroots/frozencomposition"
+          },
+          {
+            "label": "FrozenCompositionCatalog",
+            "link": "/api/core-abstractions-dispatchroots/frozencompositioncatalog"
+          },
+          {
+            "label": "FrozenParticipant",
+            "link": "/api/core-abstractions-dispatchroots/frozenparticipant"
+          },
+          {
+            "label": "FrozenPipelineShape",
+            "link": "/api/core-abstractions-dispatchroots/frozenpipelineshape"
+          },
+          {
+            "label": "GeneratedDispatchRoots",
+            "link": "/api/core-abstractions-dispatchroots/generateddispatchroots"
+          },
+          {
+            "label": "IMessageResultRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-dispatchroots/imessageresultrootvisitor-2"
+          },
+          {
+            "label": "IMessageRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-dispatchroots/imessagerootvisitor-2"
+          },
+          {
+            "label": "IResultPlanRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-dispatchroots/iresultplanrootvisitor-2"
+          },
+          {
+            "label": "IVoidPlanRootVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-dispatchroots/ivoidplanrootvisitor-2"
+          },
+          {
+            "label": "MessageResultRoot",
+            "link": "/api/core-abstractions-dispatchroots/messageresultroot"
+          },
+          {
+            "label": "MessageResultRoot<TMessage, TResult>",
+            "link": "/api/core-abstractions-dispatchroots/messageresultroot-2"
+          },
+          {
+            "label": "MessageRoot",
+            "link": "/api/core-abstractions-dispatchroots/messageroot"
+          },
+          {
+            "label": "MessageRoot<TMessage>",
+            "link": "/api/core-abstractions-dispatchroots/messageroot-1"
+          },
+          {
+            "label": "ResultPlanRoot",
+            "link": "/api/core-abstractions-dispatchroots/resultplanroot"
+          },
+          {
+            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
+            "link": "/api/core-abstractions-dispatchroots/resultplanroot-3"
+          },
+          {
+            "label": "VoidPlanRoot",
+            "link": "/api/core-abstractions-dispatchroots/voidplanroot"
+          },
+          {
+            "label": "VoidPlanRoot<TMessage, THandler>",
+            "link": "/api/core-abstractions-dispatchroots/voidplanroot-2"
+          }
+        ]
+      },
+      {
+        "label": "Core.Abstractions.DispatchSites",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/api/core-abstractions-dispatchsites"
+          },
+          {
+            "label": "DispatchKind",
+            "link": "/api/core-abstractions-dispatchsites/dispatchkind"
+          },
+          {
+            "label": "DispatchManifestAttribute",
+            "link": "/api/core-abstractions-dispatchsites/dispatchmanifestattribute"
+          },
+          {
+            "label": "DispatchSiteAttribute",
+            "link": "/api/core-abstractions-dispatchsites/dispatchsiteattribute"
+          },
+          {
+            "label": "ManualRegistrationAttribute",
+            "link": "/api/core-abstractions-dispatchsites/manualregistrationattribute"
           }
         ]
       },
@@ -503,6 +589,10 @@
           {
             "label": "NoHandlerFoundException",
             "link": "/api/core-abstractions-exceptions/nohandlerfoundexception"
+          },
+          {
+            "label": "UnresolvableParticipantException",
+            "link": "/api/core-abstractions-exceptions/unresolvableparticipantexception"
           }
         ]
       },
@@ -573,6 +663,14 @@
             "link": "/api/core-abstractions-handlers/iexceptioninterceptor-2"
           },
           {
+            "label": "IExceptionInterceptorFilter",
+            "link": "/api/core-abstractions-handlers/iexceptioninterceptorfilter"
+          },
+          {
+            "label": "IExceptionInterceptorFilter<TException>",
+            "link": "/api/core-abstractions-handlers/iexceptioninterceptorfilter-1"
+          },
+          {
             "label": "IFinalInterceptor",
             "link": "/api/core-abstractions-handlers/ifinalinterceptor"
           },
@@ -611,66 +709,66 @@
         ]
       },
       {
-        "label": "Core.Abstractions.Registry",
+        "label": "Core.Abstractions.Results",
         "collapsed": true,
         "items": [
           {
             "label": "Overview",
-            "link": "/api/core-abstractions-registry"
+            "link": "/api/core-abstractions-results"
           },
           {
-            "label": "IMessageRegistry",
-            "link": "/api/core-abstractions-registry/imessageregistry"
+            "label": "DefaultResultAdapter",
+            "link": "/api/core-abstractions-results/defaultresultadapter"
+          },
+          {
+            "label": "ResultAdapterBinding",
+            "link": "/api/core-abstractions-results/resultadapterbinding"
+          },
+          {
+            "label": "ResultExceptionAdapter",
+            "link": "/api/core-abstractions-results/resultexceptionadapter"
+          },
+          {
+            "label": "ResultExceptionAdapter<TValue>",
+            "link": "/api/core-abstractions-results/resultexceptionadapter-1"
           }
         ]
       },
       {
-        "label": "Core.Abstractions.Registry.Descriptors",
+        "label": "Core.Abstractions.StagedPlans",
         "collapsed": true,
         "items": [
           {
             "label": "Overview",
-            "link": "/api/core-abstractions-registry-descriptors"
+            "link": "/api/core-abstractions-stagedplans"
           },
           {
-            "label": "HandlerDescriptors",
-            "link": "/api/core-abstractions-registry-descriptors/handlerdescriptors"
+            "label": "IStagedResultPlanVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-stagedplans/istagedresultplanvisitor-2"
           },
           {
-            "label": "IExceptionInterceptorDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/iexceptioninterceptordescriptor"
+            "label": "IStagedVoidPlanVisitor<TReturn, TState>",
+            "link": "/api/core-abstractions-stagedplans/istagedvoidplanvisitor-2"
           },
           {
-            "label": "IFinalInterceptorDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/ifinalinterceptordescriptor"
+            "label": "StagedPlanComposition",
+            "link": "/api/core-abstractions-stagedplans/stagedplancomposition"
           },
           {
-            "label": "IHandlerDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/ihandlerdescriptor"
+            "label": "StagedResultPlan",
+            "link": "/api/core-abstractions-stagedplans/stagedresultplan"
           },
           {
-            "label": "IHasMessageType",
-            "link": "/api/core-abstractions-registry-descriptors/ihasmessagetype"
+            "label": "StagedResultPlan<TMessage, TResult>",
+            "link": "/api/core-abstractions-stagedplans/stagedresultplan-2"
           },
           {
-            "label": "IHasResultType",
-            "link": "/api/core-abstractions-registry-descriptors/ihasresulttype"
+            "label": "StagedVoidPlan",
+            "link": "/api/core-abstractions-stagedplans/stagedvoidplan"
           },
           {
-            "label": "IMainHandlerDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/imainhandlerdescriptor"
-          },
-          {
-            "label": "IMessageDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/imessagedescriptor"
-          },
-          {
-            "label": "IPostInterceptorDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/ipostinterceptordescriptor"
-          },
-          {
-            "label": "IPreInterceptorDescriptor",
-            "link": "/api/core-abstractions-registry-descriptors/ipreinterceptordescriptor"
+            "label": "StagedVoidPlan<TMessage>",
+            "link": "/api/core-abstractions-stagedplans/stagedvoidplan-1"
           }
         ]
       },
@@ -681,10 +779,6 @@
           {
             "label": "Overview",
             "link": "/api/core-abstractions-strategies"
-          },
-          {
-            "label": "ActualTypeOrFirstAssignableTypeMessageResolveStrategy",
-            "link": "/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy"
           },
           {
             "label": "SingleAsyncHandlerMediationStrategy<TMessage, TResult>",
@@ -709,20 +803,8 @@
             "link": "/api/core-extensions-microsoftdependencyinjection"
           },
           {
-            "label": "CoreModule",
-            "link": "/api/core-extensions-microsoftdependencyinjection/coremodule"
-          },
-          {
-            "label": "CoreModuleBuilder",
-            "link": "/api/core-extensions-microsoftdependencyinjection/coremodulebuilder"
-          },
-          {
             "label": "IModule",
             "link": "/api/core-extensions-microsoftdependencyinjection/imodule"
-          },
-          {
-            "label": "IModuleBuilder",
-            "link": "/api/core-extensions-microsoftdependencyinjection/imodulebuilder"
           },
           {
             "label": "IModuleConfiguration",
@@ -741,26 +823,8 @@
             "link": "/api/core-extensions-microsoftdependencyinjection/moduleregistryextensions"
           },
           {
-            "label": "ResultAdapterBuilder",
-            "link": "/api/core-extensions-microsoftdependencyinjection/resultadapterbuilder"
-          },
-          {
             "label": "ServiceCollectionExtensions",
             "link": "/api/core-extensions-microsoftdependencyinjection/servicecollectionextensions"
-          }
-        ]
-      },
-      {
-        "label": "Core.Internal.Caching",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/api/core-internal-caching"
-          },
-          {
-            "label": "LruCacheStrategy",
-            "link": "/api/core-internal-caching/lrucachestrategy"
           }
         ]
       },
@@ -854,28 +918,24 @@
             "link": "/preview/api/core-abstractions"
           },
           {
-            "label": "ExecutionContextScope",
-            "link": "/preview/api/core-abstractions/executioncontextscope"
+            "label": "ErgosfareContext",
+            "link": "/preview/api/core-abstractions/ergosfarecontext"
           },
           {
-            "label": "GeneratedDescriptorCatalog",
-            "link": "/preview/api/core-abstractions/generateddescriptorcatalog"
+            "label": "ErgosfareContextScope",
+            "link": "/preview/api/core-abstractions/ergosfarecontextscope"
           },
           {
-            "label": "GeneratedDispatchRoots",
-            "link": "/preview/api/core-abstractions/generateddispatchroots"
+            "label": "ExperimentalIds",
+            "link": "/preview/api/core-abstractions/experimentalids"
           },
           {
             "label": "GroupSet",
             "link": "/preview/api/core-abstractions/groupset"
           },
           {
-            "label": "IExecutionContext",
-            "link": "/preview/api/core-abstractions/iexecutioncontext"
-          },
-          {
-            "label": "IHandlerReference<THandler, TDescriptor>",
-            "link": "/preview/api/core-abstractions/ihandlerreference-2"
+            "label": "IHandlerReference<THandler>",
+            "link": "/preview/api/core-abstractions/ihandlerreference-1"
           },
           {
             "label": "IMessage",
@@ -894,18 +954,6 @@
             "link": "/preview/api/core-abstractions/imessagemediator"
           },
           {
-            "label": "IMessageResolveStrategy",
-            "link": "/preview/api/core-abstractions/imessageresolvestrategy"
-          },
-          {
-            "label": "IMessageResultRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions/imessageresultrootvisitor-2"
-          },
-          {
-            "label": "IMessageRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions/imessagerootvisitor-2"
-          },
-          {
             "label": "IPipelineExecutor",
             "link": "/preview/api/core-abstractions/ipipelineexecutor"
           },
@@ -914,56 +962,24 @@
             "link": "/preview/api/core-abstractions/ipipelineexecutor-1"
           },
           {
-            "label": "IResultAdapter",
-            "link": "/preview/api/core-abstractions/iresultadapter"
+            "label": "IResultAdapter<TResult>",
+            "link": "/preview/api/core-abstractions/iresultadapter-1"
           },
           {
-            "label": "IResultAdapterService",
-            "link": "/preview/api/core-abstractions/iresultadapterservice"
+            "label": "IResultMaterializer<TResult>",
+            "link": "/preview/api/core-abstractions/iresultmaterializer-1"
           },
           {
-            "label": "IResultPlanRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions/iresultplanrootvisitor-2"
+            "label": "Result",
+            "link": "/preview/api/core-abstractions/result"
           },
           {
-            "label": "IVoidPlanRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions/ivoidplanrootvisitor-2"
+            "label": "Result<TValue>",
+            "link": "/preview/api/core-abstractions/result-1"
           },
           {
-            "label": "MediateOptions<TMessage, TResult>",
-            "link": "/preview/api/core-abstractions/mediateoptions-2"
-          },
-          {
-            "label": "MessageResultRoot",
-            "link": "/preview/api/core-abstractions/messageresultroot"
-          },
-          {
-            "label": "MessageResultRoot<TMessage, TResult>",
-            "link": "/preview/api/core-abstractions/messageresultroot-2"
-          },
-          {
-            "label": "MessageRoot",
-            "link": "/preview/api/core-abstractions/messageroot"
-          },
-          {
-            "label": "MessageRoot<TMessage>",
-            "link": "/preview/api/core-abstractions/messageroot-1"
-          },
-          {
-            "label": "ResultPlanRoot",
-            "link": "/preview/api/core-abstractions/resultplanroot"
-          },
-          {
-            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
-            "link": "/preview/api/core-abstractions/resultplanroot-3"
-          },
-          {
-            "label": "VoidPlanRoot",
-            "link": "/preview/api/core-abstractions/voidplanroot"
-          },
-          {
-            "label": "VoidPlanRoot<TMessage, THandler>",
-            "link": "/preview/api/core-abstractions/voidplanroot-2"
+            "label": "Unit",
+            "link": "/preview/api/core-abstractions/unit"
           }
         ]
       },
@@ -994,6 +1010,14 @@
           {
             "label": "GroupAttribute",
             "link": "/preview/api/core-abstractions-attributes/groupattribute"
+          },
+          {
+            "label": "IgnoreResultAdapterAttribute",
+            "link": "/preview/api/core-abstractions-attributes/ignoreresultadapterattribute"
+          },
+          {
+            "label": "ResultAdapterAttribute",
+            "link": "/preview/api/core-abstractions-attributes/resultadapterattribute"
           },
           {
             "label": "WeightAttribute",
@@ -1040,6 +1064,18 @@
           {
             "label": "ICommandExceptionInterceptor<TCommand>",
             "link": "/preview/api/commands-abstractions/icommandexceptioninterceptor-1"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TCommand, TException>",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptorfor-2"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TCommand, TResult, TException>",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptorfor-3"
+          },
+          {
+            "label": "ICommandExceptionInterceptorFor<TException>",
+            "link": "/preview/api/commands-abstractions/icommandexceptioninterceptorfor-1"
           },
           {
             "label": "ICommandFinalInterceptor",
@@ -1114,6 +1150,18 @@
           {
             "label": "IQueryExceptionInterceptor<TQuery, TResult>",
             "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptor-2"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TException>",
+            "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptorfor-1"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TQuery, TException>",
+            "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptorfor-2"
+          },
+          {
+            "label": "IQueryExceptionInterceptorFor<TQuery, TResult, TException>",
+            "link": "/preview/api/queries-abstractions/iqueryexceptioninterceptorfor-3"
           },
           {
             "label": "IQueryFinalInterceptor",
@@ -1210,6 +1258,14 @@
             "link": "/preview/api/events-abstractions/ieventexceptioninterceptor-1"
           },
           {
+            "label": "IEventExceptionInterceptorFor<TEvent, TException>",
+            "link": "/preview/api/events-abstractions/ieventexceptioninterceptorfor-2"
+          },
+          {
+            "label": "IEventExceptionInterceptorFor<TException>",
+            "link": "/preview/api/events-abstractions/ieventexceptioninterceptorfor-1"
+          },
+          {
             "label": "IEventFinalInterceptor",
             "link": "/preview/api/events-abstractions/ieventfinalinterceptor"
           },
@@ -1294,24 +1350,6 @@
           {
             "label": "MessageDispatchEngine",
             "link": "/preview/api/core/messagedispatchengine"
-          },
-          {
-            "label": "ResultAdapterService",
-            "link": "/preview/api/core/resultadapterservice"
-          }
-        ]
-      },
-      {
-        "label": "Core.Abstractions.Caching",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core-abstractions-caching"
-          },
-          {
-            "label": "IDescriptorCacheStrategy",
-            "link": "/preview/api/core-abstractions-caching/idescriptorcachestrategy"
           }
         ]
       },
@@ -1322,6 +1360,22 @@
           {
             "label": "Overview",
             "link": "/preview/api/core-abstractions-dispatchroots"
+          },
+          {
+            "label": "FrozenComposition",
+            "link": "/preview/api/core-abstractions-dispatchroots/frozencomposition"
+          },
+          {
+            "label": "FrozenCompositionCatalog",
+            "link": "/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog"
+          },
+          {
+            "label": "FrozenParticipant",
+            "link": "/preview/api/core-abstractions-dispatchroots/frozenparticipant"
+          },
+          {
+            "label": "FrozenPipelineShape",
+            "link": "/preview/api/core-abstractions-dispatchroots/frozenpipelineshape"
           },
           {
             "label": "GeneratedDispatchRoots",
@@ -1378,6 +1432,32 @@
         ]
       },
       {
+        "label": "Core.Abstractions.DispatchSites",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-dispatchsites"
+          },
+          {
+            "label": "DispatchKind",
+            "link": "/preview/api/core-abstractions-dispatchsites/dispatchkind"
+          },
+          {
+            "label": "DispatchManifestAttribute",
+            "link": "/preview/api/core-abstractions-dispatchsites/dispatchmanifestattribute"
+          },
+          {
+            "label": "DispatchSiteAttribute",
+            "link": "/preview/api/core-abstractions-dispatchsites/dispatchsiteattribute"
+          },
+          {
+            "label": "ManualRegistrationAttribute",
+            "link": "/preview/api/core-abstractions-dispatchsites/manualregistrationattribute"
+          }
+        ]
+      },
+      {
         "label": "Core.Abstractions.Exceptions",
         "collapsed": true,
         "items": [
@@ -1408,6 +1488,10 @@
           {
             "label": "NoHandlerFoundException",
             "link": "/preview/api/core-abstractions-exceptions/nohandlerfoundexception"
+          },
+          {
+            "label": "UnresolvableParticipantException",
+            "link": "/preview/api/core-abstractions-exceptions/unresolvableparticipantexception"
           }
         ]
       },
@@ -1478,6 +1562,14 @@
             "link": "/preview/api/core-abstractions-handlers/iexceptioninterceptor-2"
           },
           {
+            "label": "IExceptionInterceptorFilter",
+            "link": "/preview/api/core-abstractions-handlers/iexceptioninterceptorfilter"
+          },
+          {
+            "label": "IExceptionInterceptorFilter<TException>",
+            "link": "/preview/api/core-abstractions-handlers/iexceptioninterceptorfilter-1"
+          },
+          {
             "label": "IFinalInterceptor",
             "link": "/preview/api/core-abstractions-handlers/ifinalinterceptor"
           },
@@ -1516,66 +1608,28 @@
         ]
       },
       {
-        "label": "Core.Abstractions.Registry",
+        "label": "Core.Abstractions.Results",
         "collapsed": true,
         "items": [
           {
             "label": "Overview",
-            "link": "/preview/api/core-abstractions-registry"
+            "link": "/preview/api/core-abstractions-results"
           },
           {
-            "label": "IMessageRegistry",
-            "link": "/preview/api/core-abstractions-registry/imessageregistry"
-          }
-        ]
-      },
-      {
-        "label": "Core.Abstractions.Registry.Descriptors",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core-abstractions-registry-descriptors"
+            "label": "DefaultResultAdapter",
+            "link": "/preview/api/core-abstractions-results/defaultresultadapter"
           },
           {
-            "label": "HandlerDescriptors",
-            "link": "/preview/api/core-abstractions-registry-descriptors/handlerdescriptors"
+            "label": "ResultAdapterBinding",
+            "link": "/preview/api/core-abstractions-results/resultadapterbinding"
           },
           {
-            "label": "IExceptionInterceptorDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/iexceptioninterceptordescriptor"
+            "label": "ResultExceptionAdapter",
+            "link": "/preview/api/core-abstractions-results/resultexceptionadapter"
           },
           {
-            "label": "IFinalInterceptorDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ifinalinterceptordescriptor"
-          },
-          {
-            "label": "IHandlerDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ihandlerdescriptor"
-          },
-          {
-            "label": "IHasMessageType",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ihasmessagetype"
-          },
-          {
-            "label": "IHasResultType",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ihasresulttype"
-          },
-          {
-            "label": "IMainHandlerDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/imainhandlerdescriptor"
-          },
-          {
-            "label": "IMessageDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/imessagedescriptor"
-          },
-          {
-            "label": "IPostInterceptorDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ipostinterceptordescriptor"
-          },
-          {
-            "label": "IPreInterceptorDescriptor",
-            "link": "/preview/api/core-abstractions-registry-descriptors/ipreinterceptordescriptor"
+            "label": "ResultExceptionAdapter<TValue>",
+            "link": "/preview/api/core-abstractions-results/resultexceptionadapter-1"
           }
         ]
       },
@@ -1626,10 +1680,6 @@
             "link": "/preview/api/core-abstractions-strategies"
           },
           {
-            "label": "ActualTypeOrFirstAssignableTypeMessageResolveStrategy",
-            "link": "/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy"
-          },
-          {
             "label": "SingleAsyncHandlerMediationStrategy<TMessage, TResult>",
             "link": "/preview/api/core-abstractions-strategies/singleasynchandlermediationstrategy-2"
           },
@@ -1652,20 +1702,8 @@
             "link": "/preview/api/core-extensions-microsoftdependencyinjection"
           },
           {
-            "label": "CoreModule",
-            "link": "/preview/api/core-extensions-microsoftdependencyinjection/coremodule"
-          },
-          {
-            "label": "CoreModuleBuilder",
-            "link": "/preview/api/core-extensions-microsoftdependencyinjection/coremodulebuilder"
-          },
-          {
             "label": "IModule",
             "link": "/preview/api/core-extensions-microsoftdependencyinjection/imodule"
-          },
-          {
-            "label": "IModuleBuilder",
-            "link": "/preview/api/core-extensions-microsoftdependencyinjection/imodulebuilder"
           },
           {
             "label": "IModuleConfiguration",
@@ -1684,26 +1722,8 @@
             "link": "/preview/api/core-extensions-microsoftdependencyinjection/moduleregistryextensions"
           },
           {
-            "label": "ResultAdapterBuilder",
-            "link": "/preview/api/core-extensions-microsoftdependencyinjection/resultadapterbuilder"
-          },
-          {
             "label": "ServiceCollectionExtensions",
             "link": "/preview/api/core-extensions-microsoftdependencyinjection/servicecollectionextensions"
-          }
-        ]
-      },
-      {
-        "label": "Core.Internal.Caching",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core-internal-caching"
-          },
-          {
-            "label": "LruCacheStrategy",
-            "link": "/preview/api/core-internal-caching/lrucachestrategy"
           }
         ]
       },

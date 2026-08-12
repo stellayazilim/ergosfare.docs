@@ -28,14 +28,14 @@ public interface IAsyncPreInterceptor<in TMessage> : IPreInterceptor where TMess
 
 This is a standalone asynchronous contract — it does not inherit the synchronous
 [`IPreInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/ipreinterceptor-1), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncPreInterceptor<TMessage>.HandleAsync(TMessage, IExecutionContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpreinterceptor-1#handleasynctmessage-iexecutioncontext) directly.
+implementation: the pipeline invokes [`IAsyncPreInterceptor<TMessage>.HandleAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpreinterceptor-1#handleasynctmessage-ergosfarecontext) directly.
 
 ## Methods
 
-### `HandleAsync(TMessage, IExecutionContext)`
+### `HandleAsync(TMessage, ErgosfareContext)`
 
 ```csharp
-ValueTask<object> HandleAsync(TMessage message, IExecutionContext context)
+ValueTask<object> HandleAsync(TMessage message, ErgosfareContext context)
 ```
 
 Handles a message asynchronously before it reaches the main handler.
@@ -45,7 +45,7 @@ Handles a message asynchronously before it reaches the main handler.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The input message to be processed. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

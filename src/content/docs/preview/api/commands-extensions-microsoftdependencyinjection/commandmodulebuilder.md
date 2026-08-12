@@ -1,6 +1,6 @@
 ---
 title: "CommandModuleBuilder"
-description: "Builder class for registering command types in the message registry."
+description: "Builder class for selecting the command constructs this container runs from the compiled composition table."
 sidebar:
   label: "CommandModuleBuilder"
   order: 1
@@ -9,22 +9,23 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection.dll`
 
-Builder class for registering command types in the message registry.
+Builder class for selecting the command constructs this container runs from the
+compiled composition table.
 
 ```csharp
 public sealed class CommandModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection/CommandModuleBuilder.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection/CommandModuleBuilder.cs#L11)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
 ## Constructors
 
-### `CommandModuleBuilder(IMessageRegistry)`
+### `CommandModuleBuilder(FrozenCompositionCatalog)`
 
 ```csharp
-public CommandModuleBuilder(IMessageRegistry messageRegistry)
+public CommandModuleBuilder(FrozenCompositionCatalog compositions)
 ```
 
 Initializes a new instance of the [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) class.
@@ -33,7 +34,7 @@ Initializes a new instance of the [`CommandModuleBuilder`](/ergosfare.docs/previ
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `messageRegistry` | [`IMessageRegistry`](/ergosfare.docs/preview/api/core-abstractions-registry/imessageregistry) | The message registry to which commands will be registered. |
+| `compositions` | [`FrozenCompositionCatalog`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog) | The container's composition catalog, told which constructs this registration selects. |
 
 ## Methods
 
@@ -43,13 +44,14 @@ Initializes a new instance of the [`CommandModuleBuilder`](/ergosfare.docs/previ
 public CommandModuleBuilder Register(Type type)
 ```
 
-Registers a command type for the message registry.
+Registers a command construct — a command, or one of the handlers and
+interceptors serving commands (their contracts carry the module marker too).
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `type` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type of command to register, which must implement [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand). |
+| `type` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type to register, which must be a command construct. |
 
 **Returns**
 
@@ -61,81 +63,39 @@ Registers a command type for the message registry.
 public CommandModuleBuilder Register<T>() where T : ICommand
 ```
 
-Registers a command type for the message registry.
+Registers a command construct.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `T` | The type of command to register, which must implement [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand). |
+| `T` | The type to register, which must be a command construct. |
 
 **Returns**
 
 [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) — The current [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) instance for method chaining.
 
-### `RegisterDescriptors(IEnumerable<IHandlerDescriptor>)`
+### `RegisterParticipants(IEnumerable<Type>)`
 
 ```csharp
-public CommandModuleBuilder RegisterDescriptors(IEnumerable<IHandlerDescriptor> descriptors)
+public CommandModuleBuilder RegisterParticipants(IEnumerable<Type> participantTypes)
 ```
 
-Registers pre-built handler descriptors, bypassing reflection-based descriptor
-construction — the registration path used by source-generated code.
+Registers a batch of pipeline participants — the bulk path source-generated
+registration uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `descriptors` | `IEnumerable<IHandlerDescriptor>` | The descriptors to register; every handler type must be a command construct. |
+| `participantTypes` | `IEnumerable<Type>` | The handler and interceptor types to register. |
 
 **Returns**
 
 [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) — The current [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) instance for method chaining.
 
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | Thrown when a descriptor's handler type is not a command construct. |
-
-### `RegisterFromAssembly(Assembly, string)`
-
-```csharp
-public CommandModuleBuilder RegisterFromAssembly(Assembly assembly, string discoveryKeyPattern)
-```
-
-Registers the assembly's command types whose discovery keys match the given
-pattern — an exact key or a trailing-`*` prefix glob. See
-[`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) for the key model.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `assembly` | [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) | The assembly from which to register command types. |
-| `discoveryKeyPattern` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The discovery key pattern to select types by. |
-
-**Returns**
-
-[`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) — The current [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) instance for method chaining.
-
-### `RegisterFromAssembly(Assembly)`
-
-```csharp
-public CommandModuleBuilder RegisterFromAssembly(Assembly assembly)
-```
-
-Registers the assembly's command types that participate in default discovery:
-types excluded via [`ExcludeFromDiscoveryAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/excludefromdiscoveryattribute) or gated behind a
-[`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) are skipped, mirroring source-generated
-`RegisterGenerated()`.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `assembly` | [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) | The assembly from which to register command types. |
-
-**Returns**
-
-[`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) — The current [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) instance for method chaining.
+No module assertion here: the generator has already partitioned its discoveries
+by module, and not every participant contract carries the module marker (the
+modifying interceptor shapes are declared purely over the core contracts).
+[`CommandModuleBuilder.Register(Type)`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder#registertype) keeps the assertion, since a hand-written
+registration is where a wrong-module type actually surfaces.

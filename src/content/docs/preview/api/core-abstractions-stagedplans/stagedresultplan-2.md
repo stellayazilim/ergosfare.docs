@@ -54,10 +54,10 @@ Invokes the visitor with this plan's message and result types as the generic arg
 
 `TReturn`
 
-### `Execute(TMessage, IExecutionContext, IServiceProvider)`
+### `Execute(TMessage, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-public abstract ValueTask<TResult> Execute(TMessage message, IExecutionContext context, IServiceProvider serviceProvider)
+public abstract ValueTask<TResult> Execute(TMessage message, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
 Runs the baked pipeline for the message. Only invoked while the live pipeline
@@ -69,32 +69,32 @@ matches [`StagedVoidPlan.Composition`](/ergosfare.docs/preview/api/core-abstract
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
 
 **Returns**
 
 `ValueTask<TResult>`
 
-### `ExecuteDirect(TMessage, IExecutionContext, IServiceProvider)`
+### `ExecuteDirect(TMessage, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-public virtual ValueTask<TResult> ExecuteDirect(TMessage message, IExecutionContext context, IServiceProvider serviceProvider)
+public virtual ValueTask<TResult> ExecuteDirect(TMessage message, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
-The direct-construction variant of [`StagedVoidPlan<TMessage>.Execute(TMessage, IExecutionContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-iexecutioncontext-iserviceprovider): participants are
+The direct-construction variant of [`StagedVoidPlan<TMessage>.Execute(TMessage, ErgosfareContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-ergosfarecontext-iserviceprovider): participants are
 constructed with `new` (dependencies still resolve from
 `serviceProvider`). Only invoked while
 [`StagedVoidPlan.SupportsDirectConstruction`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan#supportsdirectconstruction) is `true` AND the
 hosting executor verified every participant's plain transient registration; the
-default forwards to [`StagedVoidPlan<TMessage>.Execute(TMessage, IExecutionContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-iexecutioncontext-iserviceprovider).
+default forwards to [`StagedVoidPlan<TMessage>.Execute(TMessage, ErgosfareContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-ergosfarecontext-iserviceprovider).
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
 
 **Returns**

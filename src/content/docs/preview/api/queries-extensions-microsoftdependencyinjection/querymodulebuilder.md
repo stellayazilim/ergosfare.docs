@@ -1,6 +1,6 @@
 ---
 title: "QueryModuleBuilder"
-description: "Provides a builder for registering query types in the message registry as part of the query module configuration."
+description: "Provides a builder for selecting the query constructs this container runs from the compiled composition table."
 sidebar:
   label: "QueryModuleBuilder"
   order: 1
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides a builder for registering query types in the message registry
-as part of the query module configuration.
+Provides a builder for selecting the query constructs this container runs from the
+compiled composition table.
 
 ```csharp
 public sealed class QueryModuleBuilder
@@ -22,20 +22,20 @@ public sealed class QueryModuleBuilder
 
 ## Constructors
 
-### `QueryModuleBuilder(IMessageRegistry)`
+### `QueryModuleBuilder(FrozenCompositionCatalog)`
 
 ```csharp
-public QueryModuleBuilder(IMessageRegistry messageRegistry)
+public QueryModuleBuilder(FrozenCompositionCatalog compositions)
 ```
 
-Provides a builder for registering query types in the message registry
-as part of the query module configuration.
+Provides a builder for selecting the query constructs this container runs from the
+compiled composition table.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `messageRegistry` | [`IMessageRegistry`](/ergosfare.docs/preview/api/core-abstractions-registry/imessageregistry) |  |
+| `compositions` | [`FrozenCompositionCatalog`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog) | The container's composition catalog, told which constructs this registration selects. |
 
 ## Methods
 
@@ -45,13 +45,14 @@ as part of the query module configuration.
 public QueryModuleBuilder Register(Type queryType)
 ```
 
-Registers a query type by its [`Type`](https://learn.microsoft.com/dotnet/api/system.type) in the message registry.
+Registers a query construct — a query, or one of the handlers and interceptors
+serving queries (their contracts carry the module marker too).
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `queryType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The [`Type`](https://learn.microsoft.com/dotnet/api/system.type) of the query to register. |
+| `queryType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The [`Type`](https://learn.microsoft.com/dotnet/api/system.type) to register. |
 
 **Returns**
 
@@ -61,7 +62,7 @@ Registers a query type by its [`Type`](https://learn.microsoft.com/dotnet/api/sy
 
 | Type | Condition |
 | --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | Thrown if the type does not implement [`IQuery`](/ergosfare.docs/preview/api/queries-abstractions/iquery). |
+| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | Thrown if the type is not a query construct. |
 
 ### `Register<TQuery>()`
 
@@ -69,81 +70,39 @@ Registers a query type by its [`Type`](https://learn.microsoft.com/dotnet/api/sy
 public QueryModuleBuilder Register<TQuery>() where TQuery : IQuery
 ```
 
-Registers a specific query type `TQuery` in the message registry.
+Registers a query construct.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQuery` | The query type to register. Must implement [`IQuery`](/ergosfare.docs/preview/api/queries-abstractions/iquery). |
+| `TQuery` | The type to register. Must be a query construct. |
 
 **Returns**
 
 [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
 
-### `RegisterDescriptors(IEnumerable<IHandlerDescriptor>)`
+### `RegisterParticipants(IEnumerable<Type>)`
 
 ```csharp
-public QueryModuleBuilder RegisterDescriptors(IEnumerable<IHandlerDescriptor> descriptors)
+public QueryModuleBuilder RegisterParticipants(IEnumerable<Type> participantTypes)
 ```
 
-Registers pre-built handler descriptors, bypassing reflection-based descriptor
-construction — the registration path used by source-generated code.
+Registers a batch of pipeline participants — the bulk path source-generated
+registration uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `descriptors` | `IEnumerable<IHandlerDescriptor>` | The descriptors to register; every handler type must be a query construct. |
+| `participantTypes` | `IEnumerable<Type>` | The handler and interceptor types to register. |
 
 **Returns**
 
 [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
 
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | Thrown when a descriptor's handler type is not a query construct. |
-
-### `RegisterFromAssembly(Assembly, string)`
-
-```csharp
-public QueryModuleBuilder RegisterFromAssembly(Assembly assembly, string discoveryKeyPattern)
-```
-
-Registers the assembly's query types whose discovery keys match the given pattern —
-an exact key or a trailing-`*` prefix glob. See
-[`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) for the key model.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `assembly` | [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) | The [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) to scan for query types. |
-| `discoveryKeyPattern` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The discovery key pattern to select types by. |
-
-**Returns**
-
-[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
-
-### `RegisterFromAssembly(Assembly)`
-
-```csharp
-public QueryModuleBuilder RegisterFromAssembly(Assembly assembly)
-```
-
-Registers the assembly's query types that participate in default discovery: types
-excluded via [`ExcludeFromDiscoveryAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/excludefromdiscoveryattribute) or gated behind a
-[`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) are skipped, mirroring source-generated
-`RegisterGenerated()`.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `assembly` | [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) | The [`Assembly`](https://learn.microsoft.com/dotnet/api/system.reflection.assembly) to scan for query types. |
-
-**Returns**
-
-[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
+No module assertion here: the generator has already partitioned its discoveries by
+module, and not every participant contract carries the module marker (the modifying
+interceptor shapes are declared purely over the core contracts).
+[`QueryModuleBuilder.Register(Type)`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder#registertype) keeps the assertion, since a hand-written registration
+is where a wrong-module type actually surfaces.

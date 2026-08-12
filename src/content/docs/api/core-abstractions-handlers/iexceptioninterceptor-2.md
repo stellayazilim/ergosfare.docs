@@ -35,10 +35,10 @@ dispatches each through its own typed member with no object-typed bridge between
 
 ## Methods
 
-### `Handle(TMessage, TResult?, Exception, IExecutionContext)`
+### `Handle(TMessage, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-object? Handle(TMessage message, TResult? messageResult, Exception exception, IExecutionContext context)
+object? Handle(TMessage message, TResult? messageResult, Exception exception, ErgosfareContext context)
 ```
 
 Handles an exception thrown while processing the message.
@@ -50,7 +50,7 @@ Handles an exception thrown while processing the message.
 | `message` | `TMessage` | The message whose processing threw. |
 | `messageResult` | `TResult` | The result produced so far, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that was thrown. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

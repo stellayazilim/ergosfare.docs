@@ -3,7 +3,7 @@ title: "IMessageMediationStrategy<TMessage, TMessageResult>"
 description: "Defines a strategy for mediating messages of a specific type and producing results of a specific type."
 sidebar:
   label: "IMessageMediationStrategy<TMessage, TMessageResult>"
-  order: 7
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
@@ -34,10 +34,10 @@ and error handlers are invoked during the mediation process.
 
 ## Methods
 
-### `Mediate(TMessage, IMessageDependencies, IExecutionContext, IServiceProvider)`
+### `Mediate(TMessage, IMessageDependencies, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-TMessageResult Mediate(TMessage message, IMessageDependencies messageDependencies, IExecutionContext executionContext, IServiceProvider serviceProvider)
+TMessageResult Mediate(TMessage message, IMessageDependencies messageDependencies, ErgosfareContext executionContext, IServiceProvider serviceProvider)
 ```
 
 Mediates a message by executing the appropriate handlers and producing a result.
@@ -48,7 +48,7 @@ Mediates a message by executing the appropriate handlers and producing a result.
 | --- | --- | --- |
 | `message` | `TMessage` | The message to be mediated. |
 | `messageDependencies` | [`IMessageDependencies`](/ergosfare.docs/api/core-abstractions/imessagedependencies) | The dependencies required for message handling, including handlers, pre-handlers, post-handlers, and error handlers. |
-| `executionContext` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The context in which the mediation is executed, providing access to cancellation tokens, shared data, and other execution-related information. The context is a pure data carrier between handlers; it plays no part in handler resolution. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context in which the mediation is executed, providing access to cancellation tokens, shared data, and other execution-related information. The context is a pure data carrier between handlers; it plays no part in handler resolution. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope the dispatch runs in. The strategy resolves handler and interceptor instances from it at invocation time — resolution is the dispatcher's responsibility. |
 
 **Returns**

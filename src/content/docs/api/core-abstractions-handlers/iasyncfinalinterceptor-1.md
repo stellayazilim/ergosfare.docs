@@ -29,14 +29,14 @@ public interface IAsyncFinalInterceptor<in TMessage> : IFinalInterceptor
 
 This is a standalone asynchronous contract — it does not inherit the synchronous
 [`IFinalInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/ifinalinterceptor-2), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncFinalInterceptor<TMessage>.HandleAsync(TMessage, object?, Exception?, IExecutionContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncfinalinterceptor-1#handleasynctmessage-object-exception-iexecutioncontext) directly.
+implementation: the pipeline invokes [`IAsyncFinalInterceptor<TMessage>.HandleAsync(TMessage, object?, Exception?, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncfinalinterceptor-1#handleasynctmessage-object-exception-ergosfarecontext) directly.
 
 ## Methods
 
-### `HandleAsync(TMessage, object?, Exception?, IExecutionContext)`
+### `HandleAsync(TMessage, object?, Exception?, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(TMessage message, object? result, Exception? exception, IExecutionContext context)
+ValueTask HandleAsync(TMessage message, object? result, Exception? exception, ErgosfareContext context)
 ```
 
 Handles the end of the pipeline for the given message.
@@ -48,7 +48,7 @@ Handles the end of the pipeline for the given message.
 | `message` | `TMessage` | The message that was processed. |
 | `result` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The final result, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that terminated the pipeline, if any. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

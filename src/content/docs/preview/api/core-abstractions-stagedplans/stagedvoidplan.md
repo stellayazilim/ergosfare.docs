@@ -27,10 +27,10 @@ public abstract class StagedVoidPlan
 
 ## Remarks
 
-The plan is advisory: the hosting executor re-validates [`StagedVoidPlan.Composition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan#composition)
-against the live registry on every version change and falls back to the runtime
-strategy whenever the pipeline no longer matches, so a stale plan only loses its
-speedup, never changes behavior. [`StagedVoidPlan<TMessage>.Execute(TMessage, IExecutionContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-iexecutioncontext-iserviceprovider) must
+The plan is advisory: the hosting executor validates [`StagedVoidPlan.Composition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan#composition) against
+the container's selected frozen composition and falls back to the general strategy on
+a mismatch, so a stale plan only loses its speedup, never changes behavior.
+[`StagedVoidPlan<TMessage>.Execute(TMessage, ErgosfareContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan-1#executetmessage-ergosfarecontext-iserviceprovider) must
 resolve every participant from the provider it is handed — that is exactly what the
 runtime handler references do outside memoized mode, which the executor's gate
 excludes.

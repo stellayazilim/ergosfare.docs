@@ -3,14 +3,14 @@ title: "IModuleConfiguration"
 description: "Represents the configuration context for a module."
 sidebar:
   label: "IModuleConfiguration"
-  order: 5
+  order: 2
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection.dll`
 
 Represents the configuration context for a module.
-Provides access to the service collection and message registry
+Provides access to the service collection and the composition catalog
 associated with the module during setup.
 
 ```csharp
@@ -21,17 +21,18 @@ public interface IModuleConfiguration
 
 ## Properties
 
-### `MessageRegistry`
+### `Compositions`
 
 ```csharp
-IMessageRegistry MessageRegistry { get; }
+FrozenCompositionCatalog Compositions { get; }
 ```
 
-Gets the message registry associated with the module configuration.
+Gets this container's view of the frozen composition table — the selection
+surface registration records what the application actually registered into.
 
 **Returns**
 
-[`IMessageRegistry`](/ergosfare.docs/preview/api/core-abstractions-registry/imessageregistry)
+[`FrozenCompositionCatalog`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog)
 
 ### `Services`
 

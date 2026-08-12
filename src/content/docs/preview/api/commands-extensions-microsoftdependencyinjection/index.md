@@ -10,5 +10,5 @@ The `Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection` namespac
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) | Class | Builder class for registering command types in the message registry. |
+| [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder) | Class | Builder class for selecting the command constructs this container runs from the compiled composition table. |
 | [`ModuleRegistryExtensions`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/moduleregistryextensions) | Class | Provides extension methods for the [`ModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/moduleregistry) type to simplify module registration. |

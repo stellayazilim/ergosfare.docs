@@ -3,7 +3,7 @@ title: "ICommandPostInterceptor"
 description: "Represents a post-processing interceptor for commands that executes after any ICommand is handled."
 sidebar:
   label: "ICommandPostInterceptor"
-  order: 15
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

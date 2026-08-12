@@ -3,7 +3,7 @@ title: "IPostInterceptor"
 description: "Non-generic marker root for post-interceptors."
 sidebar:
   label: "IPostInterceptor"
-  order: 16
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  

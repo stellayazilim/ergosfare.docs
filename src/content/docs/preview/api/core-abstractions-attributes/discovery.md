@@ -1,6 +1,6 @@
 ---
 title: "Discovery"
-description: "Runtime evaluation of the discovery attributes — the single source of truth for how ExcludeFromDiscoveryAttribute, DiscoveryKeyAttribute and key patterns com…"
+description: "Runtime evaluation of the discovery attributes — the reference semantics for how ExcludeFromDiscoveryAttribute, DiscoveryKeyAttribute and key patterns compose."
 sidebar:
   label: "Discovery"
   order: 1
@@ -9,17 +9,16 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Runtime evaluation of the discovery attributes — the single source of truth for how
+Runtime evaluation of the discovery attributes — the reference semantics for how
 [`ExcludeFromDiscoveryAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/excludefromdiscoveryattribute), [`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) and key
-patterns compose. The reflection-based scanning paths (`RegisterFromAssembly`) call
-into this so their semantics stay identical to source-generated registration, which
-evaluates the same rules at compile time.
+patterns compose. Source-generated registration evaluates the same rules at compile
+time; this helper is the runtime mirror the contract suite pins them against.
 
 ```csharp
 public static class Discovery
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/Discovery.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/Discovery.cs#L10)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
