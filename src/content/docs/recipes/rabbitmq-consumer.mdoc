@@ -147,7 +147,7 @@ every handler and interceptor in the dispatch through the execution context:
 ```csharp
 public sealed class OrderPlacedHandler : IEventHandler<OrderPlaced>
 {
-    public ValueTask HandleAsync(OrderPlaced @event, IExecutionContext context)
+    public ValueTask HandleAsync(OrderPlaced @event, ErgosfareContext context)
     {
         if (context.TryGet<bool>("rabbitmq:redelivered", out var redelivered) && redelivered)
         {

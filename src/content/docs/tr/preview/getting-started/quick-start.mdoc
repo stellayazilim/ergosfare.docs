@@ -30,7 +30,7 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 
     public CreateProductHandler(IProductStore store) => _store = store;
 
-    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
         => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
 }
 ```
@@ -57,7 +57,7 @@ public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
 
     public GetProductHandler(IProductStore store) => _store = store;
 
-    public ValueTask<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+    public ValueTask<Product?> HandleAsync(GetProduct query, ErgosfareContext context)
         => _store.FindAsync(query.Id, context.CancellationToken);
 }
 ```
@@ -73,13 +73,13 @@ public sealed record ProductCreated(Guid Id, string Name) : IEvent;
 
 public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
 {
-    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
         => _mailer.SendAsync(@event.Name, context.CancellationToken);
 }
 
 public sealed class UpdateSearchIndex : IEventHandler<ProductCreated>
 {
-    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
         => _index.AddAsync(@event.Id, @event.Name, context.CancellationToken);
 }
 ```
@@ -154,7 +154,7 @@ public sealed class LogCommands : ICommandPreInterceptor
 
     public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
 
-    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
         _logger.LogInformation("Dispatch ediliyor: {Command}", command.GetType().Name);
         return ValueTask.FromResult<object>(command);   // mesajı olduğu gibi geçir

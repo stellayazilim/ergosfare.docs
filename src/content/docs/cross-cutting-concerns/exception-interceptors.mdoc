@@ -11,7 +11,7 @@ decides what the caller sees.
 public sealed class TranslateNotFound : IQueryExceptionInterceptor<GetProduct, Product?>
 {
     public ValueTask<Product?> HandleAsync(
-        GetProduct query, Product? result, Exception exception, IExecutionContext context)
+        GetProduct query, Product? result, Exception exception, ErgosfareContext context)
     {
         if (exception is KeyNotFoundException)
             return ValueTask.FromResult<Product?>(null);
@@ -34,7 +34,50 @@ pre*  →  main handler  →  post*        →  final*
 ```
 
 Post-interceptors do not run when the pipeline threw; the exception stage takes their place.
-Final interceptors run either way.
+Final interceptors run either way — but neither stage runs after an
+[abort](/ergosfare.docs/core-concepts/execution-context#aborting).
+
+## Declaring the exception type
+
+There are two contract families, and they are alternatives — not a replacement and a legacy
+form. The untyped contracts above receive **every** exception and decide for themselves; the
+`...For<TException>` contracts declare one type up front and run only for it:
+
+```csharp
+public sealed class TranslateNotFound
+    : IQueryExceptionInterceptorFor<GetProduct, Product?, KeyNotFoundException>
+{
+    public ValueTask<Product?> HandleAsync(
+        GetProduct query, Product? result, KeyNotFoundException exception, ErgosfareContext context)
+        => ValueTask.FromResult<Product?>(null);
+}
+```
+
+The exception arrives already typed, so the `is` check and the rethrow-what-isn't-mine line
+both disappear. Matching follows `catch` semantics: a `TException` of `HttpRequestException`
+accepts its derived types too. Each module carries the same three arities as the untyped
+family — `...For<TException>`, `...For<TMessage, TException>` and
+`...For<TMessage, TResult, TException>`.
+
+**Which to reach for:**
+
+| | Use |
+|---|---|
+| One exception type per interceptor | `...For<TException>` — the filter is the contract, and nothing can forget to rethrow |
+| Several exception types in **one** interceptor | the untyped contracts — switch on the exception yourself, and rethrow what you do not handle |
+| Logging or enriching every failure | the untyped contracts — a blanket interceptor is exactly the point |
+
+Ordering does not change between them: `[Weight]` decides who runs, the filter only decides
+who is *eligible*.
+
+{% aside type="tip" %}
+The typed family sharpens what "handled" means. Previously, having any exception interceptor
+registered meant the exception could be swallowed; now **an exception is swallowed only when
+an interceptor that actually matched it returns a value.** A pipeline whose only exception
+interceptor filters on a type that did not occur leaves the original exception, and its stack,
+entirely untouched — the forgotten `throw` in an untyped interceptor cannot silently eat a
+failure any more, because a typed one never sees it in the first place.
+{% /aside %}
 
 ## Logging without swallowing
 
@@ -48,7 +91,7 @@ public sealed class LogFailures : ICommandExceptionInterceptor
     public LogFailures(ILogger<LogFailures> logger) => _logger = logger;
 
     public ValueTask<object?> HandleAsync(
-        ICommand command, object? result, Exception exception, IExecutionContext context)
+        ICommand command, object? result, Exception exception, ErgosfareContext context)
     {
         _logger.LogError(exception, "{Command} failed", command.GetType().Name);
         throw exception;
@@ -74,7 +117,7 @@ public sealed class FallbackToCache : IQueryExceptionInterceptor<GetRates, Rates
     public FallbackToCache(IMemoryCache cache) => _cache = cache;
 
     public ValueTask<Rates?> HandleAsync(
-        GetRates query, Rates? result, Exception exception, IExecutionContext context)
+        GetRates query, Rates? result, Exception exception, ErgosfareContext context)
     {
         if (exception is HttpRequestException && _cache.TryGetValue<Rates>("rates", out var stale))
             return ValueTask.FromResult<Rates?>(stale);
@@ -93,20 +136,26 @@ interceptors after it do not run.
 Put specific translations at a high weight and the blanket logger at a low one, so the logger
 sees failures that the specific handlers declined.
 
-## Aborts are not exceptions
+## Aborts are not failures
 
-`context.Abort()` does not raise anything. It ends the pipeline cleanly, so the exception
-stage is not involved. `ExecutionAbortedException` exists for the runtime's own use; do not
-catch it as a control-flow mechanism.
+`context.Abort(...)` throws `ExecutionAbortedException`, but the exception stage does **not**
+see it. An abort is a decision, not a failure, and exception interceptors exist to handle
+failures — so the signal passes through every stage untouched, with its stack intact, and
+reaches the caller.
+
+That is deliberate: an exception interceptor that caught aborts would be able to swallow a
+deliberate refusal and hand the caller a fabricated result. Catch
+`ExecutionAbortedException` at the **call site**, where the decision is yours to act on.
 
 ## Coverage
 
 | Interface | `HandleAsync` |
 |---|---|
-| `ICommandExceptionInterceptor` | `ValueTask<object?>(ICommand, object?, Exception, IExecutionContext)` |
-| `ICommandExceptionInterceptor<TCommand>` | `ValueTask<object?>(TCommand, object?, Exception, IExecutionContext)` |
-| `ICommandExceptionInterceptor<TCommand, TResult>` | `ValueTask<TResult?>(TCommand, TResult?, Exception, IExecutionContext)` |
-| `IQueryExceptionInterceptor` / `<TQuery, TResult>` | as above |
-| `IEventExceptionInterceptor` / `<TEvent>` | `ValueTask<object?>(TEvent, ValueTask, Exception, IExecutionContext)` |
+| `ICommandExceptionInterceptor` | `ValueTask<object?>(ICommand, object?, Exception, ErgosfareContext)` |
+| `ICommandExceptionInterceptor<TCommand>` | `ValueTask<object?>(TCommand, object?, Exception, ErgosfareContext)` |
+| `ICommandExceptionInterceptor<TCommand, TResult>` | `ValueTask<TResult?>(TCommand, TResult?, Exception, ErgosfareContext)` |
+| `ICommandExceptionInterceptorFor<TException>` and its `<TCommand, …>` arities | as above, with `TException` in place of `Exception` |
+| `IQueryExceptionInterceptor` / `<TQuery, TResult>` / `…For<TException>` | as above |
+| `IEventExceptionInterceptor` / `<TEvent>` / `…For<TException>` | `ValueTask<object?>(TEvent, ValueTask, Exception, ErgosfareContext)` |
 
 Next: [Final interceptors](/ergosfare.docs/cross-cutting-concerns/final-interceptors).

@@ -1,6 +1,6 @@
 ---
 title: Configuring Ergosfare
-description: Registration entry points, the three ways to feed the registry, and the knobs on AddErgosfare.
+description: Registration entry points, the two ways to select from the frozen composition table, and the knobs on AddErgosfare.
 ---
 
 Everything Ergosfare needs at runtime comes from one call:
@@ -13,13 +13,20 @@ services.AddErgosfare(o => o
 ```
 
 `AddErgosfare` takes an `Action<IModuleRegistry>`. Each `AddXModule` call opens a module
-builder that feeds the shared **message registry**. Only add the modules you use — an
-application that never publishes events has no reason to register the event module.
+builder that **selects** from the compiled composition table for this container. Only add the
+modules you use — an application that never publishes events has no reason to register the
+event module.
 
-## Three ways into the registry
+## Registration is selection
 
-All three produce the same descriptors and can be combined freely. Registration is
-idempotent, so registering the same type twice is harmless.
+The source generator compiles the whole closure's handlers and interceptors into a frozen
+composition table before the application runs. Registration does not discover anything; it
+records which of that table's participant rows *this* container runs. Selection is a union,
+so registering the same type twice — or through two different calls — is harmless.
+
+A row nobody selected is not part of any pipeline, and a container that selected nothing runs
+nothing. That is the whole failure model: a message with no selected handler raises
+`NoHandlerFoundException`.
 
 ### Generated (preferred)
 
@@ -27,10 +34,13 @@ idempotent, so registering the same type twice is harmless.
 .AddCommandModule(c => c.RegisterGenerated())
 ```
 
-Compile-time discovery. Descriptors are pre-computed by the source generator, and dispatch
-roots are emitted so Native AOT has a static anchor for every generic instantiation. This is
-the only path with no reflection at all. See
+The bulk path. The generator names every command construct it discovered — in your
+compilation *and in referenced assemblies* — and emits dispatch roots so Native AOT has a
+static anchor for every generic instantiation. See
 [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+
+`RegisterGenerated("reporting.*")` narrows the same call to the constructs whose
+[discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) match a pattern.
 
 ### Explicit
 
@@ -40,24 +50,15 @@ the only path with no reflection at all. See
     .Register(typeof(LogCommands)))
 ```
 
-Useful when you want a handler registered under conditions the generator cannot see — a
-feature flag read from configuration, for example. For the compile-time equivalent, prefer
-[discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys).
-
-### Runtime assembly scan
-
-```csharp
-.AddCommandModule(c => c.RegisterFromAssembly(typeof(CreateProductHandler).Assembly))
-```
-
-The escape hatch. It reflects over the assembly at startup, so it is the right tool for
-plugin assemblies loaded at runtime and the wrong tool for code you compile yourself. It
-honours the same `[DiscoveryKey]` and `[ExcludeFromDiscovery]` attributes as generated
-registration, so the two stay in lockstep.
+Useful when you want a construct selected under conditions the generator cannot see — a
+feature flag read from configuration, for example. The type still has to exist in the
+compiled table; `Register<T>()` chooses, it does not add.
 
 {% aside type="caution" %}
-`RegisterFromAssembly` is not AOT-safe and will produce trim warnings. If you are targeting
-Native AOT, every registration must go through `RegisterGenerated()`.
+There is no third way. `RegisterFromAssembly(...)`, `RegisterDescriptors(...)` and the
+`IMessageRegistry` surface were removed in v2.3 — a dynamically loaded assembly cannot append
+a message shape after compilation. See
+[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
 {% /aside %}
 
 ## Handler lifetimes
@@ -101,22 +102,46 @@ await commands.SendAsync(new CreateProduct("Laptop", 999m), settings);
   [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
 - **`Items`** seeds `context.Items` for this dispatch.
 
-Group filters participate in the pipeline plan cache key, so a filtered dispatch is not
-slower than an unfiltered one after the first of its shape.
+Group filters participate in the pipeline plan cache key, so the filtering itself is done once
+per `(message type, group set)` rather than per dispatch. A filtered dispatch is still not free
+relative to an unfiltered one: **generated plans are only consulted for a group-less dispatch**,
+so filtering means taking the general executor path. Prefer
+[`GroupSet`](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights#groupset--the-reusable-filter)
+over a fresh settings object when you do filter.
 
 ## Result adapters
 
-If a handler returns a type the caller does not want to depend on, register an
-`IResultAdapter` rather than changing the handler:
+When a handler returns a value-carried failure — a foreign `Result<T>` type — an
+`IResultAdapter<TResult>` surfaces that failure out of the pipeline without the handler
+throwing. The binding is declarative, per message:
+
+```csharp
+[ResultAdapter(typeof(MyResultAdapter))]
+public sealed record CreateProduct(string Name) : ICommand<MyResult<Guid>>;
+```
+
+The framework's own `Result` / `Result<T>` carriers need no annotation, and an unannotated
+message with any other result type is not probed at all. `[IgnoreResultAdapter]` opts a
+message out.
+
+For a codebase-wide carrier, configure one fallback instead of annotating every message:
 
 ```csharp
 services.AddErgosfare(o => o
-    .ConfigureResultAdapters(a => a.Register<MyResultAdapter>())
+    .UseDefaultResultAdapter(typeof(MyResultAdapter<>))
     .AddCommandModule(c => c.RegisterGenerated()));
 ```
 
-`ResultAdapterBuilder` offers the same three entry points as a module builder:
-`Register<TAdapter>()`, `Register(Type)` and `RegisterFromAssembly(assembly)`.
+The type may be closed over one result type or an open generic definition closed per served
+result; it needs a public parameterless constructor, and a bad type fails inside
+`AddErgosfare` rather than on some first dispatch.
+
+{% aside type="caution" %}
+This binding surface is `[Experimental]` under **`ERGOEXP001`** — `[ResultAdapter]`,
+`[IgnoreResultAdapter]` and `UseDefaultResultAdapter` alike. The value channel's semantics
+are settled; the way you bind to it may still shift in a minor release. See
+[Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).
+{% /aside %}
 
 ## What is *not* configurable
 

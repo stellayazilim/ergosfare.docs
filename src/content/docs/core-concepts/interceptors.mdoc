@@ -30,7 +30,7 @@ unchanged is the pass-through case:
 ```csharp
 public sealed class LogCommands : ICommandPreInterceptor
 {
-    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
         _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
         return ValueTask.FromResult<object>(command);
@@ -42,9 +42,9 @@ Three arities are available, trading breadth for type safety:
 
 | Interface | `HandleAsync` signature | Use when |
 |---|---|---|
-| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, IExecutionContext)` | Applies to every command |
-| `ICommandPreInterceptor<TCommand>` | `ValueTask<object>(TCommand, IExecutionContext)` | Applies to one command type or hierarchy |
-| `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, IExecutionContext)` | You actually rewrite the message and want it typed |
+| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, ErgosfareContext)` | Applies to every command |
+| `ICommandPreInterceptor<TCommand>` | `ValueTask<object>(TCommand, ErgosfareContext)` | Applies to one command type or hierarchy |
+| `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, ErgosfareContext)` | You actually rewrite the message and want it typed |
 
 In the two-parameter form, `TModified` must derive from `TCommand`. It exists for rewriting,
 so if you are only observing, use the one-parameter form:
@@ -52,7 +52,7 @@ so if you are only observing, use the one-parameter form:
 ```csharp
 public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct, CreateProduct>
 {
-    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
         => ValueTask.FromResult(command with { Name = command.Name.Trim() });
 }
 ```
@@ -64,7 +64,7 @@ A post-interceptor receives the result and returns the result the caller will ge
 ```csharp
 public sealed class StampProduct : ICommandPostInterceptor<CreateProduct, Guid>
 {
-    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, IExecutionContext context)
+    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, ErgosfareContext context)
     {
         _audit.Record(command.Name, result);
         return ValueTask.FromResult(result);
@@ -74,9 +74,9 @@ public sealed class StampProduct : ICommandPostInterceptor<CreateProduct, Guid>
 
 | Interface | `HandleAsync` signature |
 |---|---|
-| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, IExecutionContext)` |
-| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, IExecutionContext)` |
-| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, IExecutionContext)` |
+| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, ErgosfareContext)` |
+| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, ErgosfareContext)` |
+| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, ErgosfareContext)` |
 
 Post-interceptors do **not** run when the pipeline threw. That is what the exception stage is
 for.
@@ -87,7 +87,7 @@ for.
 public sealed class SwallowNotFound : ICommandExceptionInterceptor<GetOrCreate, Guid>
 {
     public ValueTask<Guid?> HandleAsync(
-        GetOrCreate command, Guid? result, Exception exception, IExecutionContext context)
+        GetOrCreate command, Guid? result, Exception exception, ErgosfareContext context)
     {
         if (exception is not KeyNotFoundException)
             throw exception;                 // not ours — let it propagate
@@ -102,14 +102,16 @@ exception. Returning a value satisfies the caller; rethrowing lets the exception
 
 ## Final interceptors
 
-Final interceptors always run — success, failure, or abort — which makes them the right place
-for cleanup, metrics and audit trails. They cannot change anything:
+Final interceptors run whether the pipeline succeeded or threw, which makes them the right
+place for cleanup, metrics and audit trails. They do not run after an
+[abort](/ergosfare.docs/core-concepts/execution-context#aborting), and they cannot change
+anything:
 
 ```csharp
 public sealed class RecordDuration : ICommandFinalInterceptor
 {
     public ValueTask HandleAsync(
-        ICommand command, object? result, Exception? exception, IExecutionContext context)
+        ICommand command, object? result, Exception? exception, ErgosfareContext context)
     {
         if (context.TryGet<long>("started", out var started))
             _metrics.Record(command.GetType().Name, Stopwatch.GetElapsedTime(started), exception);
@@ -147,7 +149,7 @@ public interface IAuditedCommand : ICommand;
 
 public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
 {
-    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, IExecutionContext context)
+    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, ErgosfareContext context)
     {
         _audit.Log(command);
         return ValueTask.FromResult(command);

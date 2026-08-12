@@ -16,7 +16,7 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 
     public CreateProductHandler(IProductStore store) => _store = store;
 
-    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
         => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
 }
 ```
@@ -29,14 +29,14 @@ The whole surface is `ValueTask`-first. A handler that completes synchronously a
 nothing — no `Task` object, no async state machine:
 
 ```csharp
-public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
     => ValueTask.FromResult(Guid.NewGuid());          // zero allocations
 ```
 
 Mark the method `async` only when you actually await:
 
 ```csharp
-public async ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+public async ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
 {
     var id = await _store.AddAsync(command.Name, command.Price, context.CancellationToken);
     await _outbox.QueueAsync(id, context.CancellationToken);
@@ -100,7 +100,7 @@ public sealed class DeleteProductHandler : ICommandHandler<DeleteProduct>
 
     public DeleteProductHandler(IProductStore store) => _store = store;
 
-    public ValueTask HandleAsync(DeleteProduct command, IExecutionContext context)
+    public ValueTask HandleAsync(DeleteProduct command, ErgosfareContext context)
         => _store.RemoveAsync(command.Id, context.CancellationToken);
 }
 ```
@@ -123,7 +123,9 @@ Throw. There is no result code to return and no need for one:
 - [Final interceptors](/ergosfare.docs/cross-cutting-concerns/final-interceptors) run either
   way, so cleanup is safe.
 
-To end the pipeline *without* an exception, call `context.Abort()` — supplying a result if
-the command declares one.
+To refuse the work outright, call `context.Abort(reason)`. It cuts the pipeline where it
+stands — no further stage runs, including the final one — and the caller receives
+`ExecutionAbortedException`. It supplies no result, whatever the command declares; see
+[Aborting](/ergosfare.docs/core-concepts/execution-context#aborting).
 
 Next: [Defining a query](/ergosfare.docs/core-components/query/query-definition).

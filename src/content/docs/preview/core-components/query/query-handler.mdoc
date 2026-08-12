@@ -15,7 +15,7 @@ public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
 
     public GetProductHandler(IProductStore store) => _store = store;
 
-    public ValueTask<Product?> HandleAsync(GetProduct query, IExecutionContext context)
+    public ValueTask<Product?> HandleAsync(GetProduct query, ErgosfareContext context)
         => _store.FindAsync(query.Id, context.CancellationToken);
 }
 ```
@@ -43,7 +43,7 @@ public sealed class StreamProductsHandler : IStreamQueryHandler<StreamProducts, 
     public StreamProductsHandler(IProductStore store) => _store = store;
 
     public async IAsyncEnumerable<Product> StreamAsync(
-        StreamProducts query, IExecutionContext context)
+        StreamProducts query, ErgosfareContext context)
     {
         // Read what you need off the context before the first yield: from here on the
         // method body runs during the consumer's enumeration, not during the dispatch call.
@@ -58,7 +58,7 @@ public sealed class StreamProductsHandler : IStreamQueryHandler<StreamProducts, 
 
 {% aside type="caution" %}
 An iterator method body does not start running until the consumer enumerates it. Capture
-anything you need from `IExecutionContext` into locals before the first `yield return` rather
+anything you need from `ErgosfareContext` into locals before the first `yield return` rather
 than touching `context` inside the loop — see
 [Execution context](/ergosfare.docs/preview/core-concepts/execution-context#pooling-and-the-lifetime-rule).
 {% /aside %}
@@ -78,7 +78,7 @@ handle it. If it is declared `IQuery<Product>`, throw — and let an
 translate that into whatever the edge of your application returns:
 
 ```csharp
-public ValueTask<Product> HandleAsync(GetProduct query, IExecutionContext context)
+public ValueTask<Product> HandleAsync(GetProduct query, ErgosfareContext context)
     => _store.FindAsync(query.Id, context.CancellationToken)
         ?? throw new KeyNotFoundException($"Product {query.Id} not found");
 ```
@@ -91,8 +91,9 @@ both a null check and a try/catch.
 The pipeline is a better place for caching than the handler, because it keeps the handler
 about the data:
 
-- A [pre-interceptor](/ergosfare.docs/preview/cross-cutting-concerns/pre-interceptors) checks the
-  cache and calls `context.Abort(cached)` on a hit, skipping the handler entirely.
+- The handler checks the cache first and returns the hit — nothing before the handler can
+  supply the pipeline's result, so the read side belongs here or in a handler that decorates
+  the real one.
 - A [post-interceptor](/ergosfare.docs/preview/cross-cutting-concerns/post-interceptors) populates
   the cache on the way out.
 

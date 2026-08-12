@@ -13,7 +13,7 @@ and publishes each delivery into the event pipeline. It uses the async-first
 `RabbitMQ.Client` 7.x API.
 
 ```bash
-dotnet add package RabbitMQ.Client
+dotnet add package RabbitMQ.Client --prerelease
 ```
 
 ## The envelope
@@ -147,7 +147,7 @@ every handler and interceptor in the dispatch through the execution context:
 ```csharp
 public sealed class OrderPlacedHandler : IEventHandler<OrderPlaced>
 {
-    public ValueTask HandleAsync(OrderPlaced @event, IExecutionContext context)
+    public ValueTask HandleAsync(OrderPlaced @event, ErgosfareContext context)
     {
         if (context.TryGet<bool>("rabbitmq:redelivered", out var redelivered) && redelivered)
         {

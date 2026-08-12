@@ -38,8 +38,20 @@ Each experimental API gets its own ID, so opting into one never opts you into an
 
 ## Current experimental surface
 
-**None.** The gate is in place for future experimental APIs; no shipped API is currently
-marked.
+**`ERGOEXP001` — the declarative result-adapter surface.** `[ResultAdapter]`,
+`[IgnoreResultAdapter]`, and `IModuleRegistry.UseDefaultResultAdapter(...)` with its
+`DefaultResultAdapter` carrier.
+
+The value channel's *semantics* are settled — a handler returning a value-carried failure has
+that failure surfaced out of the pipeline without throwing. What is young is the **binding**
+surface: how a message declares which adapter serves it, and how an application configures a
+fallback. Those shapes may still shift in a minor release, so the gate stays on until they
+have been used enough to settle.
+
+The generator validates the binding at compile time regardless — `ERGOSG011` through
+`ERGOSG014` catch an adapter that can never bind, conflicting annotations, and a result type
+the configured default cannot serve. See
+[Configuring](/ergosfare.docs/getting-started/configuring#result-adapters).
 
 ## Why a gate rather than a preview branch
 

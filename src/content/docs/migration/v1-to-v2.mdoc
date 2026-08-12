@@ -119,6 +119,13 @@ Watch for `ERGOSG001` / `ERGOSG002` after the switch: they flag types the genera
 cannot name, which runtime scanning would have registered silently. See
 [Compile-time discovery](/ergosfare.docs/core-concepts/compile-time-discovery#diagnostics).
 
+{% aside type="caution" %}
+This page describes the v1 → v2.0 move and is kept as written. Since then **v2.3 removed
+`RegisterFromAssembly` entirely** — runtime assembly scanning is no longer supported at all,
+so the "keep it for assemblies loaded at runtime" advice above no longer has an API behind it.
+See [Migrating from v2.2 to v2.3](/ergosfare.docs/migration/v2.2-to-v2.3).
+{% /aside %}
+
 ## 5. Event broadcast now matches handlers covariantly
 
 In v1, only interceptors matched covariantly; event handlers had to name the exact event
@@ -149,7 +156,7 @@ Nothing here is required, but these are the reasons to be on v2 at all:
 - [Discovery keys](/ergosfare.docs/core-concepts/discovery-keys) for registration-time
   feature gating.
 - [Final interceptors](/ergosfare.docs/cross-cutting-concerns/final-interceptors) — the stage
-  that always runs.
+  that runs whether the pipeline succeeded or threw.
 - [`[ExcludeFromPipeline]`](/ergosfare.docs/cross-cutting-concerns/groups-and-weights) for
   keeping high-volume messages out of blanket interceptors.
 - [Nested dispatch scopes](/ergosfare.docs/core-concepts/nested-dispatch).
@@ -161,7 +168,8 @@ Nothing here is required, but these are the reasons to be on v2 at all:
 1. Add the source generator package, switch to `RegisterGenerated()`, fix `ERGOSG*` warnings.
 2. Replace `Task` with `ValueTask` across handlers and interceptors — the compiler finds
    every site.
-3. Remove `AmbientExecutionContext` usages; thread `IExecutionContext` instead.
+3. Remove `AmbientExecutionContext` usages; thread the execution context parameter instead.
+   (It was `IExecutionContext` in v2.0–v2.2 and is `ErgosfareContext` from v2.3 on.)
 4. Collapse three-parameter interceptors to their two-parameter form.
 5. Audit broad `IEventHandler<…>` registrations for the new covariant delivery.
 6. Then adopt what is new, at whatever pace suits you.

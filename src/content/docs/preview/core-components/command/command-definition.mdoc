@@ -38,7 +38,7 @@ expressions — which matter because
 [pre-interceptors can rewrite a message](/ergosfare.docs/preview/cross-cutting-concerns/pre-interceptors#rewriting-the-message):
 
 ```csharp
-public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
     => ValueTask.FromResult(command with { Name = command.Name.Trim() });
 ```
 
@@ -92,7 +92,7 @@ await _commands.SendAsync(new DeleteProduct(id));
 ```
 
 Both overloads accept an optional `CommandMediationSettings` and a `CancellationToken`, or an
-`IExecutionContext` when you are
+`ErgosfareContext` when you are
 [dispatching from inside a handler](/ergosfare.docs/preview/core-concepts/nested-dispatch).
 
 Next: [Defining a command handler](/ergosfare.docs/preview/core-components/command/command-handler).

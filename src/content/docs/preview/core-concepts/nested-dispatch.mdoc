@@ -8,7 +8,7 @@ publish an event after a command succeeds. Ergosfare handles this with an explic
 scope rather than ambient state.
 
 ```csharp
-public async ValueTask HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+public async ValueTask HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
 {
     using var scope = ctx.CreateScope();   // struct scope — allocates nothing
 
@@ -31,37 +31,54 @@ handlers, its own abort semantics.
 
 ## Passing the child
 
-Every mediator facade has an overload taking an `IExecutionContext`:
+Every mediator facade has an overload taking an `ErgosfareContext`:
 
 ```csharp
-ValueTask        SendAsync(ICommand command, IExecutionContext context, CommandMediationSettings? settings = null);
-ValueTask<T>     SendAsync<T>(ICommand<T> command, IExecutionContext context, CommandMediationSettings? settings = null);
-ValueTask<T>     QueryAsync<T>(IQuery<T> query, IExecutionContext context, QueryMediationSettings? settings = null);
-ValueTask        PublishAsync(IEvent @event, IExecutionContext context, EventMediationSettings? settings = null);
+ValueTask        SendAsync(ICommand command, ErgosfareContext context, CommandMediationSettings? settings = null);
+ValueTask<T>     SendAsync<T>(ICommand<T> command, ErgosfareContext context, CommandMediationSettings? settings = null);
+ValueTask<T>     QueryAsync<T>(IQuery<T> query, ErgosfareContext context, QueryMediationSettings? settings = null);
+ValueTask        PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? settings = null);
 ```
 
 Pass `scope.Context`, not `ctx`. Passing the parent would run the inner dispatch on the
 outer context and defeat the isolation.
 
-## Abort is scoped too
+## Abort crosses the boundary — unless you catch it
 
-An `Abort()` inside the child ends **only the inner pipeline**. The outer handler resumes at
-the line after the inner call and decides what happens next:
+An `Abort()` inside the child cuts the **inner** pipeline and surfaces at the inner call site
+as `ExecutionAbortedException`. The inner call site is your outer handler, so the outer
+handler decides: catch it and carry on, or let it end the outer pipeline too.
 
 ```csharp
-public async ValueTask<bool> HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+public async ValueTask<bool> HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
 {
     using var reserve = ctx.CreateScope();
-    var stock = await _commands.SendAsync(new ReserveStock(msg.OrderId), reserve.Context);
 
-    if (!stock.Reserved)
-        return false;      // inner abort did not touch this pipeline
+    try
+    {
+        await _commands.SendAsync(new ReserveStock(msg.OrderId), reserve.Context);
+    }
+    catch (ExecutionAbortedException aborted)
+    {
+        _log.LogInformation("stock refused: {Reason}", aborted.Reason);
+        return false;                 // the outer pipeline continues, by our choice
+    }
 
     using var notify = ctx.CreateScope();
     await _events.PublishAsync(new OrderPlaced(msg.OrderId), notify.Context);
     return true;
 }
 ```
+
+Leave the `try` out and the abort keeps travelling: out of the outer handler, out of the outer
+pipeline, to whoever called *that*. Nothing in between swallows it, so an inner abort ending
+the whole chain is the default, and containing it is the deliberate act.
+
+{% aside type="note" %}
+Before v2.3 an inner abort ended the inner pipeline quietly and the outer handler resumed on
+the next line. Nested code written against that behaviour needs the `try` added — see
+[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+{% /aside %}
 
 This is the part ambient-state mediators cannot offer safely. With an `AsyncLocal` context,
 an inner dispatch either overwrites the ambient value — requiring a restore step that a
@@ -73,7 +90,7 @@ there is nothing ambient to overwrite, so there is nothing to restore.
 Separate scopes are independent, so fanning out is safe:
 
 ```csharp
-public async ValueTask HandleAsync(RebuildAll msg, IExecutionContext ctx)
+public async ValueTask HandleAsync(RebuildAll msg, ErgosfareContext ctx)
 {
     await Task.WhenAll(msg.TenantIds.Select(async id =>
     {
@@ -93,14 +110,15 @@ a context is single-dispatch state.
 
 ## Lifetime
 
-`ExecutionContextScope` is a `readonly struct` implementing `IDisposable`, and `using`
-returns the pooled child. As with any pooled context, the child **must not be used after the
-scope is disposed** — see
+`ErgosfareContextScope` is a `readonly struct` implementing `IDisposable`, and `using`
+returns the pooled child. Its constructor is internal, so `CreateScope()` is the only way to
+get one — a scope always has a parent. As with any pooled context, the child **must not be
+used after the scope is disposed** — see
 [Execution context](/ergosfare.docs/preview/core-concepts/execution-context#pooling-and-the-lifetime-rule).
 
 ```csharp
 // Wrong — the child is back in the pool by the time this runs.
-IExecutionContext leaked;
+ErgosfareContext leaked;
 using (var scope = ctx.CreateScope())
     leaked = scope.Context;
 
