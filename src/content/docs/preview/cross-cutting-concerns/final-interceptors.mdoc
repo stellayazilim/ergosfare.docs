@@ -1,11 +1,18 @@
 ---
 title: Final interceptors
-description: The stage that always runs — success, failure or abort — for cleanup, metrics and audit trails.
+description: The stage that runs whether the pipeline succeeded or threw — for cleanup, metrics and audit trails.
 ---
 
-Final interceptors are new in v2. They run at the very end of every dispatch, whatever
-happened: the handler succeeded, the handler threw, or a pre-interceptor aborted. That makes
-them the only stage you can rely on for cleanup.
+Final interceptors are new in v2. They run at the very end of a dispatch that ran to its
+end — whether the handler succeeded or something threw. That makes them the stage to reach
+for when cleanup has to survive a failure.
+
+{% aside type="caution" %}
+**An abort is the exception.** `context.Abort(...)` cuts the pipeline where it stands, and
+the final stage is downstream of that point, so it does not run. Before v2.3 it did. Cleanup
+that must survive an abort belongs in the caller's own `try`/`finally` — see
+[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+{% /aside %}
 
 ```csharp
 public sealed class RecordDuration : ICommandFinalInterceptor
@@ -15,7 +22,7 @@ public sealed class RecordDuration : ICommandFinalInterceptor
     public RecordDuration(IMetrics metrics) => _metrics = metrics;
 
     public ValueTask HandleAsync(
-        ICommand command, object? result, Exception? exception, IExecutionContext context)
+        ICommand command, object? result, Exception? exception, ErgosfareContext context)
     {
         if (context.TryGet<long>("started", out var started))
             _metrics.Record(
@@ -31,7 +38,7 @@ public sealed class RecordDuration : ICommandFinalInterceptor
 ## The signature
 
 ```csharp
-ValueTask HandleAsync(TMessage message, TResult? result, Exception? exception, IExecutionContext context);
+ValueTask HandleAsync(TMessage message, TResult? result, Exception? exception, ErgosfareContext context);
 ```
 
 Both `result` and `exception` are nullable because **exactly one of them is meaningful** on
@@ -42,7 +49,16 @@ any given run:
 | Handler succeeded | the result | `null` |
 | Handler or interceptor threw | `null` | the exception |
 | Exception interceptor supplied a fallback | that fallback | `null` |
-| `context.Abort(value)` | `value` | `null` |
+
+An abort has no row: the stage does not run.
+
+{% aside type="tip" %}
+**A resultless pipeline still fills the slot.** A command with no result — and every event —
+hands the stage `Unit.Value`, the single shared instance of `Stella.Ergosfare.Core.Abstractions.Unit`.
+So `result is null` means "no result was produced", and it stays distinct from "this pipeline
+has no result type". You can compare against `Unit.Value` by reference; a resultless pipeline
+never hands out anything else.
+{% /aside %}
 
 Note the return type: plain `ValueTask`, not `ValueTask<T>`. A final interceptor **cannot
 change anything**. By the time it runs, the caller's result is decided.
@@ -61,7 +77,10 @@ Compare with the other stages:
 | Pre | before the handler | — | — | rewrites the message |
 | Post | yes | no | no | yes |
 | Exception | no | yes | no | yes |
-| **Final** | **yes** | **yes** | **yes** | **no** |
+| **Final** | **yes** | **yes** | **no** | **no** |
+
+Nothing runs after an abort. That is one rule, not four: the signal cuts the pipeline and
+travels to the caller untouched.
 
 ## The pairing pattern
 
@@ -73,7 +92,7 @@ blew up in between:
 [Weight(1000)]
 public sealed class StartTimer : ICommandPreInterceptor
 {
-    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
         context.Set("started", Stopwatch.GetTimestamp());
         return ValueTask.FromResult<object>(command);
@@ -100,7 +119,7 @@ Because a final interceptor sees both outcomes, one registration covers the whol
 public sealed class AuditEverything : ICommandFinalInterceptor
 {
     public async ValueTask HandleAsync(
-        ICommand command, object? result, Exception? exception, IExecutionContext context)
+        ICommand command, object? result, Exception? exception, ErgosfareContext context)
     {
         await _audit.WriteAsync(new AuditEntry(
             Operation: command.GetType().Name,
@@ -124,10 +143,10 @@ original failure. Keep them defensive.
 
 | Interface | `HandleAsync` |
 |---|---|
-| `ICommandFinalInterceptor` | `ValueTask(ICommand, object?, Exception?, IExecutionContext)` |
-| `ICommandFinalInterceptor<TCommand>` | `ValueTask(TCommand, object?, Exception?, IExecutionContext)` |
-| `ICommandFinalInterceptor<TCommand, TResult>` | `ValueTask(TCommand, TResult?, Exception?, IExecutionContext)` |
+| `ICommandFinalInterceptor` | `ValueTask(ICommand, object?, Exception?, ErgosfareContext)` |
+| `ICommandFinalInterceptor<TCommand>` | `ValueTask(TCommand, object?, Exception?, ErgosfareContext)` |
+| `ICommandFinalInterceptor<TCommand, TResult>` | `ValueTask(TCommand, TResult?, Exception?, ErgosfareContext)` |
 | `IQueryFinalInterceptor` / `<TQuery, TResult>` | as above |
-| `IEventFinalInterceptor` / `<TEvent>` | `ValueTask(TEvent, object?, Exception?, IExecutionContext)` |
+| `IEventFinalInterceptor` / `<TEvent>` | `ValueTask(TEvent, object?, Exception?, ErgosfareContext)` |
 
 Next: [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).

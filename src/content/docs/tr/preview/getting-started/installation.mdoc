@@ -21,16 +21,27 @@ kolaylık paketidir. `Stella.Ergosfare.SourceGenerator` ise `RegisterGenerated()
 pakettir.
 
 {% aside type="caution" %}
-Kaynak üreteci **bilinçli olarak ayrı bir pakettir**. O olmadan `RegisterGenerated()` da olmaz
-ve çalışma zamanında tarama yapan `RegisterFromAssembly(...)` yoluna düşersiniz. Her şey yine
-çalışır, ama derleme zamanı kaydını ve onunla gelen AOT garantilerini kaybedersiniz.
+Kaynak üreteci **bilinçli olarak ayrı bir pakettir**, ama pratikte isteğe bağlı değildir.
+Donmuş kompozisyon tablosunu derleyen ve `RegisterGenerated()` üreten odur; o olmadan
+container'ın seçebileceği bir şey kalmaz ve her dispatch `NoHandlerFoundException` ile
+başarısız olur. Çalışma zamanı assembly taraması v2.3'te kaldırıldı —
+[v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/preview/migration/v2.2-to-v2.3) sayfasına bakın.
 {% /aside %}
 
 ## Gereksinimler
 
-- **.NET 9.0 veya .NET 10.0.** Kütüphaneler `net9.0;net10.0` hedefliyor.
+- **.NET 9.0, .NET 10.0 veya .NET 11.0.** Kütüphaneler `net9.0;net10.0;net11.0` hedefliyor.
+  `net11.0` varlıkları fazladan hiçbir API taşımaz — kaynakların C# 15 derleyicisiyle
+  derlendiğinin ve sözleşme paketinin .NET 11 üzerinde de tutunduğunun kanıtı olarak varlar.
+  Bunlar olmasa da bir `net11.0` projesi roll-forward ile zaten `lib/net10.0/` bağlar.
 - **C# `latest`.** Üretilen kayıt kodu bilinçli olarak muhafazakârdır, ancak soyutlamalar güncel
   dil özelliklerini kullanır.
+
+{% aside type="note" %}
+.NET 11, **2026-11-10**'da GA olacak. O tarihe kadar `net11.0` varlıkları **önizleme referans
+paketlerine** karşı derleniyor ve GA paketi çıktığında yeniden paketlenecek. `net9.0` ya da
+`net10.0` hedeflemek bu soruyu tamamen ortadan kaldırır ve hiçbir şey kaybettirmez.
+{% /aside %}
 
 ## Paketleri bilinçli seçmek
 
@@ -40,11 +51,11 @@ ve çalışma zamanında tarama yapan `RegisterFromAssembly(...)` yoluna düşer
 |---|---|
 | `Stella.Ergosfare` | Şemsiye — Command + Query + Event + DI uzantıları |
 | `Stella.Ergosfare.SourceGenerator` | Derleme zamanı keşif, `RegisterGenerated()`, dispatch root'ları |
-| `Stella.Ergosfare.Core.Abstractions` | `IExecutionContext`, attribute'lar, handler sözleşmeleri |
+| `Stella.Ergosfare.Core.Abstractions` | `ErgosfareContext`, attribute'lar, handler sözleşmeleri |
 | `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptor'ları |
 | `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handler ve interceptor'ları |
 | `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptor'ları |
-| `Stella.Ergosfare.Core` | Çalışma zamanı: registry, pipeline planları, dispatch |
+| `Stella.Ergosfare.Core` | Çalışma zamanı: kompozisyon kataloğu, pipeline planları, dispatch |
 | `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, modül builder'ları |
 
 ### Yalnızca mesaj ve handler tanımlayan kütüphane

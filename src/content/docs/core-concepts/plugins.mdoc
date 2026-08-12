@@ -1,6 +1,6 @@
 ---
 title: Modules and plugins
-description: IModule is the extension point the Command, Query and Event modules themselves use — and the way to add your own.
+description: IModule is the extension point the Command, Query and Event modules themselves use — and the way to add your own, inside a closed composition table.
 ---
 
 Ergosfare's core knows about messages, handlers, interceptors and pipeline plans. It knows
@@ -35,8 +35,8 @@ public interface IModule
 ```csharp
 public interface IModuleConfiguration
 {
-    IServiceCollection Services { get; }        // register your own services
-    IMessageRegistry MessageRegistry { get; }   // register messages, handlers, interceptors
+    IServiceCollection Services { get; }             // register your own services
+    FrozenCompositionCatalog Compositions { get; }   // select from the compiled table
 }
 ```
 
@@ -51,22 +51,43 @@ internal class CommandModule : IModule
 
     public void Build(IModuleConfiguration configuration)
     {
-        _builder(new CommandModuleBuilder(configuration.MessageRegistry));
+        _builder(new CommandModuleBuilder(configuration.Compositions));
 
-        configuration.Services.TryAddScoped<ICommandMediator, CommandMediator>();
+        configuration.Services.TryAddTransient<ICommandMediator, EngineBackedCommandMediator>();
     }
 }
 ```
 
 Two responsibilities: run the user's registration lambda against a builder, and add the
-module's own facade to DI. `TryAddScoped` rather than `AddScoped`, so registering a module
-twice is harmless.
+module's own facade to DI. `TryAdd` rather than `Add`, so registering a module twice is
+harmless.
+
+**Transient, not scoped.** A mediator facade is stateless — the only thing it captures is the
+provider that resolved it, and a transient service is handed the resolving scope's provider
+just as a scoped one is, so handlers still resolve from the calling scope. Registering it
+scoped would take the scope's lock and write the instance into the scope's resolved-services
+dictionary on every dispatch that creates its own scope, with nothing to amortize it. Follow
+this in your own module. See [Performance](/ergosfare.docs/advanced/performance#mediator-lifetime).
+
+## A closed world
+
+`Compositions` is a **selection surface, not a registry**. The frozen composition table is
+compiled for the whole closure before the application runs; a module chooses which of its
+participant rows this container serves. It cannot append a row.
+
+That is the constraint a custom module has to design around, and it is deliberate: if a
+module could add a message shape at runtime, dispatch would need a registration window, a
+version check and an invalidation path — the three things v2.3 removed.
+
+The practical consequence: **a new message shape must bind its constructs to one of the
+built-in markers** so the generator partitions them at compile time. Tagging is how you do
+that.
 
 ## Writing your own module
 
-The case for a custom module is a *new message shape* — something that is not a command, a
-query or an event, but wants the same pipeline, the same interceptor stages and the same
-compile-time discovery.
+The case for a custom module is a *new message shape* — something you want to name, route and
+observe separately, but which runs on the same pipeline, the same interceptor stages and the
+same compile-time discovery.
 
 ```csharp
 public sealed class SagaModule : IModule
@@ -77,9 +98,9 @@ public sealed class SagaModule : IModule
 
     public void Build(IModuleConfiguration configuration)
     {
-        _builder(new SagaModuleBuilder(configuration.MessageRegistry));
+        _builder(new SagaModuleBuilder(configuration.Compositions));
 
-        configuration.Services.TryAddScoped<ISagaMediator, SagaMediator>();
+        configuration.Services.TryAddTransient<ISagaMediator, SagaMediator>();
     }
 }
 
@@ -94,38 +115,75 @@ public static class SagaModuleRegistryExtensions
 }
 ```
 
+Your builder wraps the same catalog the built-in builders wrap:
+
+```csharp
+public sealed class SagaModuleBuilder(FrozenCompositionCatalog compositions)
+{
+    public SagaModuleBuilder Register<T>() where T : ISaga
+    {
+        compositions.Select(typeof(T));
+        return this;
+    }
+}
+```
+
+And the saga contracts carry a built-in marker, which is what puts them in the generator's
+partitions:
+
+```csharp
+public interface ISaga : IEvent;                       // rides the event partition
+
+public interface ISagaHandler<in TSaga> : ISaga, IAsyncHandler<TSaga>
+    where TSaga : ISaga;
+```
+
 Used exactly like the built-in modules:
 
 ```csharp
 services.AddErgosfare(o => o
     .AddCommandModule(c => c.RegisterGenerated())
-    .AddSagaModule(s => s.RegisterFromAssembly(typeof(MySaga).Assembly)));
+    .AddSagaModule(s => s.Register<OrderSaga>()));
 ```
 
 {% aside type="caution" %}
-The source generator only emits `RegisterGenerated()` for the three built-in module builders.
-A custom module has to feed the registry itself — through explicit `Register<T>()` calls, its
-own `RegisterFromAssembly`, or `RegisterDescriptors(...)` if you pre-compute descriptors
-yourself.
+The source generator emits `RegisterGenerated()` only for the three built-in module builders.
+A custom module selects with explicit `Register<T>()` calls, or exposes its own bulk method
+over `FrozenCompositionCatalog.Select(IEnumerable<Type>)`. There is no assembly-scanning
+fallback — `RegisterFromAssembly` and `RegisterDescriptors` were removed in v2.3.
 {% /aside %}
 
 ## Module builders
 
-Every builder implements the same three entry points:
+There is no `IModuleBuilder` interface to implement. Each built-in builder is a sealed class
+over the catalog, exposing the same three entry points by convention:
 
 ```csharp
-public interface IModuleBuilder
+public sealed class CommandModuleBuilder(FrozenCompositionCatalog compositions)
 {
-    IModuleBuilder Register<T>();
-    IModuleBuilder Register(Type type);
-    IModuleBuilder RegisterFromAssembly(Assembly assembly);
+    public CommandModuleBuilder Register<T>() where T : ICommand;
+    public CommandModuleBuilder Register(Type type);
+    public CommandModuleBuilder RegisterParticipants(IEnumerable<Type> participantTypes);
 }
 ```
 
-The concrete builders add module-specific overloads on top — `CommandModuleBuilder` returns
-`CommandModuleBuilder` from each call so chains stay typed, and adds
-`RegisterDescriptors(IEnumerable<IHandlerDescriptor>)`, which is what generated registration
-uses to hand over pre-computed descriptors without reflection.
+`Register` asserts module membership — a query handler passed to `CommandModuleBuilder`
+throws — while `RegisterParticipants` is the unchecked bulk path generated registration uses,
+because the generator has already partitioned its discoveries by module.
+
+## Plain messages do not need a module
+
+Before writing one, check whether the event module already covers you. `IEventHandler<TEvent>`
+has **no constraint on `TEvent`**, and `PublishAsync<TEvent>` accepts any non-null type:
+
+```csharp
+public interface IEventHandler<in TEvent> : IEvent, IAsyncHandler<TEvent>
+    where TEvent : notnull;
+```
+
+So a POCO — a class implementing nothing, a `record struct`, a message type from a wire
+contract you do not own — is publishable as-is. That is the open lane, and it is where the
+removed `AddCoreModule` traffic went.
 
 ## Only take what you need
 
@@ -139,12 +197,6 @@ services.AddErgosfare(o => o
 
 The same applies at the package level — see
 [Installation](/ergosfare.docs/getting-started/installation).
-
-## The core module
-
-`AddCoreModule` registers messages, handlers and interceptors that are not tied to any of the
-three built-in shapes. It is rarely needed directly; the built-in modules already configure
-what the runtime requires.
 
 Next: [Modules and extensions](/ergosfare.docs/core-components/modules-extensions) walks
 through the shipped modules in detail.

@@ -21,7 +21,7 @@ public sealed record Heartbeat()               : ICommand;      // not audited
 
 public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
 {
-    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, IExecutionContext context)
+    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, ErgosfareContext context)
     {
         _audit.Log(command);
         return ValueTask.FromResult(command);
@@ -52,6 +52,33 @@ CreateProduct pre-interceptors, in order:
 
 Note that the high-weight indirect interceptor still runs after the low-weight direct one.
 Weight orders *within* a group, it does not promote across groups.
+
+## Main handlers use a ladder, not an order
+
+Interceptors and event handlers all run, so "direct first, then indirect" is enough. A command
+or a single-handler query has exactly one main handler, so the same two groups become a
+**priority ladder**:
+
+1. **A sole direct handler wins outright** — however many covariant candidates exist. A
+   supertype handler is a fallback, not a competitor.
+2. **With no direct handler, the covariant level serves** — a handler registered against a
+   base type or interface handles the assignable message.
+3. **More than one candidate at the same level is a contest.** The count is taken before
+   anything resolves, so a contested message runs *neither* claimant and the caller gets
+   `MultipleHandlerFoundException`.
+4. **Neither level populated** raises `NoHandlerFoundException`, which derives from
+   `InvalidOperationException` and carries the `MessageType`.
+
+```csharp
+public sealed class CreateProductHandler  : ICommandHandler<CreateProduct, Guid> { … }  // direct
+public sealed class AuditedFallback       : ICommandHandler<IAuditedCommand, Guid> { … } // covariant
+
+// CreateProduct → CreateProductHandler. No contest: different levels.
+```
+
+Two handlers for `CreateProduct` itself, or two covariant handlers with no direct one, is the
+contest case. The generator sees this at compile time and reports `ERGOSG010` rather than
+leaving it to the first dispatch.
 
 ## Contravariance in handler contracts
 

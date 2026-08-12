@@ -1,9 +1,9 @@
 ---
 title: Execution context
-description: IExecutionContext is a pooled, explicitly-passed parameter — not ambient state. What it carries, and the lifetime rules that come with pooling.
+description: ErgosfareContext is a pooled, explicitly-passed parameter — not ambient state. What it carries, and the lifetime rules that come with pooling.
 ---
 
-`IExecutionContext` travels with a dispatch. It carries the cancellation token, a key/value
+`ErgosfareContext` travels with a dispatch. It carries the cancellation token, a key/value
 bag for that dispatch, and the controls that let a handler or interceptor stop the pipeline.
 
 Two properties define everything else about it:
@@ -22,25 +22,43 @@ the only access path.
 ## What it carries
 
 ```csharp
-public interface IExecutionContext
+public sealed class ErgosfareContext
 {
-    CancellationToken CancellationToken { get; }
-    IDictionary<object, object?> Items { get; }
+    public ErgosfareContext(
+        IDictionary<object, object?>? items = null,
+        CancellationToken cancellationToken = default);
 
-    void Set(string key, object item);
-    bool Has(string key);
-    T Get<T>(string key) where T : notnull;
-    bool TryGet<T>(string key, out T item);
+    public CancellationToken CancellationToken { get; }
+    public IDictionary<object, object?> Items { get; }
 
-    void Abort(object? messageResult = null);
-    ExecutionContextScope CreateScope();
+    public void Set(string key, object item);
+    public bool Has(string key);
+    public TType Get<TType>(string key) where TType : notnull;
+    public bool TryGet<TType>(string key, out TType item);
+
+    public void Abort();
+    public void Abort(string? reason);
+    public void Abort(string? reason, object? value);
+
+    public ErgosfareContextScope CreateScope();
 }
 ```
+
+It is a **sealed class**, not an interface. Handler and interceptor contracts take the
+concrete type, so every member access is a direct call with no interface dispatch — the
+interface it replaced had exactly one implementation, and it was internal.
+
+{% aside type="tip" %}
+The public constructor is new in v2.3. Both parameters are optional, so `new ErgosfareContext()`
+is enough to build one — for a test, or to own the items dictionary across an engine-level
+dispatch. A context you construct yourself is never pooled, and it costs exactly what an
+unpooled context always did.
+{% /aside %}
 
 ### Cancellation
 
 ```csharp
-public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
     => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
 ```
 
@@ -56,7 +74,7 @@ something the handler and post-interceptors read back:
 ```csharp
 public sealed class StartTimer : ICommandPreInterceptor
 {
-    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
         context.Set("started", Stopwatch.GetTimestamp());
         return ValueTask.FromResult<object>(command);
@@ -65,7 +83,7 @@ public sealed class StartTimer : ICommandPreInterceptor
 
 public sealed class StopTimer : ICommandFinalInterceptor
 {
-    public ValueTask HandleAsync(ICommand command, object? result, Exception? ex, IExecutionContext context)
+    public ValueTask HandleAsync(ICommand command, object? result, Exception? ex, ErgosfareContext context)
     {
         if (context.TryGet<long>("started", out var started))
             _metrics.Record(Stopwatch.GetElapsedTime(started));
@@ -87,25 +105,55 @@ await commands.SendAsync(command, settings);
 
 ### Aborting
 
-`Abort()` ends the pipeline immediately — no further handlers or interceptors run. If the
-message has a result type and you abort before the main handler, you must supply the result:
+`Abort()` cuts the pipeline where it stands and tells the **caller**, by throwing
+`ExecutionAbortedException`. Nothing downstream runs: not the rest of the current stage, not
+the exception stage, not the final stage.
 
 ```csharp
 public sealed class RejectUnauthorized : ICommandPreInterceptor<CreateProduct>
 {
-    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
     {
         if (!_user.CanCreateProducts)
-            context.Abort(Guid.Empty);   // result required: the pipeline still owes one
+            context.Abort("not permitted to create products", _user.Id);
 
         return ValueTask.FromResult(command);
     }
 }
 ```
 
-`CreateProduct` is an `ICommand<Guid>`, so the pipeline owes the caller a `Guid`. Aborting
-before the main handler runs means nothing else will produce one — hence the argument. For a
-command with no result, `Abort()` takes nothing.
+The call site is who asked for the work, so the call site is who hears that it did not happen:
+
+```csharp
+try
+{
+    var id = await commands.SendAsync<Guid>(new CreateProduct("Laptop", 999m));
+}
+catch (ExecutionAbortedException aborted)
+{
+    logger.LogInformation("refused: {Reason}", aborted.Reason);
+    if (aborted.Value is Guid userId) { … }
+}
+```
+
+Three overloads: `Abort()`, `Abort(reason)` and `Abort(reason, value)`. `Reason` is for a
+human and doubles as the exception message; `Value` is for a program to act on.
+
+{% aside type="caution" %}
+**`Value` is not the pipeline's result.** A cut pipeline produced none — that is the point of
+the signal, and it is why aborting a `ICommand<Guid>` does not ask you for a `Guid`. Returning
+the result type's default instead would be indistinguishable from a handler that legitimately
+produced nothing.
+
+This changed in v2.3: `Abort(object? messageResult)` used to seed a result and let the
+pipeline end quietly. See
+[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+{% /aside %}
+
+An abort is not a failure, which is why exception interceptors do not see it. If you want
+outcomes carried as values rather than exceptions, that is what the
+[result-adapter surface](/ergosfare.docs/preview/getting-started/configuring#result-adapters) is for;
+abort is deliberately the loud channel.
 
 ## Pooling and the lifetime rule
 
@@ -114,7 +162,8 @@ same-thread cycle — and returned when the dispatch completes. There is a synch
 path that skips the async state machine entirely when the whole pipeline completes
 synchronously.
 
-This is where the ~2.3 MB per 100 000 dispatches comes from. It also imposes one rule:
+This is the single largest contributor to the per-dispatch allocation numbers. It also
+imposes one rule:
 
 {% aside type="danger" %}
 **Never hold onto a context after its dispatch returns.** Once the dispatch completes the
@@ -125,7 +174,7 @@ message's state.
 
 ```csharp
 // Wrong — the context is recycled the moment HandleAsync returns.
-public ValueTask HandleAsync(CreateProduct command, IExecutionContext context)
+public ValueTask HandleAsync(CreateProduct command, ErgosfareContext context)
 {
     _ = Task.Run(async () =>
     {
@@ -136,11 +185,13 @@ public ValueTask HandleAsync(CreateProduct command, IExecutionContext context)
 }
 ```
 
-If you need something after the dispatch, copy the values out before returning.
+If you need something after the dispatch, copy the values out before returning — or construct
+your own context with `new ErgosfareContext(...)`, which is never pooled and therefore never
+recycled underneath you.
 
 ## No service provider, on purpose
 
-`IExecutionContext` exposes no `IServiceProvider`. Handler resolution belongs to the
+`ErgosfareContext` exposes no `IServiceProvider`. Handler resolution belongs to the
 dispatcher, which resolves instances from the calling DI scope. If a handler needs a service,
 take it in the constructor — that keeps the dependency visible to the container and to
 whoever reads the class.

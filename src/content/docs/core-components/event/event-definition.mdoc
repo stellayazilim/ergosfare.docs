@@ -41,7 +41,7 @@ public sealed record ProductDeleted(Guid Id)              : IDomainEvent;
 
 public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
 {
-    public ValueTask HandleAsync(IDomainEvent @event, IExecutionContext context)
+    public ValueTask HandleAsync(IDomainEvent @event, ErgosfareContext context)
         => _outbox.AppendAsync(@event, context.CancellationToken);
 }
 ```
@@ -73,12 +73,12 @@ await _events.PublishAsync(new ProductCreated(id, name));
 ```
 
 The call completes when every matching handler has completed. `PublishAsync` takes an optional
-`EventMediationSettings` and a `CancellationToken`, and has an `IExecutionContext` overload
+`EventMediationSettings` and a `CancellationToken`, and has an `ErgosfareContext` overload
 for [nested dispatch](/ergosfare.docs/core-concepts/nested-dispatch) — which is how you
 publish from inside a command handler:
 
 ```csharp
-public async ValueTask HandleAsync(PlaceOrder msg, IExecutionContext ctx)
+public async ValueTask HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
 {
     using var scope = ctx.CreateScope();
     await _events.PublishAsync(new OrderPlaced(msg.OrderId), scope.Context);

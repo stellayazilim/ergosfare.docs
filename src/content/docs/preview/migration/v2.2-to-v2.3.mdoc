@@ -1,0 +1,280 @@
+---
+title: Migrating from v2.2 to v2.3
+description: What v2.3 removed, what replaced it, and the behaviour changes that compile cleanly but run differently.
+slug: preview/migration/v2.2-to-v2.3
+---
+
+v2.3 retires the runtime registry. The generator's **frozen composition table** is now the
+authority for handler and interceptor relationships; registration selects from it, and
+dispatch executes that selection without reflective scanning or runtime pipeline mutation.
+
+Most of this migration is mechanical and the compiler finds it for you. Two changes are not:
+`Abort` and the abort-time behaviour of the final stage compile cleanly and behave
+differently. Read §5 even if everything else builds.
+
+{% aside %}
+This is a stable-to-stable move within the v2 line. The removals were staged: v2.2 marked the
+assembly-scanning surface `[Obsolete]` one release ahead of removing it, so a project that
+builds warning-free on v2.2 has most of the work already done.
+{% /aside %}
+
+## 1. `IMessageRegistry` and the descriptor surface are gone
+
+Registration no longer *discovers* anything. The generator compiles every handler and
+interceptor relationship in the closure into an immutable table before the application runs;
+`RegisterGenerated()` and `Register<T>()` record which of its rows this container serves.
+
+```csharp
+// v2.2 — the module handed you a registry to feed
+public void Build(IModuleConfiguration configuration)
+{
+    _builder(new CommandModuleBuilder(configuration.MessageRegistry));
+    configuration.Services.TryAddScoped<ICommandMediator, CommandMediator>();
+}
+
+// v2.3 — the module hands you a catalog to select from
+public void Build(IModuleConfiguration configuration)
+{
+    _builder(new CommandModuleBuilder(configuration.Compositions));
+    configuration.Services.TryAddTransient<ICommandMediator, EngineBackedCommandMediator>();
+}
+```
+
+`IModuleConfiguration` is now `{ IServiceCollection Services; FrozenCompositionCatalog Compositions; }`.
+
+**What to do.** If you never wrote a custom `IModule`, nothing — the built-in modules carry
+this themselves. If you did, swap `MessageRegistry` for `Compositions` and `Register…` for
+`Select`. Selection is a union: repeated and overlapping calls stay harmless.
+
+Removed with it: `IHandlerDescriptor` and the descriptor surfaces, `RegisterDescriptors(...)`,
+and `IModuleBuilder`. The concrete builders remain, and their bulk path is now
+`RegisterParticipants(IEnumerable<Type>)`.
+
+## 2. `RegisterFromAssembly` is removed
+
+Runtime assembly scanning is gone from every module builder. There is no replacement, because
+there is nothing for it to do: an assembly loaded after compilation cannot append a message
+shape to a frozen table.
+
+`ResultAdapterBuilder` went with it. Result adapters now bind declaratively per message with
+`[ResultAdapter]`, or application-wide through
+`IModuleRegistry.UseDefaultResultAdapter(Type)` — both `[Experimental]` under `ERGOEXP001`.
+See [Configuring](/ergosfare.docs/preview/getting-started/configuring#result-adapters).
+
+```csharp
+// v2.2
+.AddCommandModule(c => c.RegisterFromAssembly(typeof(CreateProduct).Assembly))
+
+// v2.3
+.AddCommandModule(c => c.RegisterGenerated())
+```
+
+**Selective registration keeps working** — it just happens at compile time. Tag the slice and
+select it by pattern:
+
+```csharp
+[assembly: DiscoveryKey("payments")]          // in the slice's assembly
+
+.AddCommandModule(c => c.RegisterGenerated("payments.*"))
+```
+
+See [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys). For a plugin host, compile
+the plugin contracts into the closure the generator sees and choose among them at registration
+time; a genuinely late-loaded assembly is outside the model.
+
+## 3. `IExecutionContext` → `ErgosfareContext`
+
+The interface is replaced by a **public sealed class**. Every handler and interceptor contract
+takes the concrete type, which removes an interface dispatch whose only implementation was
+internal.
+
+```csharp
+// v2.2
+public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+
+// v2.3
+public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
+```
+
+A find-and-replace across handlers and interceptors covers it; the compiler finds anything
+missed.
+
+**New in exchange: a public constructor.** Both parameters are optional, so you can own a
+context — for a test, or to hand one to an engine-level dispatch:
+
+```csharp
+using var cts = new CancellationTokenSource();
+var context = new ErgosfareContext(cancellationToken: cts.Token);
+```
+
+A context you construct is never pooled, so the pooling lifetime rule does not apply to it.
+
+## 4. `ExecutionContextScope` → `ErgosfareContextScope`
+
+Renamed, and its constructor is now **internal**: `context.CreateScope()` is the only way to
+get one. A scope always has a parent, which is what the type was always supposed to mean.
+
+```csharp
+// v2.2 and v2.3 alike — this was already the idiom
+using var scope = context.CreateScope();
+await _commands.SendAsync(new ReserveStock(id), scope.Context);
+```
+
+If you constructed a scope directly anywhere, that code has to go through `CreateScope()`.
+Disposing a default scope remains a no-op.
+
+## 5. `Abort` cuts the pipeline and reaches the caller
+
+**This is the change that compiles cleanly and behaves differently.** Read it even if your
+build is green.
+
+```csharp
+// v2.2 — seeded a result, ended the pipeline quietly, final interceptors still ran
+context.Abort(Guid.Empty);
+
+// v2.3 — throws ExecutionAbortedException; nothing downstream runs
+context.Abort("not permitted to create products", _user.Id);
+```
+
+Three overloads: `Abort()`, `Abort(reason)`, `Abort(reason, value)`. There is no result
+argument, whatever the message's result type — a cut pipeline produced none, and returning the
+type's default was indistinguishable from a handler that legitimately produced nothing.
+
+Three consequences to audit:
+
+**The caller now sees it.** Wrap dispatches whose pipelines can abort:
+
+```csharp
+try
+{
+    var id = await commands.SendAsync<Guid>(new CreateProduct("Laptop", 999m));
+}
+catch (ExecutionAbortedException aborted)
+{
+    logger.LogInformation("refused: {Reason}", aborted.Reason);
+    if (aborted.Value is Guid userId) { … }
+}
+```
+
+**Final interceptors no longer run after an abort.** Nothing downstream does: not the rest of
+the current stage, not the exception stage, not the final stage. Cleanup that must survive an
+abort moves to the caller's own `try`/`finally`.
+
+**Nested dispatch propagates by default.** An inner abort travels out of the inner call and,
+unless the outer handler catches it, out of the outer pipeline too. Nested code written
+against the old "inner abort ends only the inner pipeline" behaviour needs the `try` added
+explicitly — see [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+
+**Short-circuiting with a cached result is no longer an interceptor pattern.** Nothing before
+the handler can supply the pipeline's result. Read the cache in the handler, or in a handler
+that decorates the real one.
+
+## 6. `AddCoreModule` and the core module are removed
+
+`AddCoreModule`, `CoreModule`, `CoreModuleBuilder` and `IModuleBuilder` are gone. Plain
+messages — anything that was neither command, query nor event — move to the **event module**,
+which is the open lane:
+
+```csharp
+public interface IEventHandler<in TEvent> : IEvent, IAsyncHandler<TEvent>
+    where TEvent : notnull;
+```
+
+`TEvent` is unconstrained beyond `notnull`, and `PublishAsync<TEvent>(TEvent)` matches it, so
+a POCO — a plain class, a `record struct`, a wire contract you do not own — publishes as-is.
+
+```csharp
+// v2.2
+services.AddErgosfare(o => o.AddCoreModule(m => m.Register<TelemetryPing>()));
+await mediator.Mediate(new TelemetryPing(), options);
+
+// v2.3
+services.AddErgosfare(o => o.AddEventModule(e => e.RegisterGenerated()));
+await events.PublishAsync(new TelemetryPing());
+```
+
+`ForceMemoizedHandlers()` is unaffected and still lives on `IModuleRegistry`.
+
+## 7. Cross-cutting interceptors carry their markers
+
+An interceptor written over the core contracts joins the built-in module partitions by
+implementing their marker interfaces directly — the same idiom the module contracts use
+(`ICommandPreInterceptor : ICommand, IAsyncPreInterceptor<ICommand>`):
+
+```csharp
+public sealed class LoggingInterceptor
+    : IAsyncPreInterceptor<IMessage>, ICommand, IQuery, IEvent
+{
+    public ValueTask<object> HandleAsync(IMessage message, ErgosfareContext context) { … }
+}
+```
+
+The generator takes it into all three partitions, and covariant matching gives it a row on
+every message. `[ExcludeFromPipeline]` — blanket or group-scoped — drops it from the messages
+that should not carry it.
+
+## 8. `MediateOptions` and the low-level mediate surface are removed
+
+`MediateOptions`, `ActualTypeOrFirstAssignableTypeMessageResolveStrategy`, the message-resolve
+strategies and the low-level `IMessageMediator.Mediate` entry point are gone. The facades —
+`SendAsync`, `QueryAsync`, `StreamAsync`, `PublishAsync` — are the dispatch surface, and they
+are also the fast one: the options path ran its own resolve and mediation strategies and
+reached neither the generated plans nor the straight-through path.
+
+`IMessageMediator` itself remains, as the type-erased entry point for a message whose static
+type the call site does not know:
+
+```csharp
+ValueTask         DispatchAsync(object message, ErgosfareContext context, IEnumerable<string>? groups = null);
+ValueTask<TResult> DispatchAsync<TResult>(object message, ErgosfareContext context, IEnumerable<string>? groups = null);
+```
+
+`IPoolReturnable` is removed as well.
+
+## 9. Behaviour that changed without an API change
+
+| Change | What to audit |
+|---|---|
+| Resultless commands and events carry `Unit.Value` after successful execution | Post, exception and final interceptors that treated the result slot's `null` as "resultless". `null` now means "no result was produced". |
+| A sole direct handler wins outright over any covariant candidates; two candidates **at the same level** raise `MultipleHandlerFoundException` before either runs | Messages with two handlers registered at the same level. The generator reports `ERGOSG010` at build time. |
+| An exception is swallowed only when an interceptor that actually matched it returns a value | Nothing to change for untyped interceptors — they match everything, so they behave exactly as before. The rule matters once you adopt a typed `...For<TException>` contract: one whose filter does not match leaves the original exception and stack untouched. |
+| `NoHandlerFoundException` derives from `InvalidOperationException` and exposes `MessageType`; missing and filtered-out handlers use it consistently | `catch` clauses ordered so a broader `InvalidOperationException` arm no longer shadows it. |
+| A selected participant the container cannot resolve fails before the first stage with `UnresolvableParticipantException` | Participants selected but never registered with DI — previously a later, less obvious failure. |
+| Event publication honours `ThrowIfNoHandlerFound` for every no-subscriber shape | Publishers that relied on a silent no-op for one of the shapes. |
+| Mediator facades are registered transient rather than scoped | Code that resolved a facade once and cached it as scoped state. Handlers still resolve from the calling scope. |
+
+{% aside type="tip" %}
+**Nothing here asks you to rewrite your exception interceptors.** The untyped contracts —
+`ICommandExceptionInterceptor<TCommand, TResult>` and its query and event equivalents — are
+unchanged and not deprecated; they remain the right shape when one interceptor handles several
+exception types, or logs every failure. The typed `...For<TException>` family added alongside
+them is an option to adopt where it fits, one type at a time. See
+[Exception interceptors](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors#declaring-the-exception-type).
+{% /aside %}
+
+## 10. Target frameworks
+
+Packages now carry `net11.0` beside `net10.0` and `net9.0`. Nothing is required of you: a
+`net11.0` project already bound `lib/net10.0/` through roll-forward, and no .NET 11 or C# 15
+feature is adopted. Until .NET 11 reaches GA on 2026-11-10 the `net11.0` assets are compiled
+against preview reference packs and will be re-packed against the GA pack.
+
+Building *the repository* now needs the .NET 11 preview SDK. That affects contributors, not
+consumers.
+
+## Suggested order
+
+1. Build on v2.2 and clear every `[Obsolete]` warning first — that is most of §1 and §2.
+2. Rename `IExecutionContext` → `ErgosfareContext` and `ExecutionContextScope` →
+   `ErgosfareContextScope`.
+3. Swap remaining `RegisterFromAssembly` calls for `RegisterGenerated()`, adding discovery
+   keys where the scan was selective.
+4. Move `AddCoreModule` traffic to the event module.
+5. **Audit every `Abort` call site and every nested dispatch** (§5). This is the step the
+   compiler cannot do for you.
+6. Audit the behaviour table in §9, then fix the `ERGOSG*` diagnostics the build reports.
+
+The full list of changes is in
+[CHANGELOG.md](https://github.com/stellayazilim/ergosfare/blob/preview/CHANGELOG.md); the
+support policy is in
+[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/preview/COMPATIBILITY.md).

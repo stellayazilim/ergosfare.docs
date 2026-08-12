@@ -10,11 +10,14 @@ independent: you register the ones you use and pay for nothing else.
 |---|---|---|---|---|
 | Commands | `ICommand`, `ICommand<TResult>` | `ICommandHandler<…>` | `ICommandMediator` | `SendAsync` |
 | Queries | `IQuery<TResult>`, `IStreamQuery<TResult>` | `IQueryHandler<…>`, `IStreamQueryHandler<…>` | `IQueryMediator` | `QueryAsync`, `StreamAsync` |
-| Events | `IEvent` | `IEventHandler<TEvent>` | `IEventMediator` | `PublishAsync` |
+| Events | `IEvent`, and any `notnull` type | `IEventHandler<TEvent>` | `IEventMediator` | `PublishAsync` |
 
-They differ only in cardinality and result shape. All three run through the same registry,
-the same pipeline plan and the same four
+They differ only in cardinality and result shape. All three run through the same frozen
+composition table, the same pipeline plan and the same four
 [interceptor stages](/ergosfare.docs/preview/core-concepts/interceptors).
+
+The event module is also the open lane for plain messages: `IEventHandler<TEvent>` constrains
+`TEvent` to `notnull` and nothing else, so a POCO publishes without implementing `IEvent`.
 
 ## The three layers
 
@@ -33,8 +36,9 @@ builder, `AddCommandModule` and friends. This is the only layer that knows about
 `IServiceCollection`, which is what keeps the rest container-agnostic.
 
 `Stella.Ergosfare.Core.Abstractions` sits under all of them and holds what is not
-module-specific: `IExecutionContext`, the `[DiscoveryKey]`/`[Group]`/`[Weight]` attributes,
-the handler and interceptor base contracts, and the registry types.
+module-specific: `ErgosfareContext`, the `[DiscoveryKey]`/`[Group]`/`[Weight]` attributes,
+the handler and interceptor base contracts, and the frozen composition table with its
+dispatch roots.
 
 The umbrella package `Stella.Ergosfare` is a convenience bundle over all three modules. See
 [Installation](/ergosfare.docs/preview/getting-started/installation) for choosing deliberately.
@@ -59,8 +63,10 @@ a silent no-op.
 
 ## Extension points
 
-**`ForceMemoizedHandlers()`** on the registry makes handler instances reusable across
-dispatches within a scope, for dispatch-heavy loops with transient handlers:
+**`ForceMemoizedHandlers()`** on the registry resolves every handler graph once and memoizes
+it process-wide, for dispatch-heavy loops with transient handlers. It is the fastest dispatch
+mode and it does **not** honour scoped or transient handler dependencies — the first resolved
+instance serves every later dispatch:
 
 ```csharp
 services.AddErgosfare(o => o
@@ -68,20 +74,23 @@ services.AddErgosfare(o => o
     .AddCommandModule(c => c.RegisterGenerated()));
 ```
 
-**`ConfigureResultAdapters(...)`** registers `IResultAdapter` implementations that translate
-a handler's return type into what the caller expects:
+Without the switch, registered lifetimes are honoured, and messages whose participants are
+all singletons take the memoized path automatically.
+
+**`UseDefaultResultAdapter(...)`** sets the fallback `IResultAdapter` for result slots that
+bind nothing more specific:
 
 ```csharp
 services.AddErgosfare(o => o
-    .ConfigureResultAdapters(a => a.Register<MyResultAdapter>())
+    .UseDefaultResultAdapter(typeof(MyResultAdapter<>))
     .AddQueryModule(q => q.RegisterGenerated()));
 ```
 
-**`AddCoreModule(...)`** registers constructs that belong to none of the three shapes. Rarely
-needed directly.
+This surface is `[Experimental]` under `ERGOEXP001`; see
+[Configuring](/ergosfare.docs/preview/getting-started/configuring#result-adapters).
 
 **Your own `IModule`** — the modules above are not privileged. Implementing `IModule` gives
-you a new message shape on the same machinery; see
+you a new message shape on the same machinery, selected from the same compiled table; see
 [Modules and plugins](/ergosfare.docs/preview/core-concepts/plugins).
 
 ## Mediators are per-module on purpose

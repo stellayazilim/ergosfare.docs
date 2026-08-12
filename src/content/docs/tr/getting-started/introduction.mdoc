@@ -8,19 +8,22 @@ bir pipeline modeli üzerinde çalışır. Tek bir tasarım öncülü üzerine k
 şekliyle ilgili tüm iş derleme zamanında ya da mesaj tipi başına bir kez yapılır, asla her
 dispatch'te değil.**
 
-Kayıt işlemini bir Roslyn kaynak üreteci üretir. Pipeline planları `(mesaj tipi, grup kümesi)`
+Bir Roslyn kaynak üreteci **donmuş kompozisyon tablosunu** derler — mesaj tipi başına bir
+değişmez kompozisyon; handler satırlarını ve dört interceptor aşamasını yürütme sırasıyla
+tutar — ve ondan seçim yapan kayıt kodunu üretir. Pipeline planları `(mesaj tipi, grup kümesi)`
 başına bir kez hesaplanır ve süreç genelinde önbelleğe alınır. Dispatch generic'leri derleme
 zamanında kapatılır ve execution context'ler havuzlanır. Bir dispatch, handler *örneklerini*
 çağıran DI scope'undan çözer ve önceden kurulmuş bir planı yürür — reflection yok,
-`MakeGenericType` yok, registry taraması yok, `AsyncLocal` yok ve sıcak yolda context
+`MakeGenericType` yok, assembly taraması yok, `AsyncLocal` yok ve sıcak yolda context
 allocation'ı yok.
 
 {% aside %}
 **Kararlı v2 hattının** dokümantasyonunu okuyorsunuz;
 [`main` dalından](https://github.com/stellayazilim/Ergosfare/tree/main) üretiliyor. Geliştirme
 hâlindeki işler önce [önizleme hattına](/ergosfare.docs/tr/preview/getting-started/introduction)
-iner. v1'den mi geliyorsunuz? [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2)
-sayfasına bakın.
+iner. v2.2'den mi yükseltiyorsunuz? v2.3 çalışma zamanı registry'sini kaldırdı —
+[v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/migration/v2.2-to-v2.3) sayfasına bakın. v1'den mi
+geliyorsunuz? [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2) sayfasına bakın.
 {% /aside %}
 
 ## Nasıl görünüyor
@@ -33,7 +36,7 @@ public sealed record CreateProduct(string Name) : ICommand<Guid>;
 
 public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 {
-    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
         => ValueTask.FromResult(Guid.NewGuid());
 }
 ```
@@ -53,18 +56,23 @@ builder.Services.AddErgosfare(o => o
 ## Neden Ergosfare
 
 **Derleme zamanı kayıt.** Üreteç, handler'ları hem sizin derlemenizde *hem de referans verilen
-assembly'lerde* bulur, descriptor'larını önceden hesaplar ve `RegisterGenerated()` üretir. Bir
-kütüphanenin handler'ları, kütüphanede hiç kayıt kodu olmadan, onu kullanan uygulamanın
-üretilmiş kodu üzerinden kaydolur.
+assembly'lerde* bulur, ilişkilerini donmuş kompozisyon tablosuna derler ve `RegisterGenerated()`
+üretir. Bir kütüphanenin handler'ları, kütüphanede hiç kayıt kodu olmadan, onu kullanan
+uygulamanın üretilmiş kodu üzerinden kaydolur.
+
+**Kayıt keşif değil, seçimdir.** `RegisterGenerated()` ve `Register<T>()`, derlenmiş tablonun
+hangi satırlarını tek bir container'ın çalıştıracağını seçer. Tekrarlanan ve örtüşen seçimler
+zararsız birleşimlerdir; derlemeden sonra hiçbir şey yeni bir mesaj şekli ekleyemez — dolayısıyla
+zamanlaması çalışan bir uygulamayı değiştirebilecek bir kayıt penceresi yoktur.
 
 **Reflection'sız dispatch.** Üretilen dispatch root'ları executor generic'lerini derleme
 zamanında kapatır, pipeline planları da generic handler tiplerini önceden kapatır.
-`MakeGenericType` yalnızca açık generic'ler ve çalışma zamanı kayıtları için bir yedek olarak
-kalır.
+`MakeGenericType` yalnızca üretecin root'layamadığı mesaj tipleri — başta açık generic'ler —
+için bir yedek olarak kalır.
 
 **Hesabı verilebilir allocation.** Havuzlanmış execution context'ler, `ValueTask` öncelikli bir
-yüzey ve senkron hızlı yollar; 100 bin ardışık dispatch'i ~2.3 MB'a indiriyor — aynı döngüde
-MediatR'ın 18.3 MB'ına karşılık. Tam ölçüm ve MediatR'ın kazandığı senaryo için
+yüzey ve üretilmiş planlar; sonuçsuz bir command'i dispatch başına 19.9 ns / 24 B'a, sonuçlu bir
+query'yi 24.0 ns / 24 B'a indiriyor. Ölçülen şekiller ve nasıl okunacağı için
 [Performans](/ergosfare.docs/tr/advanced/performance) sayfasına bakın.
 
 **Güvenli iç içe dispatch.** `context.CreateScope()`, handler içindeki mediator çağrıları için
@@ -87,16 +95,17 @@ mesaj tanımlayan bir kütüphaneye yalnızca ilgili `.Abstractions` paketi yete
 ```
 derleme zamanı                (mesaj tipi, gruplar) başına bir kez        her dispatch
 ──────────────                ───────────────────────────────────        ────────────
-kaynak üreteci         ──►    MessageRegistry ─► descriptor ─► plan  ──►  havuzdan context alınır
-  descriptor'lar önceden        │                                          │
+kaynak üreteci         ──►    kompozisyon ─► seçim ─► plan       ──►  havuzdan context alınır
+  donmuş kompozisyon tablosu    │                                          │
   dispatch root'ları üretilir   │  altı sabit aşama, önceden sıralı        │  executor runtime tipe kapatılır
   RegisterGenerated()           │  (önce doğrudan, sonra ağırlığa göre)    │  handler çağıran scope'tan çözülür
                                 └─ kapalı generic tipler önceden           └─ pre → main → post/exception → final
 ```
 
-- **Registry ve descriptor'lar.** Üretilen kayıt, önceden hesaplanmış descriptor'ları sağlar.
-  Açık `Register<T>()` ve çalışma zamanı taraması aynı registry'yi besler ve idempotenttir —
-  üçü birlikte kullanılabilir.
+- **Kompozisyon ve seçim.** Üreteç, mesaj tipi başına bir `FrozenComposition`'ı süreç genelinde
+  tek bir tabloya derler. Kayıt, bu tablonun hangi katılımcı satırlarını bu container'ın
+  çalıştıracağını seçer — toplu hâlde `RegisterGenerated()`, teker teker `Register<T>()`. Seçim
+  bir birleşimdir; ikisi birlikte ve tekrarlı kullanılabilir.
 - **Pipeline planı.** Mesaj başına altı sabit aşama: ana handler'lar (doğrudan/dolaylı ayrımıyla)
   ve dört interceptor aşaması; her biri önceden sıralanmış bir dizi. Önce doğrudan girdiler,
   sonra kovaryant eşleşmeler ağırlığa göre. Grup filtreleri ve `[ExcludeFromPipeline]` burada,
@@ -110,7 +119,8 @@ kaynak üreteci         ──►    MessageRegistry ─► descriptor ─► pl
 - [Kurulum](/ergosfare.docs/tr/getting-started/installation) — gerçekte hangi paketlere ihtiyacınız var.
 - [Hızlı başlangıç](/ergosfare.docs/tr/getting-started/quick-start) — uçtan uca bir command, query ve event.
 - [Derleme zamanı keşif](/ergosfare.docs/tr/core-concepts/compile-time-discovery) — `RegisterGenerated()` nereden geliyor.
-- [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2) — zaten kararlı hattaysanız.
+- [v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/migration/v2.2-to-v2.3) — v2.3 neyi kaldırdı ve yerine ne geldi.
+- [v1'den v2'ye geçiş](/ergosfare.docs/tr/migration/v1-to-v2) — hâlâ v1 hattındaysanız.
 
 {% aside type="note" %}
 Bir yerde takıldınız mı?
