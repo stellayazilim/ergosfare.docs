@@ -3,7 +3,7 @@ title: "IPreInterceptor"
 description: "Non-generic marker root for pre-interceptors."
 sidebar:
   label: "IPreInterceptor"
-  order: 18
+  order: 20
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  

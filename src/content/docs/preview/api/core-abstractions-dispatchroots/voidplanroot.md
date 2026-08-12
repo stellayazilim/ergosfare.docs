@@ -3,7 +3,7 @@ title: "VoidPlanRoot"
 description: "A compile-time pipeline plan closed over a void message and its sole async handler; see GeneratedDispatchRoots.AddVoidPlan<TMessage, THandler>() and MessageR…"
 sidebar:
   label: "VoidPlanRoot"
-  order: 12
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  

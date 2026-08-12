@@ -3,7 +3,7 @@ title: "IQueryPreInterceptor<TQuery, TModifiedQuery>"
 description: "Represents a type-safe pre-interceptor for queries in the Stella.Ergosfare pipeline."
 sidebar:
   label: "IQueryPreInterceptor<TQuery, TModifiedQuery>"
-  order: 13
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
@@ -37,10 +37,10 @@ avoiding casts from [`object`](https://learn.microsoft.com/dotnet/api/system.obj
 
 ## Methods
 
-### `HandleAsync(TQuery, IExecutionContext)`
+### `HandleAsync(TQuery, ErgosfareContext)`
 
 ```csharp
-ValueTask<TModifiedQuery?> HandleAsync(TQuery query, IExecutionContext executionContext)
+ValueTask<TModifiedQuery?> HandleAsync(TQuery query, ErgosfareContext executionContext)
 ```
 
 Intercepts the specified query before it reaches the main handler.
@@ -50,7 +50,7 @@ Intercepts the specified query before it reaches the main handler.
 | Name | Type | Description |
 | --- | --- | --- |
 | `query` | `TQuery` | The incoming query to intercept. |
-| `executionContext` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context for the pipeline. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context for the pipeline. |
 
 **Returns**
 

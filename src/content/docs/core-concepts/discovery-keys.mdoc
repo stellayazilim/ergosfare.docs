@@ -29,7 +29,7 @@ using Stella.Ergosfare.Core.Abstractions.Attributes;
 [DiscoveryKey("reporting.daily")]
 public sealed class DailyReportHandler : ICommandHandler<BuildDailyReport>
 {
-    public ValueTask HandleAsync(BuildDailyReport command, IExecutionContext context)
+    public ValueTask HandleAsync(BuildDailyReport command, ErgosfareContext context)
         => _reports.BuildAsync(context.CancellationToken);
 }
 ```
@@ -90,14 +90,19 @@ pattern will select it:
 public sealed class ExperimentalHandler : ICommandHandler<Probe> { … }
 ```
 
-Explicit registration still works — `Register<ExperimentalHandler>()` registers it — which is
+Explicit registration still works — `Register<ExperimentalHandler>()` selects it — which is
 the intended escape hatch for something you want available but never automatic.
 
-## Both registration paths agree
+The reason it works is that `[ExcludeFromDiscovery]` shapes *discovery*, not the table. The
+generator still emits the type's composition row; it is simply left out of every bulk
+`RegisterGenerated()` call, so only a container that names the type runs it.
 
-The reflection-based `RegisterFromAssembly(assembly, discoveryKeyPattern)` evaluates the same
-attributes with the same rules. Generated and runtime registration cannot produce different
-sets for the same code, which is what makes it safe to move a project from one to the other.
+## Keys are the plugin story
+
+Since v2.3 there is no runtime assembly scan, so discovery keys carry the whole "compile
+everything, run some of it" pattern. The keyed slice is compiled into the closure like any
+other code, and the host decides at registration time — from configuration, a feature flag,
+an environment name — which patterns to select.
 
 ## When to reach for this
 

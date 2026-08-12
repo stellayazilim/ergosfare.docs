@@ -7,17 +7,22 @@ Ergosfare is a mediator for CQRS-style messaging in .NET: commands, queries and 
 one pipeline model. It is built around a single design premise — **all dispatch-shape work
 happens at compile time or once per message type, never per dispatch**.
 
-Registration is emitted by a Roslyn source generator. Pipeline plans are computed once per
-`(message type, group set)` and cached process-wide. Dispatch generics are closed at compile
-time, and execution contexts are pooled. A dispatch resolves handler *instances* from the
-calling DI scope and walks a pre-built plan — no reflection, no `MakeGenericType`, no
-registry scan, no `AsyncLocal`, and no per-dispatch context allocation on the hot path.
+A Roslyn source generator compiles a **frozen composition table** — one immutable
+composition per message type, holding its handler rows and its four interceptor stages in
+execution order — and emits the registration that selects from it. Pipeline plans are
+computed once per `(message type, group set)` and cached process-wide. Dispatch generics are
+closed at compile time, and execution contexts are pooled. A dispatch resolves handler
+*instances* from the calling DI scope and walks a pre-built plan — no reflection, no
+`MakeGenericType`, no assembly scan, no `AsyncLocal`, and no per-dispatch context allocation
+on the hot path.
 
 {% aside type="caution" %}
 You are reading the docs for the **preview line**, built from the
 [`preview` branch](https://github.com/stellayazilim/Ergosfare/tree/preview). Packages ship as
 `-preview` pre-releases and APIs may change between them. The stable line is
-[v2 at the site root](/ergosfare.docs/getting-started/introduction).
+[v2 at the site root](/ergosfare.docs/getting-started/introduction). Upgrading from v2.2? v2.3
+removed the runtime registry — see
+[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
 {% /aside %}
 
 ## What it looks like
@@ -30,7 +35,7 @@ public sealed record CreateProduct(string Name) : ICommand<Guid>;
 
 public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 {
-    public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
+    public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
         => ValueTask.FromResult(Guid.NewGuid());
 }
 ```
@@ -50,19 +55,23 @@ builder.Services.AddErgosfare(o => o
 ## Why Ergosfare
 
 **Compile-time registration.** The generator discovers handlers in your compilation *and in
-referenced assemblies*, pre-computes their descriptors, and emits `RegisterGenerated()`. A
-library's handlers register through the consuming app's generated code with no registration
-code in the library at all.
+referenced assemblies*, compiles their relationships into the frozen composition table, and
+emits `RegisterGenerated()`. A library's handlers register through the consuming app's
+generated code with no registration code in the library at all.
+
+**Registration is selection, not discovery.** `RegisterGenerated()` and `Register<T>()` pick
+which rows of the compiled table one container runs. Repeated and overlapping selections are
+harmless unions, and nothing can append a message shape after compilation — so there is no
+registration window whose timing changes a running application.
 
 **Reflection-free dispatch.** Generated dispatch roots close executor generics at compile
 time, and pipeline plans pre-close generic handler types. `MakeGenericType` survives only as
-a fallback for open generics and runtime-only registrations.
+a fallback for message types the generator could not root, chiefly open generics.
 
 **Allocation you can account for.** Pooled execution contexts, a `ValueTask`-first surface
-and synchronous fast paths put 100 000 sequential dispatches at ~2.3 MB in ~3.0 ms, against
-MediatR's 18.3 MB and ~5.8 ms for the same loop. See
-[Performance](/ergosfare.docs/preview/advanced/performance) for the full benchmark, the
-scope-per-request shape, and where the margins are narrow.
+and generated plans put a no-result command at 19.9 ns / 24 B and a result query at
+24.0 ns / 24 B per dispatch. See [Performance](/ergosfare.docs/preview/advanced/performance) for the
+measured shapes and how to read them.
 
 **Nested dispatch, safely.** `context.CreateScope()` gives a handler an isolated child
 context with inherited cancellation for mediator calls inside handlers — the pattern
@@ -84,16 +93,17 @@ A library that only declares messages needs just the relevant `.Abstractions` pa
 ```
 compile time                    once per (message type, groups)         every dispatch
 ────────────                    ───────────────────────────────         ──────────────
-source generator         ──►    MessageRegistry ─► descriptor ─► plan  ──►  pooled context rented
-  descriptors pre-computed        │                                          │
+source generator         ──►    composition ─► selection ─► plan     ──►  pooled context rented
+  frozen composition table        │                                          │
   dispatch roots emitted          │  six fixed stages, pre-ordered           │  executor closed over runtime type
   RegisterGenerated()             │  (direct-first, weight-ordered)          │  handler resolved from calling scope
                                   └─ closed generic types pre-computed       └─ pre → main → post/exception → final
 ```
 
-- **Registry and descriptors.** Generated registration supplies pre-computed descriptors.
-  Explicit `Register<T>()` and runtime scanning feed the same registry, idempotently — the
-  three are safe to combine.
+- **Composition and selection.** The generator compiles one `FrozenComposition` per message
+  type into a process-wide table. Registration selects which of its participant rows this
+  container runs — `RegisterGenerated()` in bulk, `Register<T>()` one at a time. Selection is
+  a union, so the two are safe to combine and repeat.
 - **Pipeline plan.** Six fixed stages per message: main handlers (split direct/indirect) and
   four interceptor stages, each a pre-ordered array. Direct entries come first, then
   covariant matches ordered by weight. Group filters and `[ExcludeFromPipeline]` are applied
@@ -107,7 +117,8 @@ source generator         ──►    MessageRegistry ─► descriptor ─► p
 - [Installation](/ergosfare.docs/preview/getting-started/installation) — which packages you actually need.
 - [Quick start](/ergosfare.docs/preview/getting-started/quick-start) — a command, a query and an event, end to end.
 - [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery) — where `RegisterGenerated()` comes from.
-- [Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2) — if you are already on the stable line.
+- [Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3) — what v2.3 removed, and the replacement for each.
+- [Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2) — if you are still on the v1 line.
 
 {% aside type="note" %}
 Stuck on something? Open an issue on

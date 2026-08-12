@@ -37,7 +37,7 @@ using Stella.Ergosfare.Core.Abstractions.Attributes;
 [Group("audit")]
 public sealed class AuditTrail : ICommandPreInterceptor
 {
-    public ValueTask<object> HandleAsync(ICommand command, IExecutionContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
         _audit.Log(command);
         return ValueTask.FromResult<object>(command);
@@ -57,6 +57,24 @@ await commands.SendAsync(new DeleteProduct(id), settings);
 With a non-empty filter, **only** pipeline members carrying a matching group participate. An
 empty filter — the default — means every registered member participates.
 
+### `GroupSet` — the reusable filter
+
+A settings object per dispatch is an allocation per dispatch, and a fresh string array makes
+the grouped executor cache compare group names element-wise every time. `GroupSet` is the
+canonical form: `GroupSet.Of(...)` interns equal sequences — same names, same order, ordinal —
+so a reused filter matches on a single reference check.
+
+```csharp
+static readonly GroupSet Audit = GroupSet.Of("audit");
+
+await commands.SendAsync(new DeleteProduct(id), Audit);
+```
+
+Define it once as a static and pass it directly; every mediator facade takes a `GroupSet`
+overload. It is also an `IReadOnlyList<string>`, so it drops into the settings form —
+`settings.Filters.Groups = Audit;` — and the caches recognise it there too. `GroupSet.Empty`
+is the no-filtering default.
+
 A type can belong to several groups:
 
 ```csharp
@@ -73,8 +91,17 @@ for the message means nothing handles it. Use groups to select cross-cutting beh
 to route between handlers.
 {% /aside %}
 
-Because the group set is part of the plan cache key, a filtered dispatch is no slower than an
-unfiltered one after the first dispatch of that shape.
+Because the group set is part of the plan cache key, the filtering is resolved once per
+`(message type, group set)` and never re-walked per dispatch.
+
+{% aside type="note" %}
+**Filtering does cost the generated plan, though.** Every generated plan — staged or
+single-handler — is consulted only when the dispatch carries no groups at all, so a filtered
+dispatch always runs through the general executor. This holds whether the group names are
+constants at the call site or computed at runtime; the compiled plans have no group dimension.
+Keep group filters off your hottest messages, and use `[ExcludeFromPipeline]` instead when what
+you want is "this message skips the blanket interceptors".
+{% /aside %}
 
 ## `[ExcludeFromPipeline]` — opting a message out
 
@@ -115,7 +142,8 @@ Two things are never affected:
 | Decide at startup which handlers exist at all | [discovery keys](/ergosfare.docs/core-concepts/discovery-keys) |
 
 The last row is the one worth reading twice. Discovery keys are a **registration-time**
-decision — the handler is either in the registry or it is not. Groups are a **dispatch-time**
-decision — the handler is registered, and each call chooses whether it participates.
+decision — the container either selected the handler from the composition table or it did not.
+Groups are a **dispatch-time** decision — the handler is selected, and each call chooses
+whether it participates.
 
 Next: [Modules and extensions](/ergosfare.docs/core-components/modules-extensions).

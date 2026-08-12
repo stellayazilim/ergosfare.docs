@@ -3,7 +3,7 @@ title: "IQueryPreInterceptor"
 description: "Represents a non-generic pre-interceptor for queries in the Stella.Ergosfare pipeline."
 sidebar:
   label: "IQueryPreInterceptor"
-  order: 12
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

@@ -17,7 +17,7 @@ interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, C
 public class EventMediator : IPublisher, IEventMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events/EventMediator.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events/EventMediator.cs#L18)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -31,32 +31,15 @@ corrupt.
 
 ## Constructors
 
-### `EventMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy, IResultAdapterService?, IMessageMediator)`
+### `EventMediator(MessageDispatchEngine, IServiceProvider)`
 
 ```csharp
-public EventMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IResultAdapterService? resultAdapterService, IMessageMediator messageMediator)
+public EventMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
 ```
 
-Wraps an existing [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) — the original construction shape,
-kept for direct construction and foreign mediator implementations.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) |  |
-| `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/preview/api/core-abstractions/iresultadapterservice) |  |
-| `messageMediator` | [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) |  |
-
-### `EventMediator(MessageDispatchEngine, IServiceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy, IResultAdapterService?)`
-
-```csharp
-public EventMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IResultAdapterService? resultAdapterService)
-```
-
-Engine-backed construction: publishes go straight to the process-wide engine's
-broadcast plan with `serviceProvider` as the handler-resolution
-scope, making the facade the only object built per resolution.
+Publishes go straight to the process-wide engine's broadcast plan with
+`serviceProvider` as the handler-resolution scope, making the
+facade the only object built per resolution.
 
 **Parameters**
 
@@ -64,10 +47,31 @@ scope, making the facade the only object built per resolution.
 | --- | --- | --- |
 | `engine` | [`MessageDispatchEngine`](/ergosfare.docs/preview/api/core/messagedispatchengine) | The singleton dispatch engine. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
-| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) | Resolve strategy used to find broadcast pipelines. |
-| `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/preview/api/core-abstractions/iresultadapterservice) | Result adapters applied by broadcast strategies. |
 
 ## Methods
+
+### `PublishAsync(IEvent, ErgosfareContext, EventMediationSettings?)`
+
+```csharp
+public ValueTask PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? eventMediationSettings = null)
+```
+
+Publishes an event under an externally owned execution context — the
+nested-dispatch path: a handler opens a scope on its own context and passes the
+child here. The caller owns the context's lifetime; cancellation flows from the
+context.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event message to publish. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The externally owned execution context to publish under. |
+| `eventMediationSettings` | [`EventMediationSettings`](/ergosfare.docs/preview/api/events-abstractions/eventmediationsettings) | Optional settings for pipeline execution. |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
 ### `PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`
 
@@ -106,29 +110,6 @@ reference check. An empty set publishes the default pipeline.
 | `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) |  |
 | `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
-
-### `PublishAsync(IEvent, IExecutionContext, EventMediationSettings?)`
-
-```csharp
-public ValueTask PublishAsync(IEvent @event, IExecutionContext context, EventMediationSettings? eventMediationSettings = null)
-```
-
-Publishes an event under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context and passes the
-child here. The caller owns the context's lifetime; cancellation flows from the
-context.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event message to publish. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The externally owned execution context to publish under. |
-| `eventMediationSettings` | [`EventMediationSettings`](/ergosfare.docs/preview/api/events-abstractions/eventmediationsettings) | Optional settings for pipeline execution. |
 
 **Returns**
 

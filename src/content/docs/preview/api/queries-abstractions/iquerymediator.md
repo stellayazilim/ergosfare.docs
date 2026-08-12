@@ -3,7 +3,7 @@ title: "IQueryMediator"
 description: "Interface Stella.Ergosfare.Queries.Abstractions.IQueryMediator in the Ergosfare API reference."
 sidebar:
   label: "IQueryMediator"
-  order: 8
+  order: 11
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  
@@ -16,6 +16,36 @@ public interface IQueryMediator : IMessage
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/IQueryMediator.cs#L4)
 
 ## Methods
+
+### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, ErgosfareContext, QueryMediationSettings?)`
+
+```csharp
+ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, ErgosfareContext context, QueryMediationSettings? queryMediationSettings = null)
+```
+
+Executes a query under an externally owned execution context — the
+nested-dispatch path: a handler opens a scope on its own context
+(`using var scope = context.CreateScope();`) and passes
+`scope.Context` here. The caller owns the context's lifetime;
+cancellation flows from the context.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQueryResult` | The type of the result returned by the query. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IQuery<TQueryResult>` | The query to be executed. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The externally owned execution context to dispatch under. |
+| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/preview/api/queries-abstractions/querymediationsettings) | Optional mediation settings (groups etc.). |
+
+**Returns**
+
+`ValueTask<TQueryResult>`
 
 ### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, GroupSet, CancellationToken)`
 
@@ -42,36 +72,6 @@ foreign mediator implementations keep working unchanged.
 | `query` | `IQuery<TQueryResult>` | The query to execute. |
 | `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The canonical group filter; [`GroupSet.Empty`](/ergosfare.docs/preview/api/core-abstractions/groupset#empty) dispatches the default pipeline. |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
-
-**Returns**
-
-`ValueTask<TQueryResult>`
-
-### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, IExecutionContext, QueryMediationSettings?)`
-
-```csharp
-ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, IExecutionContext context, QueryMediationSettings? queryMediationSettings = null)
-```
-
-Executes a query under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context
-(`using var scope = context.CreateScope();`) and passes
-`scope.Context` here. The caller owns the context's lifetime;
-cancellation flows from the context.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TQueryResult` | The type of the result returned by the query. |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `query` | `IQuery<TQueryResult>` | The query to be executed. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The externally owned execution context to dispatch under. |
-| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/preview/api/queries-abstractions/querymediationsettings) | Optional mediation settings (groups etc.). |
 
 **Returns**
 

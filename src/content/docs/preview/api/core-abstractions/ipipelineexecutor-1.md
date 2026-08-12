@@ -3,7 +3,7 @@ title: "IPipelineExecutor<TResult>"
 description: "A result-producing message pipeline closed over its concrete message type; see IPipelineExecutor."
 sidebar:
   label: "IPipelineExecutor<TResult>"
-  order: 15
+  order: 11
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -26,10 +26,10 @@ public interface IPipelineExecutor<TResult>
 
 ## Methods
 
-### `Execute(object, IExecutionContext, IServiceProvider)`
+### `Execute(object, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-ValueTask<TResult> Execute(object message, IExecutionContext context, IServiceProvider serviceProvider)
+ValueTask<TResult> Execute(object message, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
 Executes the void pipeline for `message`.
@@ -39,7 +39,7 @@ Executes the void pipeline for `message`.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance; its runtime type is the executor's closed message type (or derived). |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The execution context for this dispatch. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for this dispatch. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope the dispatch runs in. |
 
 **Returns**

@@ -3,7 +3,7 @@ title: "IMessageResultRootVisitor<TReturn, TState>"
 description: "Generic re-entry point for consumers of MessageResultRoot."
 sidebar:
   label: "IMessageResultRootVisitor<TReturn, TState>"
-  order: 2
+  order: 6
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  

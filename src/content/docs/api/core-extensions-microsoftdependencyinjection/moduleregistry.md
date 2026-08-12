@@ -3,7 +3,7 @@ title: "ModuleRegistry"
 description: "Represents a central registry for application modules."
 sidebar:
   label: "ModuleRegistry"
-  order: 7
+  order: 4
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection)  
@@ -16,7 +16,7 @@ Handles registration, initialization, and handler discovery for all modules.
 public class ModuleRegistry : IModuleRegistry
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistry.cs#L21)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ModuleRegistry.cs#L22)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -24,10 +24,10 @@ public class ModuleRegistry : IModuleRegistry
 
 ## Constructors
 
-### `ModuleRegistry(IServiceCollection, IMessageRegistry, IResultAdapterService)`
+### `ModuleRegistry(IServiceCollection, FrozenCompositionCatalog)`
 
 ```csharp
-public ModuleRegistry(IServiceCollection services, IMessageRegistry messageRegistry, IResultAdapterService resultAdapterService)
+public ModuleRegistry(IServiceCollection services, FrozenCompositionCatalog compositions)
 ```
 
 Represents a central registry for application modules.
@@ -38,28 +38,9 @@ Handles registration, initialization, and handler discovery for all modules.
 | Name | Type | Description |
 | --- | --- | --- |
 | `services` | [`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) |  |
-| `messageRegistry` | [`IMessageRegistry`](/ergosfare.docs/api/core-abstractions-registry/imessageregistry) |  |
-| `resultAdapterService` | [`IResultAdapterService`](/ergosfare.docs/api/core-abstractions/iresultadapterservice) |  |
+| `compositions` | [`FrozenCompositionCatalog`](/ergosfare.docs/api/core-abstractions-dispatchroots/frozencompositioncatalog) |  |
 
 ## Methods
-
-### `ConfigureResultAdapters(Action<ResultAdapterBuilder>)`
-
-```csharp
-public IModuleRegistry ConfigureResultAdapters(Action<ResultAdapterBuilder> builder)
-```
-
-Configures the result adapter pipeline using the provided builder action.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `builder` | `Action<ResultAdapterBuilder>` | An action that configures the [`ResultAdapterBuilder`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/resultadapterbuilder) with custom adapters. |
-
-**Returns**
-
-[`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The current [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) instance for fluent chaining.
 
 ### `Initialize()`
 
@@ -87,3 +68,27 @@ Registers a module with the registry.
 **Returns**
 
 [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The current [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) instance for fluent chaining.
+
+### `UseDefaultResultAdapter(Type)`
+
+```csharp
+public IModuleRegistry UseDefaultResultAdapter(Type adapterType)
+```
+
+Configures the application-wide default result adapter: the fallback consulted for
+any result slot that binds nothing more specific — no
+`[ResultAdapter]` annotation on the message and not a native
+`Result`/`Result<T>` carrier. A slot the adapter cannot serve, a
+message opting out via `[IgnoreResultAdapter]`, and an application that never
+calls this all keep the classic try/catch semantics — adapters are a recommended
+win, never a requirement.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `adapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The adapter type: a closed type implementing `IResultAdapter<TResult>`, or an open generic definition closed over each served result type (e.g. an adapter family for a foreign `Result<T>`). A public parameterless constructor is required; instances are created per served result type and cached. |
+
+**Returns**
+
+[`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The instance of the module registry for method chaining.

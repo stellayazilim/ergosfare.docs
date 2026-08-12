@@ -34,8 +34,14 @@ compiled instantiation. Dispatch roots provide them:
 public readonly record struct Ping(long Sequence) : ICommand;   // works under AOT
 ```
 
-**Descriptors are pre-computed.** Registration does not reflect over handler types to work
-out what they implement — the generator already did.
+**The composition table is compiled, not discovered.** Registration does not reflect over
+handler types to work out what they implement — the generator already did, and registration
+only names which of the compiled rows this container runs.
+
+**Participant constructors survive trimming.** Generated participant types keep the
+constructor metadata Microsoft DI needs, so activation works in a trimmed publish. The
+NativeAOT smoke covers command, query and event activation in a published native binary —
+multi-subscriber broadcast and value-type messages included.
 
 ## Setting it up
 
@@ -70,20 +76,14 @@ A clean publish is the check. Ergosfare's own surface should contribute nothing.
 
 ## What forfeits it
 
-**`RegisterFromAssembly(...)`** is annotated `[RequiresUnreferencedCode]`. It discovers types
-by reflection, which the trimmer cannot follow:
-
-```
-IL2026: Assembly scanning discovers types via reflection; trimming may remove them.
-```
-
-The warning is the point — the API is usable, and it tells you what you are giving up.
-Replace it with `RegisterGenerated()` for anything you compile yourself.
+**Runtime assembly scanning** used to, and no longer can. `RegisterFromAssembly(...)` was
+removed in v2.3, so the reflective registration path that the trimmer could not follow is
+gone from the surface entirely. Nothing to forfeit and nothing to suppress.
 
 **Open generic handlers and interceptors.** A type like
 `ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` cannot be closed at compile
-time by the generator, so it goes through the runtime fallback. If you need one in an AOT
-build, register the closed forms explicitly:
+time by the generator, so its instantiations go through the reflective `MakeGenericType`
+path. If you need one in an AOT build, select the closed forms explicitly:
 
 ```csharp
 .AddCommandModule(c => c
@@ -92,9 +92,10 @@ build, register the closed forms explicitly:
     .Register<ValidateCommands<DeleteProduct>>())
 ```
 
-**Genuine runtime plugins.** Assemblies loaded with `Assembly.LoadFrom` at runtime are
-outside AOT's model entirely — there is no compiled code for types the publish step never
-saw.
+**Genuine runtime plugins.** Assemblies loaded with `Assembly.LoadFrom` at runtime are outside
+AOT's model entirely — there is no compiled code for types the publish step never saw. They
+are outside Ergosfare's model too: the composition table is frozen at compile time, so a
+late-loaded assembly cannot contribute a message shape in any build configuration.
 
 ## Generator diagnostics matter more here
 
@@ -105,12 +106,17 @@ these as errors:
 |---|---|
 | `ERGOSG001` | A registrable type in this compilation is not accessible from generated registration code. |
 | `ERGOSG002` | A registrable type in a referenced assembly is not visible to generated code — usually an internal type without `InternalsVisibleTo`. |
+| `ERGOSG006` | The dispatched static type has no covering handler; only subtypes are handled. |
+| `ERGOSG007` | A handler exists that no dispatch site in the closure can reach. |
 
 ```xml
 <PropertyGroup>
-  <WarningsAsErrors>$(WarningsAsErrors);ERGOSG001;ERGOSG002</WarningsAsErrors>
+  <WarningsAsErrors>$(WarningsAsErrors);ERGOSG001;ERGOSG002;ERGOSG006;ERGOSG007</WarningsAsErrors>
 </PropertyGroup>
 ```
+
+The full list is on
+[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery#diagnostics).
 
 ## Cross-assembly under AOT
 

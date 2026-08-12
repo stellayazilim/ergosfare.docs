@@ -3,7 +3,7 @@ title: "IQueryFinalInterceptor"
 description: "Represents a non-generic final interceptor for queries, allowing custom logic to execute after all query handlers and other interceptors have completed."
 sidebar:
   label: "IQueryFinalInterceptor"
-  order: 5
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

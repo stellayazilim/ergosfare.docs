@@ -3,7 +3,7 @@ title: "ResultPlanRoot<TMessage, TResult, THandler>"
 description: "The concrete closure of ResultPlanRoot; instantiated by generated code."
 sidebar:
   label: "ResultPlanRoot<TMessage, TResult, THandler>"
-  order: 11
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  

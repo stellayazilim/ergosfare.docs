@@ -3,7 +3,7 @@ title: "IStreamQueryHandler<TQuery, TResult>"
 description: "Represents a type-safe asynchronous handler for a stream query of type TQuery, producing a stream of results of type TResult."
 sidebar:
   label: "IStreamQueryHandler<TQuery, TResult>"
-  order: 16
+  order: 19
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  

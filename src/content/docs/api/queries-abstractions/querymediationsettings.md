@@ -3,7 +3,7 @@ title: "QueryMediationSettings"
 description: "Represents the configuration settings that control query mediation behavior."
 sidebar:
   label: "QueryMediationSettings"
-  order: 17
+  order: 20
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  

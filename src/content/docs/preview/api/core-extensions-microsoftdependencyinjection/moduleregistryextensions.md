@@ -3,7 +3,7 @@ title: "ModuleRegistryExtensions"
 description: "Provides extension methods for configuring and registering modules with an IModuleRegistry."
 sidebar:
   label: "ModuleRegistryExtensions"
-  order: 8
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection)  
@@ -20,25 +20,6 @@ public static class ModuleRegistryExtensions
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
 ## Methods
-
-### `AddCoreModule(IModuleRegistry, Action<IModuleBuilder>)`
-
-```csharp
-public static IModuleRegistry AddCoreModule(this IModuleRegistry moduleRegistry, Action<IModuleBuilder> builderAction)
-```
-
-Adds the core messaging module to the specified module registry.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `moduleRegistry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) instance to which the core messaging module will be registered. |
-| `builderAction` | `Action<IModuleBuilder>` | An action that configures the core messaging module using a [`CoreModuleBuilder`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/coremodulebuilder). |
-
-**Returns**
-
-[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) instance, enabling fluent chaining.
 
 ### `ForceMemoizedHandlers(IModuleRegistry)`
 

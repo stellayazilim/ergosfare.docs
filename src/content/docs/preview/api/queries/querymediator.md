@@ -17,7 +17,7 @@ supporting pre/post/final interceptors and result adapters.
 public class QueryMediator : IQueryMediator, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries/QueryMediator.cs#L13)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries/QueryMediator.cs#L12)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -25,29 +25,13 @@ public class QueryMediator : IQueryMediator, IMessage
 
 ## Constructors
 
-### `QueryMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy, IMessageMediator)`
+### `QueryMediator(MessageDispatchEngine, IServiceProvider)`
 
 ```csharp
-public QueryMediator(ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy, IMessageMediator messageMediator)
+public QueryMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
 ```
 
-Wraps an existing [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) — the original construction shape,
-kept for direct construction and foreign mediator implementations.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) |  |
-| `messageMediator` | [`IMessageMediator`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator) |  |
-
-### `QueryMediator(MessageDispatchEngine, IServiceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy)`
-
-```csharp
-public QueryMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider, ActualTypeOrFirstAssignableTypeMessageResolveStrategy messageResolveStrategy)
-```
-
-Engine-backed construction: queries go straight to the process-wide engine with
+Queries go straight to the process-wide engine with
 `serviceProvider` as the handler-resolution scope, making the
 facade the only object built per resolution.
 
@@ -57,9 +41,36 @@ facade the only object built per resolution.
 | --- | --- | --- |
 | `engine` | [`MessageDispatchEngine`](/ergosfare.docs/preview/api/core/messagedispatchengine) | The singleton dispatch engine. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
-| `messageResolveStrategy` | [`ActualTypeOrFirstAssignableTypeMessageResolveStrategy`](/ergosfare.docs/preview/api/core-abstractions-strategies/actualtypeorfirstassignabletypemessageresolvestrategy) | Resolve strategy used by the streaming path. |
 
 ## Methods
+
+### `QueryAsync<TResult>(IQuery<TResult>, ErgosfareContext, QueryMediationSettings?)`
+
+```csharp
+public ValueTask<TResult> QueryAsync<TResult>(IQuery<TResult> query, ErgosfareContext context, QueryMediationSettings? queryMediationSettings = null)
+```
+
+Executes a query under an externally owned execution context — the nested-dispatch
+path: a handler opens a scope on its own context and passes the child here. The
+caller owns the context's lifetime; cancellation flows from the context.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IQuery<TResult>` |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
+| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/preview/api/queries-abstractions/querymediationsettings) |  |
+
+**Returns**
+
+`ValueTask<TResult>`
 
 ### `QueryAsync<TResult>(IQuery<TResult>, GroupSet, CancellationToken)`
 
@@ -84,34 +95,6 @@ reference check. An empty set routes to the group-less fast lane.
 | `query` | `IQuery<TResult>` |  |
 | `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
-
-### `QueryAsync<TResult>(IQuery<TResult>, IExecutionContext, QueryMediationSettings?)`
-
-```csharp
-public ValueTask<TResult> QueryAsync<TResult>(IQuery<TResult> query, IExecutionContext context, QueryMediationSettings? queryMediationSettings = null)
-```
-
-Executes a query under an externally owned execution context — the nested-dispatch
-path: a handler opens a scope on its own context and passes the child here. The
-caller owns the context's lifetime; cancellation flows from the context.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `query` | `IQuery<TResult>` |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
-| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/preview/api/queries-abstractions/querymediationsettings) |  |
 
 **Returns**
 

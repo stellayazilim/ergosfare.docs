@@ -30,14 +30,14 @@ public interface IAsyncPostInterceptor<in TMessage, in TResult> : IPostIntercept
 
 This is a standalone asynchronous contract — it does not inherit the synchronous
 [`IPostInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ipostinterceptor-2), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncPostInterceptor<TMessage, TResult>.HandleAsync(TMessage, TResult, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncpostinterceptor-2#handleasynctmessage-tresult-iexecutioncontext) directly.
+implementation: the pipeline invokes [`IAsyncPostInterceptor<TMessage, TResult>.HandleAsync(TMessage, TResult, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncpostinterceptor-2#handleasynctmessage-tresult-ergosfarecontext) directly.
 
 ## Methods
 
-### `HandleAsync(TMessage, TResult, IExecutionContext)`
+### `HandleAsync(TMessage, TResult, ErgosfareContext)`
 
 ```csharp
-ValueTask<object> HandleAsync(TMessage message, TResult messageResult, IExecutionContext context)
+ValueTask<object> HandleAsync(TMessage message, TResult messageResult, ErgosfareContext context)
 ```
 
 Handles a message asynchronously after it has been processed by the main handler.
@@ -48,7 +48,7 @@ Handles a message asynchronously after it has been processed by the main handler
 | --- | --- | --- |
 | `message` | `TMessage` | The message that was handled by the main handler. |
 | `messageResult` | `TResult` | The result produced by the main handler. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

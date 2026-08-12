@@ -15,7 +15,7 @@ public sealed class AuditCreation : ICommandPostInterceptor<CreateProduct, Guid>
     public AuditCreation(IAuditLog audit) => _audit = audit;
 
     public ValueTask<Guid> HandleAsync(
-        CreateProduct command, Guid result, IExecutionContext context)
+        CreateProduct command, Guid result, ErgosfareContext context)
     {
         _audit.Record("product.created", result);
         return ValueTask.FromResult(result);
@@ -24,9 +24,11 @@ public sealed class AuditCreation : ICommandPostInterceptor<CreateProduct, Guid>
 ```
 
 {% aside type="caution" %}
-Post-interceptors run **only on success**. If the handler threw, or a pre-interceptor called
-`Abort()`, the post stage is skipped entirely. Anything that must run regardless belongs in a
-[final interceptor](/ergosfare.docs/cross-cutting-concerns/final-interceptors).
+Post-interceptors run **only on success**. If the handler threw, the post stage is skipped and
+the [exception stage](/ergosfare.docs/cross-cutting-concerns/exception-interceptors) takes its
+place; anything that must run either way belongs in a
+[final interceptor](/ergosfare.docs/cross-cutting-concerns/final-interceptors). After an
+`Abort()` nothing downstream runs at all — not the post stage, and not the final stage.
 {% /aside %}
 
 ## Shaping a result
@@ -37,7 +39,7 @@ The typed two-parameter form is the one to reach for when you are transforming:
 public sealed class MaskSecrets : IQueryPostInterceptor<GetUser, UserDto>
 {
     public ValueTask<UserDto> HandleAsync(
-        GetUser query, UserDto result, IExecutionContext context)
+        GetUser query, UserDto result, ErgosfareContext context)
         => ValueTask.FromResult(result with { Email = Mask(result.Email) });
 }
 ```
@@ -57,7 +59,7 @@ public sealed class CacheProduct : IQueryPostInterceptor<GetProduct, Product?>
     public CacheProduct(IMemoryCache cache) => _cache = cache;
 
     public ValueTask<Product?> HandleAsync(
-        GetProduct query, Product? result, IExecutionContext context)
+        GetProduct query, Product? result, ErgosfareContext context)
     {
         if (result is not null)
             _cache.Set(query.Id, result, TimeSpan.FromMinutes(5));
@@ -67,8 +69,9 @@ public sealed class CacheProduct : IQueryPostInterceptor<GetProduct, Product?>
 }
 ```
 
-The read side belongs in a pre-interceptor that calls `context.Abort(cached)` on a hit — that
-skips the handler entirely.
+The read side has no interceptor to live in: since v2.3 nothing before the handler can supply
+the pipeline's result — `Abort` cuts the pipeline rather than completing it. Read the cache in
+the handler, or in a handler that decorates the real one.
 
 ## Blanket auditing
 
@@ -79,7 +82,7 @@ The non-generic form applies to every command in the module. It receives the res
 public sealed class RecordOutcome : ICommandPostInterceptor
 {
     public ValueTask<object> HandleAsync(
-        ICommand command, object result, IExecutionContext context)
+        ICommand command, object result, ErgosfareContext context)
     {
         _metrics.Increment($"command.{command.GetType().Name}.ok");
         return ValueTask.FromResult(result);
@@ -99,7 +102,7 @@ the handler invocation rather than a value:
 public sealed class LogPublished : IEventPostInterceptor<OrderPlaced>
 {
     public ValueTask<object> HandleAsync(
-        OrderPlaced @event, ValueTask result, IExecutionContext context)
+        OrderPlaced @event, ValueTask result, ErgosfareContext context)
     {
         _logger.LogInformation("Published {Event}", @event.Id);
         return ValueTask.FromResult<object>(result);
@@ -113,10 +116,10 @@ There is no two-parameter typed form for event post-interceptors, for the same r
 
 | Interface | `HandleAsync` |
 |---|---|
-| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, IExecutionContext)` |
-| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, IExecutionContext)` |
-| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, IExecutionContext)` |
+| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, ErgosfareContext)` |
+| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, ErgosfareContext)` |
+| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, ErgosfareContext)` |
 | `IQueryPostInterceptor` / `<TQuery>` / `<TQuery, TResult>` | as above |
-| `IEventPostInterceptor` / `<TEvent>` | `ValueTask<object>(TEvent, ValueTask, IExecutionContext)` |
+| `IEventPostInterceptor` / `<TEvent>` | `ValueTask<object>(TEvent, ValueTask, ErgosfareContext)` |
 
 Next: [Exception interceptors](/ergosfare.docs/cross-cutting-concerns/exception-interceptors).

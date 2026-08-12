@@ -3,7 +3,7 @@ title: "IFinalInterceptor"
 description: "Non-generic marker root for final interceptors."
 sidebar:
   label: "IFinalInterceptor"
-  order: 12
+  order: 14
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  

@@ -3,7 +3,7 @@ title: "MessageRoot"
 description: "A dispatch root closed over a concrete message type."
 sidebar:
   label: "MessageRoot"
-  order: 8
+  order: 12
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  

@@ -1,6 +1,6 @@
 ---
 title: Performance
-description: Where the allocation savings come from, the benchmark numbers, and the shape where Ergosfare does not win.
+description: Where the time and allocation savings come from, the measured per-dispatch numbers, and how to read them honestly.
 ---
 
 The design premise is that all dispatch-shape work happens at compile time or once per
@@ -8,18 +8,23 @@ message type, never per dispatch. This page shows what that buys and what it doe
 
 ## Where the work goes
 
-**Compile time.** The source generator pre-computes handler descriptors and emits dispatch
-roots that close the runtime's generic executor and invoker types over each message. Nothing
-has to be discovered or constructed at startup.
+**Compile time.** The source generator compiles the frozen composition table and emits
+dispatch roots that close the runtime's generic executor and invoker types over each message.
+Nothing has to be discovered or constructed at startup.
 
-**Once per `(message type, group set)`.** The pipeline plan is built and cached
-process-wide: six fixed stages, each a pre-ordered array, with covariant matching resolved
-and generic handler types already closed. Group filters and `[ExcludeFromPipeline]` are
-applied here, once.
+**Once per `(message type, group set)`.** The pipeline plan is built and cached process-wide:
+six fixed stages, each a pre-ordered array, with covariant matching resolved and generic
+handler types already closed. Group filters and `[ExcludeFromPipeline]` are applied here,
+once.
 
 **Every dispatch.** Rent a pooled context, look up the cached executor for the message's
 runtime type, walk the plan, resolve handler *instances* from the calling scope, return the
-context. No reflection, no `MakeGenericType`, no registry scan, no `AsyncLocal`.
+context. No reflection, no `MakeGenericType`, no assembly scan, no `AsyncLocal`.
+
+The executor holds its own resolved plan. Because the composition table is frozen, there is no
+version to re-validate and no invalidation path — a selection made before the container was
+built cannot change afterwards. Group-less dispatch, which is nearly all of it, is keyed by
+message type alone, so no group set is materialized and no composite key is hashed.
 
 ## Pooled contexts
 
@@ -28,38 +33,55 @@ the common same-thread cycle — and returned on completion. A synchronous fast 
 async state machine entirely when the whole pipeline completes synchronously.
 
 This is the single largest contributor to the allocation numbers below, and it is the source
-of the one rule the API imposes: a context is valid only for the duration of its dispatch.
-See [Execution context](/ergosfare.docs/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+of the one rule the API imposes: a pooled context is valid only for the duration of its
+dispatch. See
+[Execution context](/ergosfare.docs/core-concepts/execution-context#pooling-and-the-lifetime-rule).
 
 ## Typed all the way down
 
 Executors and invokers are closed over each message's concrete runtime type, so handlers are
 invoked through their typed members with no object-typed bridge anywhere. `MakeGenericType`
-survives only as a fallback for open generics and runtime-only registrations.
+survives only as a fallback for message types without a generated root, chiefly open generics.
 
-## Benchmarks
+## Generated plans
 
-BenchmarkDotNet with `[MemoryDiagnoser]`. Each operation performs **100 000 sequential
-dispatches** of a no-op handler.
+Single-handler command and query pipelines receive **generated plans**: straight-line typed
+calls with no strategy object and no interceptor-count checks. Eligible transient handlers can
+go further and receive direct-construction factories — including provider-based factories for
+constructor dependencies — while runtime gates preserve the configured DI lifetime and any
+`ForceMemoizedHandlers()` override.
 
-Environment: BenchmarkDotNet v0.15.8, Windows 11, AMD Ryzen 7 7800X3D, .NET 9.0.11
-(RyuJIT x86-64-v4). Measured on the `preview` branch, 2026-07-24.
+Interceptor-bearing pipelines receive generated **staged** plans covering the pre, handler,
+post, exception and final stages. When a composition does not match what a plan assumes, only
+the optimization is given up: dispatch falls back to the general executor and the result is
+unchanged.
 
-Two shapes are measured, for three mediators:
+## Mediator lifetime
 
-- **Typical usage** — how an application normally sends messages: the library's public
-  mediator interface, one shared DI scope for the whole loop.
-- **Web-server shape** — a fresh DI scope for every dispatch, mimicking one scope per HTTP
-  request, which is the shape ASP.NET Core gives you.
+The mediator facades — `ICommandMediator`, `IQueryMediator`, `IEventMediator`,
+`IMessageMediator` — are registered **transient**. They are stateless; the only thing they
+capture is the provider that resolved them, and a transient service receives the resolving
+scope's provider exactly as a scoped one does. Handlers still resolve from the calling scope.
 
-| Scenario (100k dispatches/op) | Mean | Allocated | Gen0/1k ops |
-|---|---:|---:|---:|
-| **Ergosfare** — typical usage | 6.87 ms | **2.29 MB** | 47 |
-| **MediatR** — typical usage | 6.09 ms | 18.31 MB | 375 |
-| **LiteBus** — typical usage | 146.96 ms | 714.87 MB | 14 750 |
-| **Ergosfare** — web-server shape | 18.81 ms | 38.91 MB | 813 |
-| **MediatR** — web-server shape | 10.09 ms | 33.57 MB | 688 |
-| Ergosfare — internal engine path (reference row) | 6.49 ms | 5.34 MB | 109 |
+The difference is what registration costs. Resolving a scoped service takes the scope's lock
+and writes the instance into the scope's resolved-services dictionary — a cost that amortizes
+across a long-lived scope, and never amortizes at all when every dispatch gets its own scope.
+That is the request-shaped case, and it is why these facades are transient.
+
+## Measured shapes
+
+Per-dispatch, with `[MemoryDiagnoser]`, on the v2.7.0-preview benchmark tree
+(.NET 9.0.11, AMD Ryzen 7 7800X3D):
+
+| Shape | Mean | Allocated |
+|---|---:|---:|
+| Generated no-result command | 19.9 ns | 24 B |
+| Generated result query | 24.0 ns | 24 B |
+| Five-participant query pipeline | 120.2 ns | 96 B |
+| Two-subscriber event | 50.5 ns | 48 B |
+
+Request-shaped rows — the ones that create a DI scope per dispatch and resolve a mediator
+inside it — stayed ahead of the equivalent MediatR rows.
 
 Reproduce with:
 
@@ -67,48 +89,43 @@ Reproduce with:
 dotnet run -c Release -f net9.0 --project test/Stella.Ergosfare.Benchmarking
 ```
 
-## Reading the table honestly
+{% aside type="note" %}
+**The cross-library comparison table is being re-measured.** The benchmark project was
+restructured for per-dispatch shapes during the v2 preview cycle, and the published
+side-by-side table predates that. Rather than carry numbers whose benchmark methods no longer
+exist, this page states only what was measured on the current shape. The comparison returns
+when it has been re-run against the v2.3.0 tree.
+{% /aside %}
 
-**The typical-usage rows are the headline.** At comparable latency, Ergosfare allocates about
-an eighth of MediatR's garbage, with Gen0 collection pressure down accordingly. That is the
-effect of pooled contexts and the `ValueTask`-first pipeline.
+## Reading these honestly
 
-**MediatR wins the web-server shape**, on both time and allocation. When every dispatch gets
-a fresh DI scope, scope creation dominates and Ergosfare's per-dispatch savings are swamped
-by resolving handlers from a cold scope. If your workload is one dispatch per HTTP request,
-this row is the one that describes you — and the difference is not large in either direction
-next to the cost of the request itself.
+**They are a floor, not a forecast.** A no-op handler in a tight loop measures the dispatch
+machinery and nothing else. Your handler does work; that work will dominate, and a 20 ns
+dispatch is noise beside a database round trip. What the numbers tell you is that the mediator
+is not where your latency goes.
 
-**The internal engine path is a reference row, not a recommendation.** It drives
-`IMessageMediator` directly with pre-built options, bypassing the public facade and its pooled
-context. It exists to show the facade adds no hidden cost. You would not write application
-code this way.
-
-**LiteBus is a reference point, not a target.** Ergosfare's API surface was heavily inspired
-by it, but the runtime is an independent implementation.
+**Allocation is the durable margin.** Pooled contexts, a `ValueTask`-first surface and
+generated plans keep per-dispatch allocation in the tens of bytes. Time margins move with the
+machine, the JIT and the DI shape; the allocation shape moves far less.
 
 **Transient handlers allocate on purpose.** One instance per dispatch is what a transient
 registration declares. Dispatch-heavy single-scope loops that want instance reuse should
-register handlers as singletons or call `ForceMemoizedHandlers()`.
+register handlers as singletons or call `ForceMemoizedHandlers()` — which drops scoped and
+transient dependency semantics in exchange, so read
+[Modules and extensions](/ergosfare.docs/core-components/modules-extensions#extension-points)
+before reaching for it.
 
-## Row to method mapping
-
-For matching against your own runs:
-
-| Table row | BenchmarkDotNet method |
-|---|---|
-| Ergosfare — typical usage | `StellaErgosfare_PublicApi` |
-| MediatR — typical usage | `MediatR` |
-| LiteBus — typical usage | `LiteBus_PublicApi` |
-| Ergosfare — web-server shape | `StellaErgosfare_PublicApi_ScopePerDispatch` |
-| MediatR — web-server shape | `MediatR_ScopePerDispatch` |
-| Ergosfare — internal engine path | `StellaErgosfare` |
+**Event publishing and streaming queries are their own shapes.** `PublishAsync` broadcasts to
+every matching handler by design, and `StreamAsync` returns an enumerable the caller drains
+after the call returns. Neither is described by the command and query rows above.
 
 ## Getting the most out of it
 
-- Use [`RegisterGenerated()`](/ergosfare.docs/core-concepts/compile-time-discovery). Runtime
-  scanning costs startup time and forfeits the AOT guarantees.
+- Use [`RegisterGenerated()`](/ergosfare.docs/core-concepts/compile-time-discovery) — it is
+  also the only registration path that produces generated plans and dispatch roots.
 - Return `ValueTask` without `async` when the handler completes synchronously.
+- Give handlers a single public constructor, so generated plans can construct them directly
+  rather than falling back to the container (`ERGOSG003` tells you when they cannot).
 - Register stateless handlers as singletons.
 - Keep interceptors off high-volume messages with
   [`[ExcludeFromPipeline]`](/ergosfare.docs/cross-cutting-concerns/groups-and-weights).

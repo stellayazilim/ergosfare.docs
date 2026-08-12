@@ -3,7 +3,7 @@ title: "IQueryPostInterceptor<TQuery>"
 description: "Represents a result-agnostic post-interceptor for a specific query type in the Stella.Ergosfare pipeline."
 sidebar:
   label: "IQueryPostInterceptor<TQuery>"
-  order: 11
+  order: 14
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

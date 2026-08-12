@@ -32,10 +32,10 @@ exactly — the mediator delegates here, passing its own captured provider.
 
 ## Methods
 
-### `DispatchAsync(object, IExecutionContext, IServiceProvider, IEnumerable<string>?)`
+### `DispatchAsync(object, ErgosfareContext, IServiceProvider, IEnumerable<string>?)`
 
 ```csharp
-public ValueTask DispatchAsync(object message, IExecutionContext context, IServiceProvider serviceProvider, IEnumerable<string>? groups = null)
+public ValueTask DispatchAsync(object message, ErgosfareContext context, IServiceProvider serviceProvider, IEnumerable<string>? groups = null)
 ```
 
 Dispatches a void message under a caller-owned execution context (typically a
@@ -47,7 +47,7 @@ returned here.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message to dispatch. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The externally owned execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The externally owned execution context. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The scope provider handlers resolve against. |
 | `groups` | `IEnumerable<string>` | Optional group filters applied to the pipeline. |
 
@@ -78,14 +78,14 @@ against `serviceProvider` — the caller's scope.
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
-### `DispatchAsync<TResult>(object, IExecutionContext, IServiceProvider, IEnumerable<string>?)`
+### `DispatchAsync<TResult>(object, ErgosfareContext, IServiceProvider, IEnumerable<string>?)`
 
 ```csharp
-public ValueTask<TResult> DispatchAsync<TResult>(object message, IExecutionContext context, IServiceProvider serviceProvider, IEnumerable<string>? groups = null)
+public ValueTask<TResult> DispatchAsync<TResult>(object message, ErgosfareContext context, IServiceProvider serviceProvider, IEnumerable<string>? groups = null)
 ```
 
 Result-producing counterpart of
-[`MessageDispatchEngine.DispatchAsync(object, IExecutionContext, IServiceProvider, IEnumerable<string>?)`](/ergosfare.docs/preview/api/core/messagedispatchengine#dispatchasyncobject-iexecutioncontext-iserviceprovider-ienumerablestring).
+[`MessageDispatchEngine.DispatchAsync(object, ErgosfareContext, IServiceProvider, IEnumerable<string>?)`](/ergosfare.docs/preview/api/core/messagedispatchengine#dispatchasyncobject-ergosfarecontext-iserviceprovider-ienumerablestring).
 
 **Type parameters**
 
@@ -98,7 +98,7 @@ Result-producing counterpart of
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
 | `groups` | `IEnumerable<string>` |  |
 

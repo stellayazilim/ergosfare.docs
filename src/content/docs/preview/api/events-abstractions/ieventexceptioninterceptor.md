@@ -13,10 +13,10 @@ Represents a non-generic exception interceptor for events, allowing custom logic
 to execute when an exception occurs during the handling of any [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent).
 
 ```csharp
-public interface IEventExceptionInterceptor : IEvent, IMessage, IAsyncExceptionInterceptor<IEvent, ValueTask>, IExceptionInterceptor
+public interface IEventExceptionInterceptor : IEvent, IMessage, IAsyncExceptionInterceptor<IEvent, Unit>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L23)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L24)
 
 ## Remarks
 

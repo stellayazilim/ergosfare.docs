@@ -5,10 +5,12 @@ description: How the Ergosfare source generator finds handlers, what it emits, a
 
 Most mediators discover handlers by reflecting over assemblies at startup. Ergosfare does it
 at compile time: a Roslyn source generator walks your compilation, finds everything
-registrable, pre-computes descriptors, and writes a registration method into your project.
+registrable, compiles the relationships into a **frozen composition table**, and writes a
+registration method into your project.
 
 The result is a startup path with **no reflection over handler types at all**, and a build
-where the compiler — not the runtime — tells you if something cannot be registered.
+where the compiler — not the runtime — tells you if something cannot be registered. This is
+the only discovery path: since v2.3 there is no runtime scanning to fall back to.
 
 ## What the generator emits
 
@@ -79,7 +81,7 @@ GeneratedDispatchRoots.AddResult<CreateProduct, Guid>();
 Two things fall out of this:
 
 - The runtime constructs executors without `MakeGenericType`. That call survives only as a
-  fallback for open generics and runtime-only registrations.
+  fallback for message types without a generated root, chiefly open generics.
 - Native AOT gets a **static anchor for every generic instantiation** — including
   `record struct` messages, which shared generic code cannot cover and which would otherwise
   fail at runtime in a trimmed build.
@@ -94,12 +96,12 @@ registration code of its own — its handlers register through the consuming app
 generated code:
 
 ```csharp
-// In a class library. No AddErgosfare, no RegisterFromAssembly, nothing.
+// In a class library. No AddErgosfare, no registration code, nothing.
 public sealed record LibGreet(string Name) : ICommand<string>;
 
 public sealed class LibGreetHandler : ICommandHandler<LibGreet, string>
 {
-    public ValueTask<string> HandleAsync(LibGreet message, IExecutionContext context)
+    public ValueTask<string> HandleAsync(LibGreet message, ErgosfareContext context)
         => new($"lib says hi, {message.Name}");
 }
 ```
@@ -137,25 +139,93 @@ so the library's own contracts are never scanned — even though they share the 
 
 ## Diagnostics
 
-The generator refuses to silently diverge from what runtime scanning would have registered.
-When it finds a registrable type it cannot name from generated code, it says so:
+Because discovery happens at compile time, the generator can see problems a runtime scanner
+could only fail on. It reports them rather than registering something surprising.
 
-| ID | Meaning |
-|---|---|
-| `ERGOSG001` | A registrable type in this compilation is not accessible from the generated registration code — usually a private or protected nested type. |
-| `ERGOSG002` | A registrable type in a referenced assembly is not visible to generated registration code — usually an internal type without `InternalsVisibleTo`. |
+**Visibility — the type cannot be named**
 
-Both are warnings, not errors: the build continues and the type is simply not registered.
-Treat them as real — a handler that silently never runs is worse than a build break.
+| ID | Severity | Meaning |
+|---|---|---|
+| `ERGOSG001` | Warning | A registrable type in this compilation is private, protected or file-local, so generated registration cannot name it. |
+| `ERGOSG002` | Warning | A registrable type in a referenced assembly is not visible — usually internal without `InternalsVisibleTo`. |
 
-## When to use runtime scanning instead
+**Reachability — the dispatch and the handler do not meet**
 
-`RegisterFromAssembly(assembly)` still exists and is the right choice when the assembly is
-not known at compile time — genuine plugin scenarios where you `Assembly.LoadFrom` at
-runtime. Everything else should be generated.
+| ID | Severity | Meaning |
+|---|---|---|
+| `ERGOSG005` | Error | This dispatch can never reach a handler: nothing in the closure handles the message or any of its subtypes. It would throw `NoHandlerFoundException`. |
+| `ERGOSG006` | Warning | The dispatched static type has no covering handler; only subtypes are handled. |
+| `ERGOSG007` | Warning | A handler exists that no dispatch site in the closure can deliver to. |
+| `ERGOSG008` | Info | An unreachable handler was trimmed out of generated registration. |
+| `ERGOSG009` | Info | The dispatch site's static message type is opaque, so nothing can be proved about it. |
+| `ERGOSG010` | Error | Several main handlers claim the same message at the same priority level — see [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism). |
 
-Both paths honour the same `[DiscoveryKey]` and `[ExcludeFromDiscovery]` attributes, so
-mixing them cannot produce two different registration sets for the same code.
+**Construction — the plan falls back to the container**
+
+| ID | Severity | Meaning |
+|---|---|---|
+| `ERGOSG003` | Info | The handler has more than one public constructor, so generated plans cannot prove which to call and keep it on the container path. |
+| `ERGOSG004` | Info | `[FromServices]` on a constructor parameter has no effect — constructor injection already resolves from the container. |
+
+**Result adapters** (the `ERGOEXP001` surface)
+
+| ID | Severity | Meaning |
+|---|---|---|
+| `ERGOSG011` | Error | The `[ResultAdapter]` declared on a message can never bind to its declared result type. |
+| `ERGOSG012` | Error | A message carries both `[ResultAdapter]` and `[IgnoreResultAdapter]`. |
+| `ERGOSG013` | Error | The message's result type is not served by the configured default adapter. |
+| `ERGOSG014` | Warning | An opted-out message keeps a throwing pipeline while the default adapter cannot serve its result. |
+
+Take the warnings seriously — a handler that silently never runs is worse than a build break.
+
+## The composition root
+
+The reachability diagnostics (`ERGOSG005`–`ERGOSG008`) only mean anything where the closure is
+complete: a library compiled on its own cannot know which of its handlers the application will
+dispatch to. So the generator judges reachability in the **composition root** — by default, any
+project whose output is an executable. Libraries are not judged.
+
+Override it when the default guesses wrong:
+
+```xml
+<PropertyGroup>
+  <!-- a library that composes the final pipeline: judge it -->
+  <ErgosfareCompositionRoot>true</ErgosfareCompositionRoot>
+
+  <!-- an executable that is not the real root (a test host, a tool): stay quiet -->
+  <ErgosfareCompositionRoot>false</ErgosfareCompositionRoot>
+</PropertyGroup>
+```
+
+## Trimming unreachable handlers
+
+In a composition root, a handler no dispatch site can reach is dead weight the linker cannot
+prove is dead — it is named by generated registration, so it stays. Opt in and the generator
+stops naming it:
+
+```xml
+<PropertyGroup>
+  <ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
+</PropertyGroup>
+```
+
+Each trimmed handler is reported as `ERGOSG008` (Info), so the build still says what it
+dropped. This is opt-in for a reason: the judgment is only as complete as the dispatch
+manifests, and a handler reached through a path the generator cannot see would be trimmed out
+of a build that needs it. Leave it off unless you are chasing size in a
+[trimmed or AOT publish](/ergosfare.docs/preview/advanced/aot-and-trimming), where `ERGOSG007` is
+already telling you the handler is unreachable.
+
+## There is no runtime scanning
+
+`RegisterFromAssembly(assembly)` was removed in v2.3. An assembly loaded with
+`Assembly.LoadFrom` after compilation cannot append a message shape to the frozen composition
+table, and `Register<T>()` selects only types the table already holds.
+
+A genuine plugin host has one supported shape: compile the plugin contracts into the closure
+the generator sees, and let the host choose at registration time which of them to select —
+with `RegisterGenerated(pattern)` over [discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys),
+or explicit `Register<T>()` calls behind your own feature flag.
 
 Next: [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) — registering only part
 of what was discovered.

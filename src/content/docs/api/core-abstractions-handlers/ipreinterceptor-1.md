@@ -3,7 +3,7 @@ title: "IPreInterceptor<TMessage>"
 description: "Synchronous pre-interceptor contract for messages of type TMessage."
 sidebar:
   label: "IPreInterceptor<TMessage>"
-  order: 19
+  order: 21
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
@@ -32,10 +32,10 @@ its own typed member with no object-typed bridge between them.
 
 ## Methods
 
-### `Handle(TMessage, IExecutionContext)`
+### `Handle(TMessage, ErgosfareContext)`
 
 ```csharp
-object Handle(TMessage message, IExecutionContext context)
+object Handle(TMessage message, ErgosfareContext context)
 ```
 
 Handles a message before it reaches the main handler.
@@ -45,7 +45,7 @@ Handles a message before it reaches the main handler.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The input message to process. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

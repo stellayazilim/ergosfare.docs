@@ -3,7 +3,7 @@ title: "IEventPostInterceptor"
 description: "Represents a non-generic post-interceptor for events, allowing custom logic to execute after any event handlers have been invoked."
 sidebar:
   label: "IEventPostInterceptor"
-  order: 11
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
@@ -31,10 +31,10 @@ this interceptor automatically in the event mediation pipeline.
 
 ## Methods
 
-### `HandleAsync(IEvent, ValueTask, IExecutionContext)`
+### `HandleAsync(IEvent, ValueTask, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(IEvent @event, ValueTask result, IExecutionContext executionContext)
+ValueTask HandleAsync(IEvent @event, ValueTask result, ErgosfareContext executionContext)
 ```
 
 Handles the event asynchronously after the main handlers have executed.
@@ -45,7 +45,7 @@ Handles the event asynchronously after the main handlers have executed.
 | --- | --- | --- |
 | `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event being processed. |
 | `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | The result returned by the main handlers, or `null` if the event does not produce a result. |
-| `executionContext` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The execution context for the current mediation pipeline. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
 
 **Returns**
 

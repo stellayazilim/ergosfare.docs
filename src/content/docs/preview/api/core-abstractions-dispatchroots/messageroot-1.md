@@ -3,7 +3,7 @@ title: "MessageRoot<TMessage>"
 description: "The concrete closure of MessageRoot; instantiated by generated code."
 sidebar:
   label: "MessageRoot<TMessage>"
-  order: 9
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  

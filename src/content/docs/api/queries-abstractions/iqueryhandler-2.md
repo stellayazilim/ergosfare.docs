@@ -3,7 +3,7 @@ title: "IQueryHandler<TQuery, TResult>"
 description: "Represents a type-safe asynchronous handler for a query of type TQuery, producing a result of type TResult."
 sidebar:
   label: "IQueryHandler<TQuery, TResult>"
-  order: 7
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  

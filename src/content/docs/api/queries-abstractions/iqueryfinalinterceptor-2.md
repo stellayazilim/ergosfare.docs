@@ -3,7 +3,7 @@ title: "IQueryFinalInterceptor<TQuery, TResult>"
 description: "Represents a type-safe final interceptor for queries, allowing custom logic to execute after all query handlers and other interceptors have completed."
 sidebar:
   label: "IQueryFinalInterceptor<TQuery, TResult>"
-  order: 6
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  

@@ -3,7 +3,7 @@ title: "IPublisher"
 description: "Represents the mediator interface for publishing events within the application."
 sidebar:
   label: "IPublisher"
-  order: 16
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

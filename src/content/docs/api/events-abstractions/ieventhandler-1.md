@@ -3,7 +3,7 @@ title: "IEventHandler<TEvent>"
 description: "Represents an asynchronous handler for a specific event type."
 sidebar:
   label: "IEventHandler<TEvent>"
-  order: 9
+  order: 11
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  

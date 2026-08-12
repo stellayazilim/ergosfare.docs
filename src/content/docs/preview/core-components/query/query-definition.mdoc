@@ -75,7 +75,7 @@ await foreach (var p in _queries.StreamAsync(new StreamProducts(100)))
 ```
 
 Both take an optional `QueryMediationSettings` and a `CancellationToken`, and `QueryAsync`
-has an `IExecutionContext` overload for
+has an `ErgosfareContext` overload for
 [nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
 
 Next: [Defining a query handler](/ergosfare.docs/preview/core-components/query/query-handler).

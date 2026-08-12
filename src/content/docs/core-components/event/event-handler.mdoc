@@ -15,7 +15,7 @@ public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
 
     public SendWelcomeEmail(IMailer mailer) => _mailer = mailer;
 
-    public ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
         => _mailer.SendAsync(@event.Name, context.CancellationToken);
 }
 ```
@@ -50,7 +50,7 @@ When a subscriber's failure genuinely should not fail the publisher, contain it 
 handler:
 
 ```csharp
-public async ValueTask HandleAsync(ProductCreated @event, IExecutionContext context)
+public async ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
 {
     try
     {
@@ -75,7 +75,7 @@ A handler registered against a base type or interface receives every assignable 
 ```csharp
 public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
 {
-    public ValueTask HandleAsync(IDomainEvent @event, IExecutionContext context)
+    public ValueTask HandleAsync(IDomainEvent @event, ErgosfareContext context)
         => _outbox.AppendAsync(@event, context.CancellationToken);
 }
 ```
@@ -100,7 +100,7 @@ Use a [nested scope](/ergosfare.docs/core-concepts/nested-dispatch) so the inner
 a clean item bag and the parent's cancellation token:
 
 ```csharp
-public async ValueTask HandleAsync(OrderPlaced @event, IExecutionContext context)
+public async ValueTask HandleAsync(OrderPlaced @event, ErgosfareContext context)
 {
     using var scope = context.CreateScope();
     await _events.PublishAsync(new InvoiceRequested(@event.OrderId), scope.Context);

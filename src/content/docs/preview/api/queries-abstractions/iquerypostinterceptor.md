@@ -3,7 +3,7 @@ title: "IQueryPostInterceptor"
 description: "Represents a non-generic post-interceptor for queries, allowing custom logic to execute after any query handlers have been invoked."
 sidebar:
   label: "IQueryPostInterceptor"
-  order: 9
+  order: 12
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

@@ -3,7 +3,7 @@ title: "IEventFinalInterceptor<TEvent>"
 description: "Represents a final interceptor for events, allowing custom logic to be executed after all other event processing (handlers, pre-, post-interceptors) has comp…"
 sidebar:
   label: "IEventFinalInterceptor<TEvent>"
-  order: 8
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
@@ -14,10 +14,10 @@ to be executed after all other event processing (handlers, pre-, post-intercepto
 has completed.
 
 ```csharp
-public interface IEventFinalInterceptor<in TEvent> : IEvent, IMessage, IAsyncFinalInterceptor<TEvent, ValueTask>, IFinalInterceptor where TEvent : IEvent
+public interface IEventFinalInterceptor<in TEvent> : IEvent, IMessage, IAsyncFinalInterceptor<TEvent, Unit>, IFinalInterceptor where TEvent : IEvent
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L25)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L26)
 
 **Type parameters**
 
