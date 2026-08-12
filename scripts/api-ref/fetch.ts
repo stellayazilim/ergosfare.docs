@@ -194,9 +194,44 @@ function copyYaml(from: string, to: string): number {
   return count;
 }
 
+/**
+ * The single target framework docfx builds each project under, read from the tree's
+ * own `docfx.json` so restore and metadata can never disagree about it.
+ *
+ * It matters because the repository multi-targets: since the .NET 11 target framework
+ * landed, a property-less restore evaluates `net11.0` too and fails with NETSDK1045 on
+ * any machine without the .NET 11 preview SDK — a machine that can still document the
+ * library perfectly well through the `net10.0` compilation.
+ */
+function docfxTargetFramework(buildDir: string): string | null {
+  try {
+    const config = JSON.parse(
+      fs.readFileSync(path.join(buildDir, "docfx.json"), "utf8"),
+    );
+    return config?.metadata?.[0]?.properties?.TargetFramework ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function fetchLocal(version: DocsVersion, buildDir: string): void {
   const where = path.relative(SUPERPROJECT_ROOT, buildDir) || ".";
   console.log(`[1/3] fetch(${version.id}): running docfx in ${where} (${version.ref})`);
+
+  // docfx runs MSBuild but never restores. The checked-out ref gets away with it —
+  // it has been built locally, so `obj/` already holds the assets file. An exported
+  // ref is a fresh tree, and without this its every project reference and package
+  // reference comes back unresolved, which surfaces as a wall of CS0234/CS0246
+  // rather than as the missing-restore error it actually is.
+  const targetFramework = docfxTargetFramework(buildDir);
+  const restoreArgs = ["restore"];
+  if (targetFramework) restoreArgs.push(`-p:TargetFramework=${targetFramework}`);
+
+  const restore = run("dotnet", restoreArgs, { cwd: buildDir, quiet: true });
+  if (!restore.ok) {
+    process.stderr.write(restore.stdout + restore.stderr);
+    throw new Error(`dotnet restore failed for ${version.ref}`);
+  }
 
   const res = run("docfx", ["metadata", "docfx.json"], { cwd: buildDir, quiet: true });
   if (!res.ok) {
