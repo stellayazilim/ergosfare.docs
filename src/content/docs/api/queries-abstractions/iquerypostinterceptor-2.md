@@ -3,7 +3,7 @@ title: "IQueryPostInterceptor<TQuery, TResult>"
 description: "Represents a type-safe post-interceptor for queries with a strongly-typed result."
 sidebar:
   label: "IQueryPostInterceptor<TQuery, TResult>"
-  order: 10
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
@@ -35,10 +35,10 @@ returns it.
 
 ## Methods
 
-### `HandleAsync(TQuery, TResult, IExecutionContext)`
+### `HandleAsync(TQuery, TResult, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult> HandleAsync(TQuery query, TResult queryResult, IExecutionContext context)
+ValueTask<TResult> HandleAsync(TQuery query, TResult queryResult, ErgosfareContext context)
 ```
 
 Handles the post-processing of a query asynchronously.
@@ -49,7 +49,7 @@ Handles the post-processing of a query asynchronously.
 | --- | --- | --- |
 | `query` | `TQuery` | The query that was executed. |
 | `queryResult` | `TResult` | The result produced by the query handler. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

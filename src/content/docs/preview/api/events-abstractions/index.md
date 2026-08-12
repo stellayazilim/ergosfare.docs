@@ -6,7 +6,7 @@ sidebar:
   order: 0
 ---
 
-The `Stella.Ergosfare.Events.Abstractions` namespace contains 16 public types.
+The `Stella.Ergosfare.Events.Abstractions` namespace contains 18 public types.
 
 | Type | Kind | Summary |
 | --- | --- | --- |
@@ -16,6 +16,8 @@ The `Stella.Ergosfare.Events.Abstractions` namespace contains 16 public types.
 | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | Interface | Represents a message or handler that is recognized by the event module. |
 | [`IEventExceptionInterceptor`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptor) | Interface | Represents a non-generic exception interceptor for events, allowing custom logic to execute when an exception occurs during the handling of any [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent). |
 | [`IEventExceptionInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptor-1) | Interface | Represents an asynchronous exception interceptor for events, allowing custom logic to execute when an exception occurs during event handling. |
+| [`IEventExceptionInterceptorFor<TEvent, TException>`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptorfor-2) | Interface | An exception interceptor for a specific event type that runs only for exceptions of type `TException`. The exception arrives already typed — no `is` check in the interceptor body. |
+| [`IEventExceptionInterceptorFor<TException>`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptorfor-1) | Interface | A module-wide exception interceptor that runs for every event but only for exceptions of type `TException` — the filtered form of [`IEventExceptionInterceptor`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptor), and the shape a global error policy takes. |
 | [`IEventFinalInterceptor`](/ergosfare.docs/preview/api/events-abstractions/ieventfinalinterceptor) | Interface | Represents a non-generic final interceptor for events, allowing custom logic to execute after all event handlers and other interceptors have completed. |
 | [`IEventFinalInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventfinalinterceptor-1) | Interface | Represents a final interceptor for events, allowing custom logic to be executed after all other event processing (handlers, pre-, post-interceptors) has completed. |
 | [`IEventHandler<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventhandler-1) | Interface | Represents an asynchronous handler for a specific event type. |

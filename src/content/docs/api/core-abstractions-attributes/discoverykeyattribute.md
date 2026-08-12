@@ -1,6 +1,6 @@
 ---
 title: "DiscoveryKeyAttribute"
-description: "Gates a registrable construct behind one or more discovery keys: a keyed type is excluded from default discovery (RegisterGenerated(), RegisterFromAssembly(a…"
+description: "Gates a registrable construct behind one or more discovery keys: a keyed type is excluded from default discovery (RegisterGenerated()) and registers only whe…"
 sidebar:
   label: "DiscoveryKeyAttribute"
   order: 2
@@ -10,9 +10,9 @@ sidebar:
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
 Gates a registrable construct behind one or more discovery keys: a keyed type is
-excluded from default discovery (`RegisterGenerated()`, `RegisterFromAssembly(assembly)`)
-and registers only when a registration call selects one of its keys, e.g.
-`RegisterGenerated("reporting")` or `RegisterGenerated("reporting.*")`.
+excluded from default discovery (`RegisterGenerated()`) and registers only when a
+registration call selects one of its keys, e.g. `RegisterGenerated("reporting")`
+or `RegisterGenerated("reporting.*")`.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Assembly|AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface, Inherited = false)]
@@ -59,9 +59,9 @@ public DiscoveryKeyAttribute(params string[] keys)
 ```
 
 Gates a registrable construct behind one or more discovery keys: a keyed type is
-excluded from default discovery (`RegisterGenerated()`, `RegisterFromAssembly(assembly)`)
-and registers only when a registration call selects one of its keys, e.g.
-`RegisterGenerated("reporting")` or `RegisterGenerated("reporting.*")`.
+excluded from default discovery (`RegisterGenerated()`) and registers only when a
+registration call selects one of its keys, e.g. `RegisterGenerated("reporting")`
+or `RegisterGenerated("reporting.*")`.
 
 **Parameters**
 

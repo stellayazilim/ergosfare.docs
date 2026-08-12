@@ -3,7 +3,7 @@ title: "IEventPreInterceptor<TEvent, TModifiedEvent>"
 description: "Represents a type-safe pre-interceptor for events that can optionally modify the event before it reaches its handlers."
 sidebar:
   label: "IEventPreInterceptor<TEvent, TModifiedEvent>"
-  order: 14
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
@@ -35,10 +35,10 @@ asynchronous pre-processing in the event mediation pipeline.
 
 ## Methods
 
-### `HandleAsync(TEvent, IExecutionContext)`
+### `HandleAsync(TEvent, ErgosfareContext)`
 
 ```csharp
-ValueTask<TModifiedEvent> HandleAsync(TEvent @event, IExecutionContext context)
+ValueTask<TModifiedEvent> HandleAsync(TEvent @event, ErgosfareContext context)
 ```
 
 Represents a type-safe pre-interceptor for events that can optionally modify
@@ -49,7 +49,7 @@ the event before it reaches its handlers.
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | `TEvent` |  |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
 
 **Returns**
 

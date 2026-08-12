@@ -34,10 +34,10 @@ returns it.
 
 ## Methods
 
-### `HandleAsync(TQuery, TResult?, Exception, IExecutionContext)`
+### `HandleAsync(TQuery, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult?> HandleAsync(TQuery query, TResult? result, Exception exception, IExecutionContext context)
+ValueTask<TResult?> HandleAsync(TQuery query, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
 Handles the exception asynchronously, potentially modifying the query result.
@@ -49,7 +49,7 @@ Handles the exception asynchronously, potentially modifying the query result.
 | `query` | `TQuery` | The query being processed when the exception occurred. |
 | `result` | `TResult` | The result produced before the exception occurred, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during pipeline execution. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

@@ -13,7 +13,7 @@ Represents an asynchronous exception interceptor for events, allowing custom log
 to execute when an exception occurs during event handling.
 
 ```csharp
-public interface IEventExceptionInterceptor<in TEvent> : IEvent, IMessage, IAsyncExceptionInterceptor<TEvent, ValueTask>, IExceptionInterceptor where TEvent : notnull
+public interface IEventExceptionInterceptor<in TEvent> : IEvent, IMessage, IAsyncExceptionInterceptor<TEvent, Unit>, IExceptionInterceptor where TEvent : notnull
 ```
 
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor%5BTEvent%5D.cs#L26)
@@ -36,10 +36,10 @@ The `TEvent` type must be non-nullable and implement [`IEvent`](/ergosfare.docs/
 
 ## Methods
 
-### `HandleAsync(TEvent, ValueTask, Exception, IExecutionContext)`
+### `HandleAsync(TEvent, ValueTask, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(TEvent @event, ValueTask result, Exception exception, IExecutionContext context)
+ValueTask HandleAsync(TEvent @event, ValueTask result, Exception exception, ErgosfareContext context)
 ```
 
 Handles an exception asynchronously that occurred during the processing of the event.
@@ -51,7 +51,7 @@ Handles an exception asynchronously that occurred during the processing of the e
 | `event` | `TEvent` | The event being processed. |
 | `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | The result returned by the main handlers, or `null` if the event does not produce a result. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during event handling. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The execution context for the current mediation pipeline. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
 
 **Returns**
 

@@ -3,7 +3,7 @@ title: "ICommandPostInterceptor<TCommand>"
 description: "Represents a post-processing interceptor for commands."
 sidebar:
   label: "ICommandPostInterceptor<TCommand>"
-  order: 17
+  order: 20
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

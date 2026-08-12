@@ -10,5 +10,5 @@ The `Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection` namespace
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) | Class | Provides a builder for registering query types in the message registry as part of the query module configuration. |
+| [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) | Class | Provides a builder for selecting the query constructs this container runs from the compiled composition table. |
 | [`QueryModuleRegistryExtensions`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymoduleregistryextensions) | Class | Provides extension methods for [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) to add the query module. |

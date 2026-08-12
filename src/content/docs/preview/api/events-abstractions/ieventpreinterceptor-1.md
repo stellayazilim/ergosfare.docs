@@ -3,7 +3,7 @@ title: "IEventPreInterceptor<TEvent>"
 description: "Represents a type-safe pre-interceptor for events."
 sidebar:
   label: "IEventPreInterceptor<TEvent>"
-  order: 15
+  order: 17
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
@@ -34,10 +34,10 @@ event type. `TEvent` is invariant because it is returned.
 
 ## Methods
 
-### `HandleAsync(TEvent, IExecutionContext)`
+### `HandleAsync(TEvent, ErgosfareContext)`
 
 ```csharp
-ValueTask<TEvent> HandleAsync(TEvent @event, IExecutionContext context)
+ValueTask<TEvent> HandleAsync(TEvent @event, ErgosfareContext context)
 ```
 
 Handles the event before its handlers run and returns the event that continues through
@@ -48,7 +48,7 @@ the pipeline (the original, or a rewritten instance).
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | `TEvent` | The event to intercept. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

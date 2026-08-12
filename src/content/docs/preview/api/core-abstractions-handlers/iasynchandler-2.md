@@ -35,10 +35,10 @@ allocation-free via `new ValueTask<TResult>(task)`.
 
 ## Methods
 
-### `HandleAsync(TMessage, IExecutionContext)`
+### `HandleAsync(TMessage, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult> HandleAsync(TMessage message, IExecutionContext context)
+ValueTask<TResult> HandleAsync(TMessage message, ErgosfareContext context)
 ```
 
 Defines a method to handle messages asynchronously and produce a result.
@@ -48,7 +48,7 @@ Defines a method to handle messages asynchronously and produce a result.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The message to be handled. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | Current execution context |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | Current execution context |
 
 **Returns**
 

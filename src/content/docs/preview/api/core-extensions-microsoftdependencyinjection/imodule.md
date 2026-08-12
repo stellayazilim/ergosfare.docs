@@ -3,7 +3,7 @@ title: "IModule"
 description: "Represents a module in an application that can be configured and built."
 sidebar:
   label: "IModule"
-  order: 3
+  order: 1
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection)  

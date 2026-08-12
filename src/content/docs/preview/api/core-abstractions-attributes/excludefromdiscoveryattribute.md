@@ -1,6 +1,6 @@
 ---
 title: "ExcludeFromDiscoveryAttribute"
-description: "Excludes a registrable construct from automatic discovery entirely: both source-generated registration and reflection-based assembly scanning (RegisterFromAs…"
+description: "Excludes a registrable construct from automatic discovery entirely: source-generated registration skips the type, regardless of discovery keys or patterns."
 sidebar:
   label: "ExcludeFromDiscoveryAttribute"
   order: 3
@@ -9,17 +9,16 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Excludes a registrable construct from automatic discovery entirely: both
-source-generated registration and reflection-based assembly scanning
-(`RegisterFromAssembly`) skip the type, regardless of discovery keys or patterns.
-Explicit registration (`Register<T>()`, `Register(Type)`) still works.
+Excludes a registrable construct from automatic discovery entirely: source-generated
+registration skips the type, regardless of discovery keys or patterns. Explicit
+registration (`Register<T>()`, `Register(Type)`) still works.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Assembly|AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface, Inherited = false)]
 public sealed class ExcludeFromDiscoveryAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ExcludeFromDiscoveryAttribute.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ExcludeFromDiscoveryAttribute.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 

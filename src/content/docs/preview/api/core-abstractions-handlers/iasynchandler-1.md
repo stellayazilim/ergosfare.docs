@@ -30,15 +30,15 @@ This interface extends the generic [`IHandler<TMessage, TResult>`](/ergosfare.do
 set to [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask), enabling asynchronous message processing.
 Implementations that already hold a [`Task`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.task) can wrap it allocation-free via
 `new ValueTask(task)`; async method bodies work unchanged.
-The explicit interface implementation maps the generic [`IHandler<TMessage, TResult>.Handle(TMessage, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2#handletmessage-iexecutioncontext) method
-to the strongly-typed [`IAsyncHandler<TMessage>.HandleAsync(TMessage, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasynchandler-1#handleasynctmessage-iexecutioncontext) method.
+The explicit interface implementation maps the generic [`IHandler<TMessage, TResult>.Handle(TMessage, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2#handletmessage-ergosfarecontext) method
+to the strongly-typed [`IAsyncHandler<TMessage>.HandleAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasynchandler-1#handleasynctmessage-ergosfarecontext) method.
 
 ## Methods
 
-### `HandleAsync(TMessage, IExecutionContext)`
+### `HandleAsync(TMessage, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(TMessage message, IExecutionContext context)
+ValueTask HandleAsync(TMessage message, ErgosfareContext context)
 ```
 
 Handles a message of type `TMessage` asynchronously.
@@ -48,7 +48,7 @@ Handles a message of type `TMessage` asynchronously.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The message to handle. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

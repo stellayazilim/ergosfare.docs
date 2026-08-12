@@ -3,7 +3,7 @@ title: "QueryMediationSettings.QueryMediationFilters"
 description: "Represents the filters to be applied during query mediation."
 sidebar:
   label: "QueryMediationSettings.QueryMediationFilters"
-  order: 18
+  order: 21
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

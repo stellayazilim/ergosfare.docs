@@ -3,7 +3,7 @@ title: "IStreamHandler<TMessage, TResult>"
 description: "Represents a handler that streams results asynchronously for messages of type TMessage."
 sidebar:
   label: "IStreamHandler<TMessage, TResult>"
-  order: 20
+  order: 22
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
@@ -29,15 +29,15 @@ public interface IStreamHandler<in TMessage, out TResult> : IHandler<TMessage, I
 
 This interface extends [`IHandler<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2) with `TResult`
 set to [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1), allowing the handler to produce multiple results asynchronously.
-The explicit interface implementation maps the generic [`IHandler<TMessage, TResult>.Handle(TMessage, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2#handletmessage-iexecutioncontext) method
-to the strongly-typed [`IStreamHandler<TMessage, TResult>.StreamAsync(TMessage, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/istreamhandler-2#streamasynctmessage-iexecutioncontext) method.
+The explicit interface implementation maps the generic [`IHandler<TMessage, TResult>.Handle(TMessage, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2#handletmessage-ergosfarecontext) method
+to the strongly-typed [`IStreamHandler<TMessage, TResult>.StreamAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/istreamhandler-2#streamasynctmessage-ergosfarecontext) method.
 
 ## Methods
 
-### `StreamAsync(TMessage, IExecutionContext)`
+### `StreamAsync(TMessage, ErgosfareContext)`
 
 ```csharp
-IAsyncEnumerable<out TResult> StreamAsync(TMessage message, IExecutionContext context)
+IAsyncEnumerable<out TResult> StreamAsync(TMessage message, ErgosfareContext context)
 ```
 
 Streams results asynchronously for a given message.
@@ -47,7 +47,7 @@ Streams results asynchronously for a given message.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The message to handle. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

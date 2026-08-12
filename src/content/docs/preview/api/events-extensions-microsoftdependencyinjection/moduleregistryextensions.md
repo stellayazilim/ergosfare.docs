@@ -34,7 +34,7 @@ Adds the `EventModule` to the module registry.
 | Name | Type | Description |
 | --- | --- | --- |
 | `registry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The module registry to which the event module will be added. |
-| `builder` | `Action<EventModuleBuilder>` | An action to configure the [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder), allowing registration of events in the message registry. |
+| `builder` | `Action<EventModuleBuilder>` | An action that configures the [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) by selecting event participants from the compile-time frozen composition table. |
 
 **Returns**
 

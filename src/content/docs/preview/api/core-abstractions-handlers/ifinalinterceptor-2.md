@@ -3,7 +3,7 @@ title: "IFinalInterceptor<TMessage, TResult>"
 description: "Synchronous final-interceptor contract for messages of type TMessage with results of type TResult."
 sidebar:
   label: "IFinalInterceptor<TMessage, TResult>"
-  order: 13
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
@@ -29,17 +29,17 @@ public interface IFinalInterceptor<in TMessage, in TResult> : IFinalInterceptor
 ## Remarks
 
 Final interceptors observe the pipeline outcome but cannot alter it — hence
-[`IFinalInterceptor<TMessage, TResult>.Handle(TMessage, TResult?, Exception?, IExecutionContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ifinalinterceptor-2#handletmessage-tresult-exception-iexecutioncontext) returns nothing. Asynchronous final interceptors implement
+[`IFinalInterceptor<TMessage, TResult>.Handle(TMessage, TResult?, Exception?, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/ifinalinterceptor-2#handletmessage-tresult-exception-ergosfarecontext) returns nothing. Asynchronous final interceptors implement
 [`IAsyncFinalInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-1) or
 [`IAsyncFinalInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-2) instead; the pipeline dispatches
 each through its own typed member with no object-typed bridge between them.
 
 ## Methods
 
-### `Handle(TMessage, TResult?, Exception?, IExecutionContext)`
+### `Handle(TMessage, TResult?, Exception?, ErgosfareContext)`
 
 ```csharp
-void Handle(TMessage message, TResult? result, Exception? exception, IExecutionContext executionContext)
+void Handle(TMessage message, TResult? result, Exception? exception, ErgosfareContext executionContext)
 ```
 
 Handles the end of the pipeline for the given message.
@@ -51,4 +51,4 @@ Handles the end of the pipeline for the given message.
 | `message` | `TMessage` | The message that was processed. |
 | `result` | `TResult` | The final result, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that terminated the pipeline, if any. |
-| `executionContext` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |

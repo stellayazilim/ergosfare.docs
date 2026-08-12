@@ -3,7 +3,7 @@ title: "IMessageMediator"
 description: "Defines a mediator responsible for dispatching messages to their corresponding handlers and returning results from the mediation process."
 sidebar:
   label: "IMessageMediator"
-  order: 8
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
@@ -19,6 +19,28 @@ public interface IMessageMediator
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IMessageMediator.cs#L8)
 
 ## Methods
+
+### `DispatchAsync(object, ErgosfareContext, IEnumerable<string>?)`
+
+```csharp
+ValueTask DispatchAsync(object message, ErgosfareContext context, IEnumerable<string>? groups = null)
+```
+
+Dispatches `message` under an externally owned execution context —
+the nested-dispatch path: a handler opens a scope on its own context and passes the
+child here. The caller owns the context's lifetime.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance to dispatch. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The externally owned execution context to dispatch under. |
+| `groups` | `IEnumerable<string>` | Pipeline groups to dispatch under; `null` selects the default group. |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
 ### `DispatchAsync(object, IDictionary<object, object?>?, CancellationToken, IEnumerable<string>?)`
 
@@ -43,27 +65,32 @@ member — no object-typed bridge.
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
-### `DispatchAsync(object, IExecutionContext, IEnumerable<string>?)`
+### `DispatchAsync<TResult>(object, ErgosfareContext, IEnumerable<string>?)`
 
 ```csharp
-ValueTask DispatchAsync(object message, IExecutionContext context, IEnumerable<string>? groups = null)
+ValueTask<TResult> DispatchAsync<TResult>(object message, ErgosfareContext context, IEnumerable<string>? groups = null)
 ```
 
-Dispatches `message` under an externally owned execution context —
-the nested-dispatch path: a handler opens a scope on its own context and passes the
-child here. The caller owns the context's lifetime.
+Result-producing counterpart of
+[`IMessageMediator.DispatchAsync(object, ErgosfareContext, IEnumerable<string>?)`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator#dispatchasyncobject-ergosfarecontext-ienumerablestring).
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` | The result type produced by the pipeline. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance to dispatch. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The externally owned execution context to dispatch under. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The externally owned execution context to dispatch under. |
 | `groups` | `IEnumerable<string>` | Pipeline groups to dispatch under; `null` selects the default group. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+`ValueTask<TResult>`
 
 ### `DispatchAsync<TResult>(object, IDictionary<object, object?>?, CancellationToken, IEnumerable<string>?)`
 
@@ -93,62 +120,3 @@ executor closed over its runtime type and the requested group set; see
 **Returns**
 
 `ValueTask<TResult>`
-
-### `DispatchAsync<TResult>(object, IExecutionContext, IEnumerable<string>?)`
-
-```csharp
-ValueTask<TResult> DispatchAsync<TResult>(object message, IExecutionContext context, IEnumerable<string>? groups = null)
-```
-
-Result-producing counterpart of
-[`IMessageMediator.DispatchAsync(object, IExecutionContext, IEnumerable<string>?)`](/ergosfare.docs/preview/api/core-abstractions/imessagemediator#dispatchasyncobject-iexecutioncontext-ienumerablestring).
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TResult` | The result type produced by the pipeline. |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance to dispatch. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The externally owned execution context to dispatch under. |
-| `groups` | `IEnumerable<string>` | Pipeline groups to dispatch under; `null` selects the default group. |
-
-**Returns**
-
-`ValueTask<TResult>`
-
-### `Mediate<TMessage, TMessageResult>(TMessage, MediateOptions<TMessage, TMessageResult>)`
-
-```csharp
-TMessageResult Mediate<TMessage, TMessageResult>(TMessage message, MediateOptions<TMessage, TMessageResult> options) where TMessage : notnull
-```
-
-Dispatches a message of type `TMessage` to the appropriate handler(s)
-and returns the result of type `TMessageResult`.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TMessage` | The type of the message being mediated. Must be non-nullable. |
-| `TMessageResult` | The type of the result returned from the handler. |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `message` | `TMessage` | The message instance to mediate. |
-| `options` | `MediateOptions<TMessage, TMessageResult>` | The options controlling message resolution, dependency creation, and mediation strategy. |
-
-**Returns**
-
-`TMessageResult` — The result produced by the message handler(s).
-
-Implementations are expected to handle the resolution of handlers for the specified message,
-create necessary dependencies, and execute the mediation strategy defined in `options`.
-The mediation process may throw exceptions if no handlers are found or if there are issues
-resolving dependencies.

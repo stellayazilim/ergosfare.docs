@@ -3,7 +3,7 @@ title: "IPostInterceptor<TMessage, TResult>"
 description: "Synchronous post-interceptor contract for messages of type TMessage producing results of type TResult."
 sidebar:
   label: "IPostInterceptor<TMessage, TResult>"
-  order: 17
+  order: 19
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
@@ -35,10 +35,10 @@ each through its own typed member with no object-typed bridge between them.
 
 ## Methods
 
-### `Handle(TMessage, TResult, IExecutionContext)`
+### `Handle(TMessage, TResult, ErgosfareContext)`
 
 ```csharp
-object Handle(TMessage message, TResult messageResult, IExecutionContext context)
+object Handle(TMessage message, TResult messageResult, ErgosfareContext context)
 ```
 
 Handles a message after it has been processed by the main handler.
@@ -49,7 +49,7 @@ Handles a message after it has been processed by the main handler.
 | --- | --- | --- |
 | `message` | `TMessage` | The message that was handled by the main handler. |
 | `messageResult` | `TResult` | The result produced by the main handler. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

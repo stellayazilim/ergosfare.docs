@@ -3,7 +3,7 @@ title: "ICommandFinalInterceptor"
 description: "Represents a final interceptor for commands that can be registered without specifying a particular command type."
 sidebar:
   label: "ICommandFinalInterceptor"
-  order: 9
+  order: 12
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  

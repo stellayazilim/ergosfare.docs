@@ -3,7 +3,7 @@ title: "QueryMediatorExtensions"
 description: "Provides extension methods for IQueryMediator to simplify dispatching queries and stream queries with optional group filtering."
 sidebar:
   label: "QueryMediatorExtensions"
-  order: 19
+  order: 22
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/preview/api/queries-abstractions)  

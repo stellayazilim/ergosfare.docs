@@ -3,7 +3,7 @@ title: "ICommandPreInterceptor<TCommand, TModifiedCommand>"
 description: "Represents a type-safe pre-interceptor for commands, allowing modification of the command before it enters the pipeline."
 sidebar:
   label: "ICommandPreInterceptor<TCommand, TModifiedCommand>"
-  order: 19
+  order: 22
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
@@ -36,10 +36,10 @@ The `HandleAsync` method is called before the command is processed. The returned
 
 ## Methods
 
-### `HandleAsync(TCommand, IExecutionContext)`
+### `HandleAsync(TCommand, ErgosfareContext)`
 
 ```csharp
-ValueTask<TModifiedCommand> HandleAsync(TCommand command, IExecutionContext context)
+ValueTask<TModifiedCommand> HandleAsync(TCommand command, ErgosfareContext context)
 ```
 
 Asynchronously handles the pre-processing of the command.
@@ -49,7 +49,7 @@ Asynchronously handles the pre-processing of the command.
 | Name | Type | Description |
 | --- | --- | --- |
 | `command` | `TCommand` | The command to intercept. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

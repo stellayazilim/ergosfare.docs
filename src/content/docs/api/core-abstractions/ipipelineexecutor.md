@@ -3,14 +3,14 @@ title: "IPipelineExecutor"
 description: "A message pipeline closed over its concrete message type, built once per message type and cached process-wide."
 sidebar:
   label: "IPipelineExecutor"
-  order: 12
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
 A message pipeline closed over its concrete message type, built once per message type
-and cached process-wide. [`IPipelineExecutor.Execute(object, IExecutionContext, IServiceProvider)`](/ergosfare.docs/api/core-abstractions/ipipelineexecutor#executeobject-iexecutioncontext-iserviceprovider) receives the message as
+and cached process-wide. [`IPipelineExecutor.Execute(object, ErgosfareContext, IServiceProvider)`](/ergosfare.docs/api/core-abstractions/ipipelineexecutor#executeobject-ergosfarecontext-iserviceprovider) receives the message as
 [`object`](https://learn.microsoft.com/dotnet/api/system.object) and performs a single cast to the concrete type internally, so the
 handler is always invoked through its typed member — no object-typed bridge, no boxing
 of the handler's [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask).
@@ -29,10 +29,10 @@ as the fallback.
 
 ## Methods
 
-### `Execute(object, IExecutionContext, IServiceProvider)`
+### `Execute(object, ErgosfareContext, IServiceProvider)`
 
 ```csharp
-ValueTask Execute(object message, IExecutionContext context, IServiceProvider serviceProvider)
+ValueTask Execute(object message, ErgosfareContext context, IServiceProvider serviceProvider)
 ```
 
 Executes the void pipeline for `message`.
@@ -42,7 +42,7 @@ Executes the void pipeline for `message`.
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance; its runtime type is the executor's closed message type (or derived). |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The execution context for this dispatch. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context for this dispatch. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope the dispatch runs in. |
 
 **Returns**

@@ -28,7 +28,7 @@ public static IModuleRegistry AddQueryModule(this IModuleRegistry registry, Acti
 ```
 
 Adds the query module to the specified module registry, allowing registration
-of query types and enabling the IQueryMediator for dispatching queries.
+of query types and enabling the [`IQueryMediator`](/ergosfare.docs/preview/api/queries-abstractions/iquerymediator) for dispatching queries.
 
 **Parameters**
 

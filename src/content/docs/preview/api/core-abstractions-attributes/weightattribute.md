@@ -3,7 +3,7 @@ title: "WeightAttribute"
 description: "Specifies a weight for a class, typically used to influence the execution order or priority of handlers or modules."
 sidebar:
   label: "WeightAttribute"
-  order: 6
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  

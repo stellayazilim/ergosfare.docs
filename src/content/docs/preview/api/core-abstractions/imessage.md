@@ -3,7 +3,7 @@ title: "IMessage"
 description: "base placeholder interface for all attachable types in Stella.Ergosfare system"
 sidebar:
   label: "IMessage"
-  order: 5
+  order: 6
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

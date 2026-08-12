@@ -34,10 +34,10 @@ returns it.
 
 ## Methods
 
-### `HandleAsync(TCommand, TResult?, Exception, IExecutionContext)`
+### `HandleAsync(TCommand, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult?> HandleAsync(TCommand command, TResult? result, Exception exception, IExecutionContext context)
+ValueTask<TResult?> HandleAsync(TCommand command, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
 Handles the exception asynchronously, potentially modifying the command result.
@@ -49,7 +49,7 @@ Handles the exception asynchronously, potentially modifying the command result.
 | `command` | `TCommand` | The command being processed when the exception occurred. |
 | `result` | `TResult` | The result produced before the exception occurred, if any. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during pipeline execution. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/preview/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 

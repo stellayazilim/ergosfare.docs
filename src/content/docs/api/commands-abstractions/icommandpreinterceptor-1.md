@@ -3,7 +3,7 @@ title: "ICommandPreInterceptor<TCommand>"
 description: "Defines a type-safe pre-interceptor for a command."
 sidebar:
   label: "ICommandPreInterceptor<TCommand>"
-  order: 20
+  order: 23
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
@@ -35,10 +35,10 @@ derived command type. `TCommand` is invariant because it is returned.
 
 ## Methods
 
-### `HandleAsync(TCommand, IExecutionContext)`
+### `HandleAsync(TCommand, ErgosfareContext)`
 
 ```csharp
-ValueTask<TCommand> HandleAsync(TCommand command, IExecutionContext context)
+ValueTask<TCommand> HandleAsync(TCommand command, ErgosfareContext context)
 ```
 
 Handles the command before its handler runs and returns the command that continues
@@ -49,7 +49,7 @@ through the pipeline (the original, or a rewritten instance).
 | Name | Type | Description |
 | --- | --- | --- |
 | `command` | `TCommand` | The command to intercept. |
-| `context` | [`IExecutionContext`](/ergosfare.docs/api/core-abstractions/iexecutioncontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
 
 **Returns**
 
