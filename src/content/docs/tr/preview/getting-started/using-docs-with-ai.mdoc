@@ -1,0 +1,168 @@
+---
+title: Ergosfare Dokümanlarını AI ile Kullanma
+description: Ergosfare dokümantasyonunu Codex, Claude, Cursor, VS Code veya stdio uyumlu herhangi bir MCP istemcisine bağlayın.
+---
+
+Ergosfare rehberleri ve üretilmiş API referansı bir
+[MCP](https://modelcontextprotocol.io/docs/getting-started/intro) kataloğu olarak yayınlanır.
+Bir kez bağladığınızda AI kodlama istemciniz güncel dokümanlarda arama yapabilir, sayfaların
+tamamını okuyabilir ve doküman reposunu klonlamadan ya da sayfaları prompt'a yapıştırmadan
+public API adlarını kesin biçimde bulabilir.
+
+MCP sunucusu `npx` aracılığıyla yerel olarak çalışır ve kataloğu public doküman sitesinden
+okur. API anahtarı gerektirmez.
+
+{% aside type="note" %}
+Güncel bir [Node.js LTS](https://nodejs.org/) kurulumu gerekir. `node --version` ve
+`npx --version` komutlarıyla Node.js ile npm'in erişilebilir olduğunu doğrulayın.
+{% /aside %}
+
+## Codex
+
+Sunucuyu terminalden ekleyin:
+
+```bash
+codex mcp add ergosfare-docs -- npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+Alternatif olarak tüm projeler için `~/.codex/config.toml` dosyasına, yalnızca güvenilen bir
+proje içinse `.codex/config.toml` dosyasına ekleyin:
+
+```toml
+[mcp_servers.ergosfare-docs]
+command = "npx"
+args = ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+```
+
+Bağlantıyı `codex mcp list` ile doğrulayın. Codex CLI, Codex IDE eklentisi ve ChatGPT
+masaüstü uygulaması aynı makinede aynı MCP yapılandırmasını kullanır.
+
+## Claude Desktop
+
+**Settings → Developer → Edit Config** yolunu açın ve `claude_desktop_config.json` dosyasına
+şu girdiyi ekleyin:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Dosyayı kaydedip Claude Desktop'ı tamamen kapatarak yeniden başlatın. Dosyada başka
+sunucular varsa içeriği değiştirmek yerine `ergosfare-docs` girdisini mevcut `mcpServers`
+nesnesiyle birleştirin.
+
+## Claude Code
+
+Sunucuyu mevcut proje için tek komutla ekleyin:
+
+```bash
+claude mcp add ergosfare-docs -- npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+Kurulumu ekiple paylaşmak için proje köküne `.mcp.json` dosyası ekleyip commit edin:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Durumu `claude mcp list` ile veya Claude Code içinde `/mcp` komutuyla kontrol edin. Proje
+kapsamlı sunucular, repo ilk açıldığında çalışma alanı onayı ister.
+
+## Cursor
+
+Tüm projeler için `~/.cursor/mcp.json`, tek proje için `.cursor/mcp.json` dosyasına şunu
+ekleyin:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Dosyayı kaydettikten sonra Cursor'ı yeniden başlatın veya reload edin. Etkin değilse MCP
+ayarlarından `ergosfare-docs` sunucusunu açın.
+
+## VS Code ve GitHub Copilot
+
+Projede `.vscode/mcp.json` dosyasını oluşturun:
+
+```json
+{
+  "servers": {
+    "ergosfare-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Sunucuyu `mcp.json` içindeki satır içi aksiyondan başlatın veya Command Palette üzerinden
+**MCP: List Servers** komutunu çalıştırın. VS Code yeni bir yerel sunucuyu ilk kez başlatmadan
+önce güven onayı ister.
+
+## Diğer MCP istemcileri
+
+Yerel stdio sunucularını destekleyen bütün MCP istemcileri aynı çalıştırma komutunu
+kullanabilir:
+
+```text
+npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+Sunucu adı olarak `ergosfare-docs` kullanın; executable alanını `npx`, kalan parçaları ise
+argüman listesi olarak eşleyin. Yapılandırmanın dış şeması istemciye göre değişir: çoğu
+istemci `mcpServers`, VS Code ise `servers` anahtarını kullanır.
+
+{% aside type="caution" %}
+Stdio MCP sunucusu, kullanıcı yetkilerinizle çalışan yerel bir süreçtir. `npx` ile
+çalıştırılmasına izin vermeden önce paketi; proje tarafından paylaşılan MCP yapılandırmasını
+onaylamadan önce de komutu inceleyin.
+{% /aside %}
+
+## Yararlı sorular sorun
+
+Entegrasyon; doküman araması, tam sayfa okuma, sayfa listeleme ve kesin API referansı araması
+sunar. Stable ile preview API'lerinin karışmaması için asistana hangi doküman hattını
+istediğinizi söyleyin.
+
+Şu prompt'ları deneyebilirsiniz:
+
+- “`ergosfare-docs` kullanarak en küçük stable command ve handler kurulumunu göster.”
+- “Preview dokümanlarında group-aware dispatch planlarını ara ve üretilmiş yolu açıkla.”
+- “API referansında `ICommandMediator.SendAsync` public imzasını kesin olarak bul.”
+- “Compile-time discovery için stable ve preview rehberlerini karşılaştır; kullandığın sayfaları belirt.”
+- “Türkçe hızlı başlangıç sayfasını oku ve bu projeye uyarla.”
+
+Sunucu, araçlar kullanılırken daha yeni bir katalog yayınlanıp yayınlanmadığını kontrol eder;
+uzun süre açık kalan bir istemci paketi yeniden kurmadan doküman güncellemelerini alabilir.
+
+## Sorun giderme
+
+- Sunucu başlamıyorsa `node`, `npm` ve `npx` komutlarının yalnızca terminalinizde değil,
+  istemcinin ortamında da erişilebilir olduğunu doğrulayın.
+- Bir yapılandırma dosyasını değiştirdiyseniz istemciyi yeniden başlatın veya reload edin ve
+  MCP sunucu durumunu ya da çıktısını inceleyin.
+- Paylaşılan proje yapılandırması beklemedeyse komutu inceledikten sonra çalışma alanına ve
+  sunucuya güven onayı verin.
+- Yanıtlar sürüm hatlarını karıştırıyorsa prompt'ta **stable** veya **preview** hattını açıkça
+  belirtin.

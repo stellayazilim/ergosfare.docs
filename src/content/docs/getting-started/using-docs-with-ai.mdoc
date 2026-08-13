@@ -1,0 +1,163 @@
+---
+title: Using Ergosfare docs with AI
+description: Connect the Ergosfare documentation to Codex, Claude, Cursor, VS Code, or any stdio-compatible MCP client.
+---
+
+Ergosfare publishes its guides and generated API reference as an
+[MCP](https://modelcontextprotocol.io/docs/getting-started/intro) catalog. Connect it once and
+your AI coding client can search the current documentation, read complete pages, and look up
+exact public API names without cloning the docs repository or pasting pages into a prompt.
+
+The MCP server runs locally through `npx` and reads the catalog from the public docs site. It
+does not require an API key.
+
+{% aside type="note" %}
+You need a current [Node.js LTS](https://nodejs.org/) installation. Confirm that both Node.js
+and npm are available with `node --version` and `npx --version`.
+{% /aside %}
+
+## Codex
+
+Add the server from a terminal:
+
+```bash
+codex mcp add ergosfare-docs -- npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+Alternatively, add it to `~/.codex/config.toml` for all projects, or to
+`.codex/config.toml` in a trusted project:
+
+```toml
+[mcp_servers.ergosfare-docs]
+command = "npx"
+args = ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+```
+
+Run `codex mcp list` to verify the connection. Codex CLI, the Codex IDE extension, and the
+ChatGPT desktop app use the same MCP configuration on the same host.
+
+## Claude Desktop
+
+Open **Settings → Developer → Edit Config**, then add this entry to
+`claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Save the file and fully restart Claude Desktop. If the file already contains other servers,
+merge `ergosfare-docs` into the existing `mcpServers` object instead of replacing it.
+
+## Claude Code
+
+Add the server for the current project with one command:
+
+```bash
+claude mcp add ergosfare-docs -- npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+To share the setup with your team, commit a `.mcp.json` file at the project root:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Run `claude mcp list` or use `/mcp` inside Claude Code to check its status. Project-scoped
+servers require workspace approval when the repository is opened for the first time.
+
+## Cursor
+
+Add the following to `~/.cursor/mcp.json` for all projects, or to `.cursor/mcp.json` in one
+project:
+
+```json
+{
+  "mcpServers": {
+    "ergosfare-docs": {
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Restart or reload Cursor after saving the file, then enable `ergosfare-docs` in the MCP
+settings if it is not already active.
+
+## VS Code and GitHub Copilot
+
+Create `.vscode/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "ergosfare-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@stellayazilim/mcp-starlight", "https://stellayazilim.github.io/ergosfare.docs"]
+    }
+  }
+}
+```
+
+Start the server from the inline action in `mcp.json`, or run **MCP: List Servers** from the
+Command Palette. VS Code asks you to trust a new local server before starting it.
+
+## Other MCP clients
+
+Any MCP client that supports local stdio servers can use the same launch command:
+
+```text
+npx -y @stellayazilim/mcp-starlight https://stellayazilim.github.io/ergosfare.docs
+```
+
+Use `ergosfare-docs` as the server name and map the executable to `npx` and the remaining
+tokens to its argument list. Configuration envelopes differ between clients: many use
+`mcpServers`, while VS Code uses `servers`.
+
+{% aside type="caution" %}
+An stdio MCP server is a local process running with your user permissions. Review packages
+before allowing `npx` to execute them, and review team-shared MCP configuration before you
+approve a project.
+{% /aside %}
+
+## Ask useful questions
+
+The integration exposes documentation search, full-page reading, page listing, and exact API
+reference search. Tell the assistant which documentation line you want so stable and preview
+APIs are not mixed.
+
+Try prompts such as:
+
+- “Using `ergosfare-docs`, show me the smallest stable command and handler setup.”
+- “Search the preview docs for group-aware dispatch plans and explain the generated path.”
+- “Find the exact public signature of `ICommandMediator.SendAsync` in the API reference.”
+- “Compare the stable and preview guidance for compile-time discovery; cite the pages used.”
+- “Read the Turkish quick start and adapt it to this project.”
+
+The server checks for a newer published catalog while tools are being used, so a long-lived
+client can pick up documentation deployments without reinstalling the package.
+
+## Troubleshooting
+
+- If the server does not start, verify `node`, `npm`, and `npx` are available to the client,
+  not only to your interactive terminal.
+- If you edited a configuration file, restart or reload the client and inspect its MCP server
+  status or output.
+- If a shared project configuration is pending, approve the workspace and the server after
+  reviewing its command.
+- If answers mix release lines, name either **stable** or **preview** explicitly in the prompt.
