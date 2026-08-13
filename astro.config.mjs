@@ -87,6 +87,7 @@ export default defineConfig({
                 translations: { tr: "Başlarken" },
                 items: [
                     { label: "Introduction", slug: "getting-started/introduction", translations: { tr: "Giriş" } },
+                    { label: "Using Ergosfare docs with AI", slug: "getting-started/using-docs-with-ai", translations: { tr: "Ergosfare Dokümanlarını AI ile Kullanma" } },
                     { label: "Installation", slug: "getting-started/installation", translations: { tr: "Kurulum" } },
                     { label: "Quick start", slug: "getting-started/quick-start", translations: { tr: "Hızlı Başlangıç" } },
                     { label: "Configuring Ergosfare", slug: "getting-started/configuring", translations: { tr: "Ergosfare'yi Yapılandırma" } },
@@ -156,6 +157,7 @@ export default defineConfig({
                 translations: { tr: "Başlarken" },
                 items: [
                     { label: "Introduction", slug: "preview/getting-started/introduction", translations: { tr: "Giriş" } },
+                    { label: "Using Ergosfare docs with AI", slug: "preview/getting-started/using-docs-with-ai", translations: { tr: "Ergosfare Dokümanlarını AI ile Kullanma" } },
                     { label: "Installation", slug: "preview/getting-started/installation", translations: { tr: "Kurulum" } },
                     { label: "Quick start", slug: "preview/getting-started/quick-start", translations: { tr: "Hızlı Başlangıç" } },
                     { label: "Configuring Ergosfare", slug: "preview/getting-started/configuring", translations: { tr: "Ergosfare'yi Yapılandırma" } },
