@@ -1,0 +1,126 @@
+---
+title: Keşif Anahtarları
+description: Bir yapıyı toplu kayıttan çıkarmak ve onu anahtar ya da desenle bilinçli olarak seçmek.
+---
+
+Varsayılan olarak `RegisterGenerated()` üretecin bulduğu her şeyi kaydeder. Bir keşif anahtarı
+bir yapıyı bu varsayılandan çıkarır ve açıkça istediğiniz bir adın arkasına koyar.
+
+## Anahtar bildirmek
+
+```csharp
+using Stella.Ergosfare.Core.Abstractions.Attributes;
+
+[DiscoveryKey("reporting")]
+public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports>
+{
+    public ValueTask HandleAsync(RebuildReports command, ErgosfareContext context) { … }
+}
+```
+
+Bu handler artık düz bir `RegisterGenerated()` için görünmezdir. Yalnız bir şey `reporting`
+istediğinde kaydolur:
+
+```csharp
+.AddCommandModule(module => module
+    .RegisterGenerated()             // anahtarsız olan her şey
+    .RegisterGenerated("reporting")) // ve bu da
+```
+
+Bir tip birden çok anahtar taşıyabilir ve bir seçim herhangi biriyle eşleştiğinde kaydolur.
+
+## Assembly seviyesinde anahtarlar
+
+Niteliği bir assembly'ye koyun, içindeki her yapı anahtarı devralır:
+
+```csharp
+[assembly: DiscoveryKey("reporting")]
+```
+
+Bir tipin kendi anahtarları assembly'sininkilere **eklenmez, onların yerine geçer**; böylece bir
+tip kendi anahtarını adlandırarak assembly genelindeki gruplamadan çıkabilir.
+
+## Desenle seçmek
+
+Bir seçim, tam bir anahtar ya da `*` ile biten bir önektir:
+
+```csharp
+.RegisterGenerated("reporting.nightly")   // tam olarak bu anahtar
+.RegisterGenerated("reporting.*")         // "reporting." ile başlayan her anahtar
+.RegisterGenerated("*")                   // anahtarlı her yapı
+```
+
+Seçimler birleşimdir, dolayısıyla örtüşen desenleri zincirlemek güvenlidir — iki kez eşleşen bir
+yapı bir kez kaydolur.
+
+## Bu ne işe yarar
+
+**Tek bir iş çalıştıran bir host.** Birkaç giriş noktası bir assembly'yi paylaşır ve her biri
+ihtiyacı olan dilimi kaydeder.
+
+**İsteğe bağlı handler'lar yayınlayan bir kütüphane.** Onlara bir anahtar verin; tüketici
+isteyip istemediğine bakılmaksızın onları almak yerine adlandırarak dahil olsun.
+
+**Ortama göre açtığınız pahalı bir interceptor.** Anahtar onu varsayılan pipeline'ın dışında
+tutar, ama bir satır uzakta bırakır.
+
+## Anahtarlar ve gruplar farklı sorular
+
+Karıştırılmaları kolaydır ve zıt soruları cevaplarlar.
+
+Bir **keşif anahtarı** bir yapının *hiç kaydolup kaydolmayacağına* karar verir. Başlangıçta,
+composition root tarafından okunur ve container kurulduktan sonra cevap değişmez.
+
+Bir **grup** kayıtlı bir interceptor'ın *bu dispatch'te çalışıp çalışmayacağına* karar verir.
+Çağrı yerinde adlandırılır ve dispatch'ten dispatch'e değişebilir.
+
+```csharp
+// kayıt zamanı: bu şey container'da mı?
+.RegisterGenerated("reporting.*")
+
+// dispatch zamanı: kayıtlı interceptor'lardan hangileri şimdi çalışsın?
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+```
+
+Cevap dağıtıma aitse anahtar, çağrıya aitse grup kullanın. Bkz.
+[Gruplar ve ağırlıklar](/ergosfare.docs/tr/preview/cross-cutting-concerns/groups-and-weights).
+
+## Bir anahtarın maliyeti
+
+Anahtarlı bir yapı bilinçli olarak koşulludur ve derleme zamanı yargıları buna saygı duyar:
+
+- `ERGO010`, çekişen-handler kontrolünün dışında kalır. İki anahtarlı handler'ın hiç birlikte
+  kaydolup kaydolmadığı, buradaki hiçbir şeyin kanıtlayamayacağı bir container tercihidir.
+- `ERGO007` erişilemeyen-handler uyarısından ve handler kırpmasından muaftır.
+- Derlenmiş bir plana katılmaz. Planlar varsayılan pipeline için kurulur ve anahtarlı bir
+  katılımcı onu çalıştıran container'da olabilir de olmayabilir de.
+
+Bunların hiçbiri davranışı değiştirmez — anahtarlı bir handler diğerleri gibi dispatch olur.
+Anlamı, derleyicinin onun hakkında söyleyecek daha az şeyi olmasıdır; bir anahtara uzandığınızda
+yaptığınız takas budur.
+
+{% aside type="tip" %}
+Bu yüzden anahtarları tutumlu kullanmakta fayda var. Bir handler her zaman kaydoluyorsa onu
+tanılamaların görebildiği varsayılan kümede bırakın.
+{% /aside %}
+
+## Bir tipi tamamen gizlemek
+
+`[DiscoveryKey]` bir tipi *varsayılan* seçimin dışında tutar. `[ExcludeFromDiscovery]` ise her
+seçimin dışında tutar; container'a ulaşmasının tek yolu elle yazılmış bir `Register` olur:
+
+```csharp
+[ExcludeFromDiscovery]
+public sealed class ProbeHandler : ICommandHandler<Probe> { … }
+```
+
+Dışlanmış bir tip ne kayıt ne de tanılama üretir — dışlama yazarın istediği şeydir. Yine de
+dispatch için köklenir, çünkü bir tipi toplu keşiften gizlemek onun dispatch edilip
+edilmediği hakkında bir şey söylemez ve generic'lerini reflection ile kapatmak zorunda kalan bir
+dispatch, geliştirmede çalışıp NativeAOT altında patlayan bir şekildir.
+
+Niteliği bir assembly'ye koyarsanız içindeki hiçbir şey taranmaz:
+
+```csharp
+[assembly: ExcludeFromDiscovery]
+```

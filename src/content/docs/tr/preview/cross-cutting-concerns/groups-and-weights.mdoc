@@ -1,0 +1,171 @@
+---
+title: Gruplar ve Ağırlıklar
+description: Bir aşama içinde interceptor'ları sıralamak, ve belirli bir dispatch'te hangilerinin çalışacağını seçmek.
+---
+
+Bir pipeline'ı iki nitelik şekillendirir. `[Weight]` aşama içindeki **sıraya**, `[Group]` ise
+**üyeliğe** — bu dispatch'te hangi interceptor'ların çalışacağına — karar verir.
+
+## Ağırlıklar
+
+Bir aşama içinde katılımcılar ağırlığa göre azalan sırayla çalışır. Eşit ağırlıklarda doğrudan
+kayıtlar kovaryant olanlardan önce, sonra tip adına göre gelir:
+
+```csharp
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor { … }
+[Weight(10)]  public sealed class Log       : ICommandPreInterceptor { … }
+```
+
+Bildirilmemiş olan `0` demektir. Ağırlık bir `uint`'tir, dolayısıyla negatife gitmez —
+varsayılanın altına inmeye çalışmak yerine önemli olanları yüksekten başlatarak yer bırakın.
+
+Sıralama kompozisyon derlenirken belirlenir, dolayısıyla dispatch başına hiçbir maliyeti yoktur
+ve bir çağrı yerinde yeniden düzenlenemez.
+
+{% aside type="tip" %}
+İki interceptor gerçekten bir sırada çalışmaya bağımlıysa ağırlık bildirin. İkisini de
+varsayılanda bırakıp tip-adı eşitlik bozucusuna güvenmek, bir sınıfı yeniden adlandırmanın
+pipeline'ınızı yeniden sıralayabilmesi demektir.
+{% /aside %}
+
+## Gruplar
+
+Bir grup, interceptor'ı adlandırılmış bir kümeye koyar. Bir dispatch istediği kümeleri adlandırır
+ve yalnız onlar çalışır:
+
+```csharp
+[Group("audit")]
+public sealed class WriteAuditRow : ICommandFinalInterceptor { … }
+```
+
+```csharp
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+```
+
+`[Group]`'u olmayan bir interceptor **varsayılan** gruba aittir. Hiçbir grup adlandırmayan bir
+dispatch varsayılan olanı ister — yani sıradan durum, ne nitelik ne argüman, varsayılan grubun
+kendi kendine konuşmasıdır.
+
+Bir tip birden çok grupta olabilir ve herhangi biri istendiğinde çalışır.
+
+## Çağrıda bir küme adlandırmak
+
+Üç şekil, hepsi eşdeğer:
+
+```csharp
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+await mediator.SendAsync(command, GroupSet.Of("audit", "metrics"));
+await mediator.SendAsync(command, GroupSet.Empty);              // varsayılan grup
+```
+
+`GroupSet.Empty` ile hiçbir şey geçirmemek aynı şeydir. Boş bir `string[]` geçirmek değildir — o,
+hiçbir grup adlandırmayan bir kümedir ve hiçbir şey seçmez.
+
+### `GroupSet` aynı zamanda bir listedir
+
+`IReadOnlyList<string>` implemente eder, dolayısıyla hem adlandırılmış bir tip hem dizinin
+kendisidir — sayabilir, indeksleyebilir, üzerinde gezinebilir ve `IEnumerable<string>` bekleyen
+her şeye verebilirsiniz:
+
+```csharp
+var groups = GroupSet.Of("audit", "metrics");
+
+groups.Count;                      // 2
+groups[0];                         // "audit"
+foreach (var name in groups) { … }
+
+await mediator.SendAsync(command, groups, ct);
+```
+
+Grup parametresinin birbirine dolaşmadan birkaç yazımla gelebilmesinin sebebi budur. Bir
+koleksiyon ifadesi `GroupSet`'i hedefleyemez — koleksiyon kurucusu yoktur — dolayısıyla
+`["audit"]` dizi aşırı yüklemelerine, `GroupSet.Of("audit")` ise adlandırılmış olana çözülür.
+İkisi de aynı yere varır.
+
+{% aside type="note" %}
+Yazımlar mediator'ler arasında tam simetrik değil: `SendAsync` ve `QueryAsync`, `PublishAsync`'te
+olmayan bir `string[]` aşırı yüklemesi taşıyor. `["audit"]` yine de üçünde de derleniyor —
+publish'te sadece `IEnumerable<string>?` aşırı yüklemesine bağlanıyor.
+{% /aside %}
+
+## Gruplar handler'lara dokunmaz
+
+Bir grup **interceptor**'ları daraltır. Handler her hâlükârda aynı şekilde seçilir.
+
+Tek istisna, handler'ların kendilerinin grup taşımasıdır; iki handler'ı bir çekişme değil
+alternatif olarak ifade etmenin yolu budur:
+
+```csharp
+[Group("v1")] public sealed class PlaceOrderV1 : ICommandHandler<PlaceOrder, Guid> { … }
+[Group("v2")] public sealed class PlaceOrderV2 : ICommandHandler<PlaceOrder, Guid> { … }
+```
+
+Hiçbiri varsayılan küme tarafından seçilmez, dolayısıyla gruplandırılmamış bir `PlaceOrder`
+dispatch'i handler bulamaz — ve bu derleme zamanında `ERGO005`'tir. Grup adlandırmak o zaman
+isteğe bağlı olmaktan çıkar, ki bunu bilerek yaptıysanız istediğiniz de budur.
+
+## Maliyeti
+
+Grup kümeleri derlenmiş bir planı anahtarlayan şeyin parçasıdır, dolayısıyla iki farklı küme
+altında dispatch edilen bir mesaj her biri için bir plan alır — her biri tam olarak o kümenin
+seçtiği katılımcılarla düz bir çizgi. Filtreleme dispatch başına yapılmaz.
+
+Bir dispatch derleyicinin okuyamadığı bir küme adlandırdığında, mesaj her katılımcıyı taşıyan ve
+her birinin üyeliğini çalışma zamanında değerlendiren tek bir plan alır. Bu da derlenmiş bir
+plandır; yalnızca ertelediğiniz seçimi yapar.
+
+```csharp
+// okunabilir: her küme kendi düz-çizgi planını alır
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+
+// okunamaz: tek plan, üyelik çağrı başına belirlenir
+await mediator.SendAsync(command, _configuredGroups);
+```
+
+İkisi de doğrudur. Birincisi daha hızlıdır ve küme gerçekten sabitse tercih edilmelidir.
+
+{% aside type="note" %}
+`static readonly GroupSet` de okunabilir — üreteç adlandırılmış bir referans üzerinden bir adım
+takip eder, ki bir kümeyi bir kez adlandırıp yeniden kullanmanın önerilen yolu tam olarak budur.
+{% /aside %}
+
+## Tipik kullanımlar
+
+**Dahil olduğunuz pahalı bir pipeline.** Tam denetimi bir gruba koyun ve ihtiyacı olan işlemlerde
+adlandırın.
+
+**Ortama özgü davranış**, her interceptor'ın içine bir bayrak koymadan.
+
+**İçe aktarma ve replay yolları.** Toplu içe aktarma doğrulama ister ama bildirim istemez; replay
+ikisini de istemez. Gruplar tek bir handler'ın üçüne de hizmet etmesini sağlar.
+
+## Gruplar mı keşif anahtarları mı
+
+Farklı soruları cevaplarlar ve karıştırılmaları kafa karışıklığının olağan kaynağıdır.
+
+Bir **keşif anahtarı** bir şeyin *hiç kaydolup kaydolmayacağına* karar verir. Başlangıçta bir
+kez, composition root tarafından okunur.
+
+Bir **grup** kayıtlı bir interceptor'ın *bu dispatch'te çalışıp çalışmayacağına* karar verir.
+Çağrı yerinde okunur ve çağrıdan çağrıya değişebilir.
+
+Cevap dağıtıma aitse anahtar, çağrıya aitse grup kullanın. Bkz.
+[Keşif anahtarları](/ergosfare.docs/tr/preview/core-concepts/discovery-keys).
+
+## Bir mesajı kovaryant interceptor'lardan muaf tutmak
+
+Kesişen muameleyi hiç almaması gereken bir mesaj için dışlama, her interceptor'a değil mesaja
+konur:
+
+```csharp
+[ExcludeFromPipeline]                      // kovaryant eşleşen her interceptor'ı düşürür
+public sealed record HealthProbe : ICommand;
+
+[ExcludeFromPipeline("audit", "logging")]  // yalnız o grupları düşürür
+public sealed record HealthProbe : ICommand;
+```
+
+Doğrudan kayıtlı interceptor'lar ve handler yine çalışır. Dışlama kompozisyon tablosu kurulurken
+çözülür, dolayısıyla dispatch başına hiçbir maliyeti yoktur — ama bunu taşıyan bir mesaj
+derlenmiş plan almaz.

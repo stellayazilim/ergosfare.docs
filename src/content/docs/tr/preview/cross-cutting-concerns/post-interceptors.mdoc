@@ -1,0 +1,97 @@
+---
+title: Son-Interceptorlar
+description: Başarılı bir handler'dan sonra çalışan aşama — sonucu gözlemlemek ve yeniden şekillendirmek.
+---
+
+Bir post-interceptor, handler başarıyla döndükten sonra çalışır ve sonucu değiştirebilir.
+Handler fırlattığında çalışmaz; o exception aşamasıdır.
+
+## Sözleşmeler
+
+```csharp
+ICommandPostInterceptor                          // her command, tipsiz sonuç
+ICommandPostInterceptor<TCommand>                // tek command, tipsiz sonuç
+ICommandPostInterceptor<TCommand, TResult>       // tek command, tipli sonuç
+```
+
+Query'lerin aynı üçlüsü vardır. Event'lerin ilk ikisi vardır — bir broadcast sonuç üretmez.
+
+## Gözlemlemek
+
+```csharp
+public sealed class CountSuccesses(IMetrics metrics) : ICommandPostInterceptor
+{
+    public ValueTask<object> HandleAsync(
+        ICommand command, object result, ErgosfareContext context)
+    {
+        metrics.Increment(command.GetType().Name);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+Size verilen sonucu döndürün. Ne döndürürseniz, sonraki aşamanın — ve sonunda çağıranın —
+göreceği odur.
+
+## Yeniden şekillendirmek
+
+Sonuca gerçekten dokunduğunuzda uzanmanız gereken form tipli olandır:
+
+```csharp
+public sealed class CacheProduct(IMemoryCache cache)
+    : IQueryPostInterceptor<GetProduct, ProductDto>
+{
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto result, ErgosfareContext context)
+    {
+        cache.Set(query.Id, result, TimeSpan.FromMinutes(5));
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+Sonucu değiştirmek aynı şekildir — başka bir şey döndürün:
+
+```csharp
+public sealed class Redact : IQueryPostInterceptor<GetCustomer, CustomerDto>
+{
+    public ValueTask<CustomerDto> HandleAsync(
+        GetCustomer query, CustomerDto result, ErgosfareContext context)
+        => ValueTask.FromResult(result with { Email = "***" });
+}
+```
+
+## Sonuçsuz pipeline'lar
+
+Sonucu olmayan bir command'ın yine de bir sonuç slot'u vardır: `Unit` taşır. Sonucu olmayan bir
+command'a karşı yazılmış bir post-interceptor'ın iyi tanımlı bir şey almasını sağlayan budur.
+
+`Unit` bir değerdir, `null` değil. Size verileni döndürün.
+
+## Sıralama
+
+`[Weight]` azalan, doğrudan kovaryant'tan önce — her aşamadaki kuralın aynısı. Sonuçlar dönüşüme
+uğruyorsa sıra normalden daha önemlidir, çünkü her interceptor bir öncekinin döndürdüğünü görür.
+
+## Tipik kullanımlar
+
+**Önbellekleme**, çıkışta doldururken bir pre-interceptor girişte kontrol eder.
+
+**Zarflama**, bir sonucu taşıma şekline sarmak — aksi hâlde bunu her handler'da yazardınız.
+
+**Metrik ve denetim**, özellikle başarılı işlemler için — hata tarafı exception ya da final
+aşamasına aittir.
+
+**Bir outbox'a eklemek** — ama transaction commit'ine göre sıralamaya dikkat; bkz.
+[Unit of work tarifi](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## Buraya ait olmayanlar
+
+**Temizlik.** Handler fırlattığında post-interceptor çalışmaz. Her iki durumda da olması gereken
+şey final interceptor'a gider.
+
+**Hata çevirisi.** O, dispatch'i bir sonuçla cevaplayabilen exception aşamasıdır.
+
+**Sonucun parçası olması gereken iş.** Handler'ın sonucu bu interceptor olmadan eksikse handler
+eksiktir. Her çağıranın bağımlı olduğu bir interceptor kesişen bir ilgi değildir — işlemin
+kendisidir.

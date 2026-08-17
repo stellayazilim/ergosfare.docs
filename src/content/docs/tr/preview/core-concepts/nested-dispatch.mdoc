@@ -1,0 +1,88 @@
+---
+title: İç İçe Dispatch
+description: Bir handler'ın içinden dispatch etmek — context'i ne zaman paylaşmalı, interceptor'ların ne yaptığı ve bunun gizli bir çağrı grafiğine dönüşmesini nasıl önlersiniz.
+---
+
+Bir handler dispatch edebilir. Bir handler'a mediator enjekte etmek her yerdeki gibi çalışır ve
+iç dispatch kendi tam pipeline'ını yürütür:
+
+```csharp
+public sealed class PlaceOrderHandler(IEventMediator events, IOrderRepository repository)
+    : ICommandHandler<PlaceOrder, Guid>
+{
+    public async ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        var id = await repository.SaveAsync(command, context.CancellationToken);
+        await events.PublishAsync(new OrderPlaced(id), context);
+        return id;
+    }
+}
+```
+
+## Context'i paylaşın, ya da paylaşmayın
+
+İç içe dispatch'in sizden istediği tek karar bu.
+
+**Context'inizi geçirmek** iç dispatch'i aynı mantıksal işlemin parçası yapar. `Items`'ınızı
+paylaşır — dış bir interceptor'ın koyduğu bir korelasyon id'si iç olana görünür — ve iptal
+token'ınızı paylaşır, yani dış işi iptal etmek içi de iptal eder.
+
+**Geçirmemek** iç dispatch'e taze bir context verir. İç iş gerçekten ayrıysa bunu kullanın:
+kendi durumu, kendi iptali.
+
+Varsayılan, geçirmektir. Dış mesajı ele almanın parçası olan bir iç dispatch normalde aynı işleme
+aittir ve iptal token'ını kazara kaybetmek, yalnız yük altında ortaya çıkan bir hatadır.
+
+## Interceptor'lar her seferinde çalışır
+
+"İç dispatch" diye bir mod yoktur. İç içe çağrı diğerleri gibi bir dispatch'tir ve iç mesajla
+eşleşen her interceptor çalışır.
+
+Bu genelde istediğiniz şeydir — denetim interceptor'ı iç event'i de görmelidir. Aynı zamanda
+`ICommand`'a karşı yazılmış kesişen bir interceptor'ın tek bir istek için iki kez çalışmasının
+da yoludur; içine pahalı bir şey koymadan önce bilmekte fayda var.
+
+## Döngülere dikkat
+
+Hiçbir şey bir handler'ın, handler'ı geri dispatch eden bir mesajı dispatch etmesini engellemez.
+Döngü tespiti yoktur ve derleme zamanı yargıları da onu aramaz — bir döngü, bir durum makinesinin
+ya da yeniden deneme politikasının gerçekten isteyebileceği meşru bir şekildir. Grafiği sığ
+tutmak size kalmıştır.
+
+{% aside type="tip" %}
+Kendinizi iki üç dispatch derinlikte bulursanız, bu genelde işin mesaj değil metot çağrısı olmak
+istediğinin işaretidir. Mesaj, uygulamanın gerçekten başka bir parçasına ait olan bir şeyi
+ayrıştırmak içindir; sahip olduğunuz kodu aynı katmandan çağırmak için birini kullanmak, size
+ayrıştırma olmadan dolaylılık satın aldırır.
+{% /aside %}
+
+## Transaction'lar sizin için iç içe geçmez
+
+İç dispatch dış olanla aynı DI scope'unda çalışır, dolayısıyla scoped bir `DbContext` paylaşılır
+ve dışarıda açılmış bir transaction içeride de açıktır. *Olmayan* şey otomatik hiçbir şeydir: iç
+dispatch başarılı olduğunda hiçbir şey commit etmez, fırlattığında hiçbir şey geri almaz.
+
+Bir dispatch'i kapsayan bir unit of work istiyorsanız ona açıkça sahip olun — bkz.
+[Unit of work tarifi](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## Event'leri işten sonra yayınlayın, sırasında değil
+
+Sık görülen bir şekil, işini yapan ve sonra bunu duyuran bir handler'dır. Transaction'ın
+*içinde* yayınlamak, bir abonenin sonradan geri alınacak bir durumu görmesine yol açar:
+
+```csharp
+// abone hiç var olmamış bir sipariş üzerine iş yapabilir
+await repository.SaveAsync(order);
+await events.PublishAsync(new OrderPlaced(order.Id), context);
+await unitOfWork.CommitAsync();
+```
+
+Bunun yerine event'leri toplayın ve commit'ten sonra yayınlayın, ya da bir outbox'a verin.
+Mediator'ün burada bir görüşü yoktur — siz söylediğinizde dispatch eder — dolayısıyla sıralama
+framework'ün değil sizin verdiğiniz bir tasarım kararıdır.
+
+## Maliyeti
+
+İç dispatch bir dispatch'tir: planını arar, katılımcılarını mevcut scope'tan çözer ve çalışır.
+Keşfe yeniden girmez, hiçbir şeyi yeniden kurmaz ve paylaştığı context zaten ayrılmış olandır.
+Maliyet istediğiniz pipeline'dır, üzerine bir şey değil.

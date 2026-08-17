@@ -1,0 +1,150 @@
+---
+title: Derleme Zamanı Keşif
+description: Kaynak üretecinin neyi bulduğu, derlemenize ne yazdığı ve neyi bilinçli olarak tahmin etmeyi reddettiği.
+---
+
+Ergosfare'de assembly taraması yoktur. Başka bir mediator'ün uygulamanız başlarken keşfettiği
+şeyi bu, siz derleme yaparken çıkarır ve okuyabileceğiniz bir kod olarak assembly'nize yazar.
+
+## Ne bulunur
+
+Üreteç bir modül marker'ına ulaşan tipleri arar — `ICommand`, `IQuery` ya da `IEvent`. Bir mesaj
+bunu kendisi bildirir. Bir handler ya da interceptor ise implemente ettiği sözleşme üzerinden
+devralır, dolayısıyla tek bir kontrol üçünü de bulur.
+
+İki yere bakar:
+
+**Kendi derlemenize**, base list'i olan her tip bildirimini ziyaret ederek.
+
+**Referans verilen assembly'lere**, böylece bir kütüphanenin handler'ları onu tüketen uygulama
+üzerinden kaydolur. Yalnız Ergosfare'ye referans veren assembly'ler okunur — başka hiçbir şey
+marker taşıyamaz — ve Ergosfare'nin kendi assembly'leri atlanır, çünkü sözleşme arayüzleri
+marker'ları devralır ve aksi hâlde hepsi eşleşirdi.
+
+```xml
+<!-- Bir projede referans taramasını kapatmak için -->
+<ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+```
+
+Üretilen kodun adlandıramadığı bir tip sessizce atlanmaz, raporlanır: kendi kodunuzdaki
+`private`, `protected` ya da dosya-yerel bir tip için `ERGO001`; size `InternalsVisibleTo`
+vermemiş bir referans assembly'deki `internal` tip için `ERGO002`.
+
+## Ne yazılır
+
+`ErgosfareRegistrations.g.cs` dosyasına üç şey iner.
+
+### Kayıt
+
+`RegisterGenerated()` her yapıyı `typeof` üzerinden adlandırır; trimming ve AOT analizörlerini
+memnun eden şey de budur. Buradaki hiçbir şey isimlendirme kuralına dayanmaz.
+
+### Donmuş kompozisyon tablosu
+
+Mesaj başına bir girdi: handler satırları ve dört interceptor aşaması, çalışacakları sırada.
+Bu, "bu mesaja ne hizmet ediyor" sorusunun cevabıdır — her dispatch'te descriptor'lardan
+toplanmak yerine derleme zamanında bir kez hesaplanmış hâli.
+
+Tablo derlenmiş dünyanın tamamını anlatır. Belirli bir container'ın hangi satırlarını gerçekten
+çalıştırdığına ayrıca, o container'ın neyi kaydettiğine göre karar verilir — yani bir kütüphaneyi
+paylaşan iki uygulama aynı tabloyu ve ondan farklı seçimleri alır.
+
+### Derlenmiş planlar
+
+Şekli tamamen oturmuş pipeline'lar için üreteç gövdeyi düz bir çağrı dizisi olarak yazar: çöz,
+çağır, çöz, çağır. Descriptor listesi üzerinde döngü yoktur; düz transient olduğu kanıtlanabilen
+katılımcılar için container çözümü de yoktur — plan onları `new` ile kurar.
+
+Bir plan her zaman tavsiye niteliğindedir. Çalıştırmadan önce executor, planın karşısında
+derlendiği kompozisyonla container'ın gerçekte kurduğu pipeline'ı karşılaştırır ve en ufak
+farkta genel yola düşer. Mekanizmanın tamamını güvenli kılan şey budur: bir plan size hızını
+kaybettirebilir, davranışınızı asla değiştirmez.
+
+## Kodunuz hakkında ne kanıtlayabilir
+
+Kapanış derleme zamanında göründüğü için, normalde çalışma zamanı sürprizi olan bazı sorular
+derleme çıktısına dönüşür. Bunlar **composition root**'ta — uygulamanın tamamını gören projede —
+çalışır; `ERGO005` ve `ERGO007`'nin handler'ı bildiren kütüphaneyi değil çalıştırılabiliri
+derlerken çıkmasının sebebi budur.
+
+| Tanılama | Seviye | Ne demek |
+|---|---|---|
+| `ERGO005` | hata | Bu dispatch hiçbir handler'a ulaşamaz. |
+| `ERGO006` | uyarı | Yalnız dispatch edilen tipin alt tipleri karşılanıyor. |
+| `ERGO007` | uyarı | Hiçbir dispatch bu handler'a ulaşamaz. |
+| `ERGO010` | hata | İki main handler bir mesajı aynı seviyede talep ediyor. |
+| `ERGO018` | hata | Bir `Register` çağrısı tipini çalışma zamanında adlandırıyor. |
+
+İnsanların ilk karşılaştığı `ERGO005`:
+
+```
+error ERGO005: This dispatch of 'ArchiveOrder' can never reach a handler: neither
+'ArchiveOrder' nor any of its subtypes in the compiled closure has a covering handler
+registration, so the call is guaranteed to throw NoHandlerFoundException at runtime.
+```
+
+Publish için de geçerlidir. Derlemede hiçbir abonesi olmayan bir event, diğerleri gibi ölü bir
+dispatch'tir — event'i yazıp aboneyi unutmak buraya varmanın sıradan yoludur ve eskiden sessizce
+derleniyordu.
+
+`ERGO007` ters yönü, hiçbir şeyin ulaşamadığı bir handler'ı gösterir. Kendi hâline bırakılırsa
+uyarıdır; açarsanız bunun yerine bir boyut kazancına dönüşür:
+
+```xml
+<ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
+```
+
+Erişilemeyen handler'lar o zaman kayıttan tamamen çıkarılır — dışarıda bırakma görünür kalsın
+diye `ERGO008` olarak raporlanır — ve linker onları atabilir.
+
+## Neyi tahmin etmeyi reddeder
+
+Yukarıdaki yargılar yalnız resim tamken sağlamdır ve üreteç bunu söylemekte titizdir. Şunların
+her biri, kanıtlayamadığı bir şeyi raporlamak yerine geri çekilmesine yol açar:
+
+**Okuyamadığı bir kayıt.** `Register(birTip)` — burada tip çalışma zamanında hesaplanmış. Bu,
+kaydın kendisinde `ERGO018`'dir ve ölü-dispatch yargısı susar: kusur kayıttır, ondan sonraki
+dispatch'ler değil.
+
+**Referans taramasının kapalı olması.** Kompozisyon o zaman bilinçli olarak eksiktir, dolayısıyla
+kapanışı ilgilendiren hiçbir yargı geçerli olmaz.
+
+**Eksik bir manifest.** Her assembly neyi dispatch ettiğini kaydeder. Kapanıştaki
+Ergosfare'ye referans veren bir assembly manifest taşımıyorsa dispatch'ler görünmez olabilir ve
+erişilemeyen-handler tarafı susar.
+
+**Opak bir dispatch noktası.** `ICommand` tipli bir değişken üzerinden `SendAsync` hangi
+command'ın geldiği hakkında hiçbir şey kanıtlamaz. Erişilebilirlik hâlâ toplu olarak akıl
+yürütebilir, kesin olarak değil. `ERGO009` bunları raporlar, varsayılan kapalıdır:
+
+```ini
+dotnet_diagnostic.ERGO009.severity = warning
+```
+
+**Anahtarlı ya da gruplu bir kayıt.** İki böyle handler'ın hiç birlikte canlı olup olmadığı bir
+container tercihidir, tiplerin bir özelliği değil; dolayısıyla aralarındaki çekişme raporlanmaz.
+
+## Çalışma zamanında ne kalır
+
+Örnek çözümü. Bir handler her dispatch için dispatch eden scope'tan çözülür, yani scoped
+bağımlılıklar her yerdeki gibi davranır. Üreteç *hangi* handler'a, container'ınız *hangi
+örneğe* karar verir.
+
+## Çıktıyı görmek
+
+```xml
+<PropertyGroup>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+</PropertyGroup>
+```
+
+Dosya düz, okunabilir C#'tır. "Handler'ım gerçekten kayıtlı mı" sorusunu cevaplamanın en hızlı
+yolu onu okumaktır, ve üretilen plan gövdeleri bir dispatch'in tam olarak ne yapacağını gösterir.
+
+## Sırada
+
+- [Keşif anahtarları](/ergosfare.docs/tr/preview/core-concepts/discovery-keys) — bulunanların
+  bir altkümesini kaydetmek.
+- [Çok biçimlilik](/ergosfare.docs/tr/preview/core-concepts/polymorphism) — base sözleşmeler ve
+  kovaryant handler'lar nasıl çözülür.

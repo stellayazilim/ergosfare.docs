@@ -1,111 +1,112 @@
 ---
 title: Kurulum
-description: Hangi Ergosfare paketlerine ihtiyacınız var ve kaynak üreteci neden ayrı bir paket.
+description: Önizleme hattı için hangi paketleri kuracağınız, her birinin ne taşıdığı ve destekledikleri hedef framework'ler.
 ---
 
-Önizleme hattının paketleri nuget.org'a ön-sürüm olarak çıkar; bu sayfadaki her kurulum
-`--prerelease` bayrağı ister. Yayınlanmış hat için
-[kararlı kurulum sayfasına](/ergosfare.docs/tr/getting-started/installation) bakın.
+Önizleme hattı `-preview` ön-sürümleri olarak yayınlanır. Paket yöneticiniz, siz açıkça
+istemedikçe bunları önermez.
 
-## Kısa yol
+## Çoğu uygulamanın ihtiyacı olan tek paket
 
-Bir uygulama için:
+`Stella.Ergosfare` bir cephe paketidir: üç modülü, bağımlılık enjeksiyonu uzantılarını ve kaynak
+üretecini referans alır. Handler yazıp mesaj dispatch etmek için bu yeter.
 
 ```bash
 dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
 ```
 
-`Stella.Ergosfare`, Command, Query ve Event modüllerini DI uzantılarıyla birlikte getiren bir
-kolaylık paketidir. `Stella.Ergosfare.SourceGenerator` ise `RegisterGenerated()` metodunu üreten
-pakettir.
-
-{% aside type="caution" %}
-Kaynak üreteci **bilinçli olarak ayrı bir pakettir**, ama pratikte isteğe bağlı değildir.
-Donmuş kompozisyon tablosunu derleyen ve `RegisterGenerated()` üreten odur; o olmadan
-container'ın seçebileceği bir şey kalmaz ve her dispatch `NoHandlerFoundException` ile
-başarısız olur. Çalışma zamanı assembly taraması v2.3'te kaldırıldı —
-[v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/preview/migration/v2.2-to-v2.3) sayfasına bakın.
+{% aside type="tip" %}
+Önizleme hattında sürümü kayan değil sabit tutun. Ön-sürümler arasında yüzey değişebilir ve
+kayan bir referans bunu restore anında bir sürprize dönüştürür.
 {% /aside %}
 
-## Gereksinimler
+## Ya da katmanlara ayırıyorsanız, parçalar
 
-- **.NET 9.0, .NET 10.0 veya .NET 11.0.** Kütüphaneler `net9.0;net10.0;net11.0` hedefliyor.
-  `net11.0` varlıkları fazladan hiçbir API taşımaz — kaynakların C# 15 derleyicisiyle
-  derlendiğinin ve sözleşme paketinin .NET 11 üzerinde de tutunduğunun kanıtı olarak varlar.
-  Bunlar olmasa da bir `net11.0` projesi roll-forward ile zaten `lib/net10.0/` bağlar.
-- **C# `latest`.** Üretilen kayıt kodu bilinçli olarak muhafazakârdır, ancak soyutlamalar güncel
-  dil özelliklerini kullanır.
+Katmanlara ayrılan çoğu uygulama mesaj sözleşmelerini bir projede, kaydı başka bir projede
+ister. Her projeye yalnız gerçekten ihtiyaç duyduğunu referans verin:
 
-{% aside type="note" %}
-.NET 11, **2026-11-10**'da GA olacak. O tarihe kadar `net11.0` varlıkları **önizleme referans
-paketlerine** karşı derleniyor ve GA paketi çıktığında yeniden paketlenecek. `net9.0` ya da
-`net10.0` hedeflemek bu soruyu tamamen ortadan kaldırır ve hiçbir şey kaybettirmez.
-{% /aside %}
+| Paket | Ne taşıyor | Nereye ait |
+|---|---|---|
+| `Stella.Ergosfare.Core.Abstractions` | `ErgosfareContext`, interceptor sözleşmeleri, nitelikler | handler ya da interceptor yazılan her yer |
+| `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler<>`, `ICommandMediator` | command bildiren katman |
+| `Stella.Ergosfare.Queries.Abstractions` | `IQuery<>`, `IStreamQuery<>`, `IQueryHandler<>`, `IQueryMediator` | query bildiren katman |
+| `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler<>`, `IEventMediator` | event bildiren katman |
+| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddCommandModule`, `AddQueryModule`, `AddEventModule` | yalnız composition root |
+| `Stella.Ergosfare.SourceGenerator` | üretecin kendisi | handler bildiren her proje ve composition root |
 
-## Paketleri bilinçli seçmek
+Üreteç bir analiz referansıdır, dolayısıyla çalışma zamanı bağımlılığı taşımaz:
 
-Şemsiye paket kolaylıktır, zorunluluk değil. Her modül bağımsızdır:
-
-| Paket | Ne veriyor |
-|---|---|
-| `Stella.Ergosfare` | Şemsiye — Command + Query + Event + DI uzantıları |
-| `Stella.Ergosfare.SourceGenerator` | Derleme zamanı keşif, `RegisterGenerated()`, dispatch root'ları |
-| `Stella.Ergosfare.Core.Abstractions` | `ErgosfareContext`, attribute'lar, handler sözleşmeleri |
-| `Stella.Ergosfare.Commands.Abstractions` | `ICommand`, `ICommandHandler`, command interceptor'ları |
-| `Stella.Ergosfare.Queries.Abstractions` | `IQuery`, `IStreamQuery`, query handler ve interceptor'ları |
-| `Stella.Ergosfare.Events.Abstractions` | `IEvent`, `IEventHandler`, event interceptor'ları |
-| `Stella.Ergosfare.Core` | Çalışma zamanı: kompozisyon kataloğu, pipeline planları, dispatch |
-| `Stella.Ergosfare.*.Extensions.MicrosoftDependencyInjection` | `AddErgosfare`, `AddCommandModule`, modül builder'ları |
-
-### Yalnızca mesaj ve handler tanımlayan kütüphane
-
-Sadece abstractions paketine referans verin. Böylece kütüphane çalışma zamanından ve herhangi
-bir DI container bağımlılığından uzak kalır:
-
-```bash
-dotnet add package Stella.Ergosfare.Commands.Abstractions --prerelease
+```xml
+<PackageReference Include="Stella.Ergosfare.SourceGenerator" Version="…">
+  <PrivateAssets>all</PrivateAssets>
+  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+</PackageReference>
 ```
 
-Kütüphanenin **hiç kayıt koduna ihtiyacı yoktur**. Ona referans veren bir uygulama kaynak
-üretecini çalıştırdığında, üreteç referans verilen assembly'leri gezer ve o handler'ları
-uygulamanın kendi `RegisterGenerated()` çağrısı üzerinden kaydeder. Bkz.
-[Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+Bir event mesajının hiçbir referansa ihtiyacı yoktur. Düz bir domain tipi, bir abone onu
+adlandırdığı anda event olur; yani domain event'lerinizi bildiren proje tamamen Ergosfare'siz
+kalabilir — bkz.
+[Event tanımlama](/ergosfare.docs/tr/preview/core-components/event/event-definition).
 
-### Yalnızca command kullanan uygulama
+## Hedef framework'ler
 
-```bash
-dotnet add package Stella.Ergosfare.Commands --prerelease
-dotnet add package Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
-```
+Paketler **net9.0**, **net10.0** ve **net11.0** hedefliyor. Üretecin kendisi, Roslyn
+analizörlerinin zorunlu olduğu gibi `netstandard2.0` hedefliyor; dolayısıyla yukarıdakileri
+derleyebilen her SDK'ya yükleniyor.
 
-## Üretecin çalıştığını doğrulama
+Üretilen kodun kullandığı dil özellikleri için C# 13 veya sonrası gerekiyor. Bu, yukarıdaki
+SDK'larla birlikte geliyor, yani `<LangVersion>` elle ayarlamanız gerekmiyor.
 
-Üreteç derlemenize tek bir dosya yazar. Bir build'den sonra şurada bulabilirsiniz:
+## Üretecin nerede çalışması gerekiyor
 
-```
-obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
-```
+Üreteç iki ayrı iş yapıyor ve her ikisinde de referans verilmiş olması gerekiyor:
 
-Dosyayı açtığınızda `Stella.Ergosfare.Generated` namespace'i içinde
-`internal static class ErgosfareGeneratedRegistrations` görmelisiniz. Başlangıç kodunuzda
-`RegisterGenerated()` çözülmüyorsa, sebep neredeyse her zaman eksik bir using'dir:
+**Handler bildiren bir projede** onları bulur ve o assembly'nin neyi dispatch ettiğini kaydeder;
+böylece bir kütüphane, tüketicilerinin okuyacağı kendi manifest'ini taşır.
 
-```csharp
-using Stella.Ergosfare.Generated;
-```
+**Composition root'ta** `RegisterGenerated()`'ı ve derlenmiş planları yazar, ve — yalnız burada,
+bütün uygulamanın göründüğü yerde — erişilebilirliği yargılar. `ERGO005` ve `ERGO007`'nin,
+handler'ı bildiren kütüphaneyi değil çalıştırılabiliri derlerken çıkmasının sebebi bu.
 
-## Referans taraması
-
-Üreteç varsayılan olarak referans verilen assembly'leri de inceler, böylece kütüphanelerin
-gönderdiği handler'lar otomatik kaydolur. Bir proje için kapatmak isterseniz:
+Ergosfare bir uygulama projesini varsayılan olarak composition root sayar. Sizinki bir kütüphane
+ise — test host'u, plugin container'ı — bunu söyleyin:
 
 ```xml
 <PropertyGroup>
-  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+  <ErgosfareCompositionRoot>true</ErgosfareCompositionRoot>
 </PropertyGroup>
 ```
 
-Sırada: [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — bir command, bir
-query ve bir event'i tek dosyada bağlıyor.
+## MSBuild özellikleri
+
+| Özellik | Varsayılan | Ne yapar |
+|---|---|---|
+| `ErgosfareCompositionRoot` | çıktı türü | Bu projeyi composition root olarak işaretler, ya da zorla kapatır. |
+| `ErgosfareSourceGeneratorScanReferences` | `true` | Referans verilen assembly'lerin handler için taranıp taranmayacağı. |
+| `ErgosfareTrimUnusedHandlers` | `false` | Hiçbir dispatch'in ulaşmadığı handler'ları kayıt dışında bırakır; linker onları atabilir. |
+
+Referans taraması, bir kütüphanenin handler'larının onu tüketen uygulama üzerinden kaydolmasını
+sağlayan şeydir. Kapatmak resmi bilinçli olarak eksik bırakır, dolayısıyla bütün-kapanışı
+ilgilendiren tanılamalar da onunla birlikte devre dışı kalır.
+
+## Kurulumu doğrulama
+
+Bir handler yazın, derleyin ve üretilen dosyaya bakın. Bir IDE'de *Dependencies → Analyzers →
+Stella.Ergosfare.SourceGenerator* altında `ErgosfareRegistrations.g.cs` olarak görünür. Ya da
+diske dökün:
+
+```xml
+<PropertyGroup>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+</PropertyGroup>
+```
+
+Handler'ınızın tip adı orada görünüyorsa keşif onu bulmuş demektir. Görünmüyorsa en sık iki sebep
+vardır: tip `private` ya da dosya-yerel (bu `ERGO001` olarak raporlanır), ya da taramanın kapalı
+olduğu referans bir assembly'de duruyor.
+
+## Sırada
+
+[Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) bir command, bir query,
+bir event ve bir interceptor'ı baştan sona yürüyor.

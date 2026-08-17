@@ -1,0 +1,123 @@
+---
+title: Final Interceptorlar
+description: Her zaman çalışan aşama — başarıda, başarısızlıkta, ve çalışmadığı tek durum.
+---
+
+Bir final interceptor en son çalışır; dispatch başarılı da olsa başarısız da. Hiçbir şey
+döndürmez, çünkü çalıştığı anda dispatch'in cevabı çoktan bellidir.
+
+## Sözleşmeler
+
+```csharp
+ICommandFinalInterceptor                        // her command
+ICommandFinalInterceptor<TCommand>              // tek command
+ICommandFinalInterceptor<TCommand, TResult>     // tipli sonuç
+```
+
+Query'lerin aynı üçlüsü, event'lerin sonuçsuz olanları vardır.
+
+## Şekli
+
+```csharp
+public sealed class RecordOutcome(IMetrics metrics) : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
+    {
+        metrics.Record(message.GetType().Name, succeeded: exception is null);
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Hem sonuç hem exception nullable'dır ve ikisi birden `null` olabilir — başarılı olan sonuçsuz bir
+pipeline'ın ne anlamlı bir sonucu ne de bir hatası vardır. İkisini çift olarak okuyun:
+
+| `exception` | `result` | Ne oldu |
+|---|---|---|
+| `null` | bir değer | handler başarılı oldu |
+| `null` | `null` | sonuçsuz pipeline başarılı oldu |
+| dolu | `null` | başarısız oldu ve hiçbir şey cevaplamadı |
+| dolu | bir değer | başarısız oldu ve exception aşaması cevapladı |
+
+## Çalışmadığı tek durum
+
+`context.Abort()`.
+
+Abort bir başarısızlık değil bilinçli bir durdurmadır, dolayısıyla exception aşamasını **ve
+bunu** atlar ve çağırana olduğu gibi gider.
+
+{% aside type="caution" %}
+Bu, bir pre-interceptor'ın açtığı ve final aşamasının kapatacağı bir şey olduğunda önem kazanır.
+Herhangi bir interceptor o noktadan sonra abort edebiliyorsa kaynak sızar.
+
+İki çıkış yolu: abort eden kontrolü, kaynağı açan şeyin önüne daha yüksek bir `[Weight]` ile
+koyun — ya da kaynağı, bir `try`/`finally`'nin her çıkışı kapsadığı handler'da açın.
+{% /aside %}
+
+## Bir pre-interceptor ile eşleştirmek
+
+Sık görülen şekil, bir şey kaydeden bir pre-interceptor ve onu okuyan bir final interceptor'dır:
+
+```csharp
+public sealed class StopTimer(IMetrics metrics) : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
+    {
+        if (context.TryGet<long>("startedAt", out var started))
+            metrics.Record(message.GetType().Name, Stopwatch.GetElapsedTime(started));
+
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+`Get` yerine `TryGet` kullanın. Final interceptor, pre olanın hiç çalışmadığı bir dispatch için
+çalışabilir — farklı bir grup, ya da sonradan eklenmiş bir interceptor — ve temizlik yaparken
+fırlatmamalıdır.
+
+## Sıralama
+
+`[Weight]` azalan, doğrudan kovaryant'tan önce. Bir final interceptor bir şeyi kapatıyorsa, ona
+kapattığı şeyi okuyan her şeyden sonraya düşecek bir ağırlık verin.
+
+## Buradan fırlatmayın
+
+Bir final interceptor'dan çıkan exception, pipeline'ın zaten yaptığı işin içine kaçar. Dispatch
+başarısız oluyorduysa, anlamlı bir hatayı bir muhasebe hatasıyla değiştirmiş olursunuz.
+
+Başarısız olabilecek her şeyi sarın:
+
+```csharp
+try
+{
+    await _audit.WriteAsync(row, context.CancellationToken);
+}
+catch (Exception ex)
+{
+    _logger.LogWarning(ex, "denetim kaydı yazılamadı");
+}
+```
+
+İptal token'ına da dikkat: dispatch *iptal edildiği için* başarısız olduysa token zaten iptal
+edilmiştir ve onunla başlattığınız her iş hemen başarısız olur.
+
+## Tipik kullanımlar
+
+**Zamanlama ve metrikler**, her sonuç için.
+
+**Denetim satırları**, bir işlemin denendiğini ve sonucunu kaydeden.
+
+**Bir şeyi serbest bırakmak**, yukarıdaki abort uyarısı geçerli olmak üzere.
+
+**Bir transaction'ı commit ya da rollback etmek**, ki bu aşamanın var olma sebebi olan tam da o
+iki-yollu şekildir. Bkz.
+[Unit of work tarifi](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## Buraya ait olmayanlar
+
+**Cevabı değiştirmek.** `void` döndürür; cevap bellidir. Post ya da exception kullanın.
+
+**Çağıranın beklediği ama işlemin parçası olmayan iş.** Final interceptor dispatch'in içinde
+await edilir, dolayısıyla buradaki yavaş iş her çağrıyı yavaşlatır. Onu kuyruğa alın.

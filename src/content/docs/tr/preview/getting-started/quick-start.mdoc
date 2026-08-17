@@ -1,22 +1,37 @@
 ---
-title: Hızlı başlangıç
-description: Kaynak-üretimli kayıtla uçtan uca bağlanmış bir command, bir query ve bir event.
+title: Hızlı Başlangıç
+description: Bir command, bir query, bir event ve bir interceptor — boş bir projeden çalışan bir dispatch'e.
 ---
 
-Bu sayfa minimal ama eksiksiz bir kurulumu adım adım anlatıyor: bir command, bir query, bir
-event ve hepsini tek satır elle kayıt olmadan kaydeden başlangıç kodu.
+Bu sayfa yüzeyin tamamını bir kez yürüyor. Buradaki her şey
+[Kurulum](/ergosfare.docs/tr/preview/getting-started/installation)'da anlatılan önizleme
+paketlerine karşı derleniyor.
 
-## Adım 1 — Kurulum
+## 1. Ergosfare'yi kaydedin
 
-```bash
-dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
+Composition root'ta tek bir çağrı. `RegisterGenerated()` kaynak üreteci tarafından yazılır ve
+bulduğu her yapıyı adıyla sayar:
+
+```csharp
+using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
 ```
 
-## Adım 2 — Bir command ve handler'ı tanımlayın
+Yalnız kullandığınız modülleri kaydedin. Event'i olmayan bir uygulamanın event modülüne ihtiyacı
+yoktur.
 
-Command, bir şey *yaptıran* mesajdır. Sonuç üretebilir de üretmeyebilir de; ürettiğinde
-`ICommand<TResult>` kullanın.
+## 2. Bir command
+
+Command bir talimattır. Tam olarak bir handler'ı vardır ve ya bir sonuç üretir ya da üretmez:
 
 ```csharp
 using Stella.Ergosfare.Commands.Abstractions;
@@ -24,156 +39,140 @@ using Stella.Ergosfare.Core.Abstractions;
 
 public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
 
-public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
+public sealed class CreateProductHandler(IProductRepository repository)
+    : ICommandHandler<CreateProduct, Guid>
 {
-    private readonly IProductStore _store;
-
-    public CreateProductHandler(IProductStore store) => _store = store;
-
-    public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
-        => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
-}
-```
-
-Dikkat edilmesi gereken iki nokta:
-
-- Handler **`ValueTask<TResult>`** döndürür. Senkron tamamlanan bir handler hiçbir allocation
-  yapmaz.
-- İptal token'ı ayrı bir parametre olarak değil, **context üzerinden** gelir. Onu iletmeyi
-  unutmanız mümkün değildir.
-
-## Adım 3 — Bir query ve handler'ı tanımlayın
-
-Query bir şey *sorar* ve her zaman bir sonuç üretir.
-
-```csharp
-using Stella.Ergosfare.Queries.Abstractions;
-
-public sealed record GetProduct(Guid Id) : IQuery<Product?>;
-
-public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
-{
-    private readonly IProductStore _store;
-
-    public GetProductHandler(IProductStore store) => _store = store;
-
-    public ValueTask<Product?> HandleAsync(GetProduct query, ErgosfareContext context)
-        => _store.FindAsync(query.Id, context.CancellationToken);
-}
-```
-
-## Adım 4 — Bir event ve handler'larını tanımlayın
-
-Event yayınlanır: eşleşen her handler çalışır, hiç handler olmayabilir de.
-
-```csharp
-using Stella.Ergosfare.Events.Abstractions;
-
-public sealed record ProductCreated(Guid Id, string Name) : IEvent;
-
-public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
-{
-    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
-        => _mailer.SendAsync(@event.Name, context.CancellationToken);
-}
-
-public sealed class UpdateSearchIndex : IEventHandler<ProductCreated>
-{
-    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
-        => _index.AddAsync(@event.Id, @event.Name, context.CancellationToken);
-}
-```
-
-## Adım 5 — Hepsini kaydedin
-
-```csharp
-using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
-using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
-using Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection;
-using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
-using Stella.Ergosfare.Generated;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
-```
-
-Kaydın tamamı bu. `RegisterGenerated()` hiçbir NuGet paketinde yoktur — kaynak üreteci onu
-*sizin* derlemenize, bulduğu her handler'ı içerecek şekilde üretir. Projenin herhangi bir
-yerine bir handler ekleyin, sonraki build onu alır.
-
-{% aside type="tip" %}
-`using Stella.Ergosfare.Generated;` zorunludur — üreteç bu namespace'e yazar. Çözülmeyen bir
-`RegisterGenerated()` neredeyse her zaman eksik bir using demektir.
-{% /aside %}
-
-## Adım 6 — Dispatch edin
-
-İhtiyacınız olan modülün mediator arayüzünü inject edin. Ayrı olmaları bilinçlidir: yalnızca
-okuma yapan bir bileşen command gönderme yeteneğini almaz.
-
-```csharp
-app.MapPost("/products", async (
-    CreateProduct command,
-    ICommandMediator commands,
-    IEventMediator events) =>
-{
-    var id = await commands.SendAsync(command);
-    await events.PublishAsync(new ProductCreated(id, command.Name));
-    return Results.Created($"/products/{id}", id);
-});
-
-app.MapGet("/products/{id:guid}", async (Guid id, IQueryMediator queries) =>
-{
-    var product = await queries.QueryAsync(new GetProduct(id));
-    return product is null ? Results.NotFound() : Results.Ok(product);
-});
-```
-
-| Modül | Arayüz | Çağrı |
-|---|---|---|
-| Command | `ICommandMediator` | `SendAsync(command)` |
-| Query | `IQueryMediator` | `QueryAsync(query)`, `StreamAsync(streamQuery)` |
-| Event | `IEventMediator` | `PublishAsync(@event)` |
-
-## Adım 7 — Bir cross-cutting concern ekleyin
-
-Interceptor'lar handler'lara dokunmadan pipeline'a takılır. Bir base tip veya arayüz için
-kaydedilen pre-interceptor, ona atanabilir her mesaja uygulanır:
-
-```csharp
-using Stella.Ergosfare.Core.Abstractions.Attributes;
-
-[Weight(100)]                                  // yüksek ağırlık önce çalışır
-public sealed class LogCommands : ICommandPreInterceptor
-{
-    private readonly ILogger<LogCommands> _logger;
-
-    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
-
-    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    public async ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
     {
-        _logger.LogInformation("Dispatch ediliyor: {Command}", command.GetType().Name);
-        return ValueTask.FromResult<object>(command);   // mesajı olduğu gibi geçir
+        var product = new Product(command.Name, command.Price);
+        await repository.AddAsync(product, context.CancellationToken);
+        return product.Id;
     }
 }
 ```
 
-Kayıt gerekmez — üreteç onu tıpkı bir handler gibi bulur.
+Handler sıradan bir sınıftır. Kurucu parametreleri dispatch eden scope'tan çözülür, yani scoped
+bir `IProductRepository` tam olarak bir controller'daki gibi davranır.
+
+Dispatch edin:
+
+```csharp
+app.MapPost("/products", async (CreateProduct command, ICommandMediator mediator) =>
+{
+    var id = await mediator.SendAsync(command);
+    return Results.Created($"/products/{id}", id);
+});
+```
+
+Sonuç üretmeyen bir command için `ICommand` ve `ICommandHandler<TCommand>` implemente edin;
+handler düz bir `ValueTask` döndürür.
+
+## 3. Bir query
+
+Query bir soru sorar ve hiçbir şeyi değiştirmez:
+
+```csharp
+using Stella.Ergosfare.Queries.Abstractions;
+
+public sealed record GetProduct(Guid Id) : IQuery<ProductDto>;
+
+public sealed class GetProductHandler(IProductRepository repository)
+    : IQueryHandler<GetProduct, ProductDto>
+{
+    public async ValueTask<ProductDto> HandleAsync(GetProduct query, ErgosfareContext context)
+    {
+        var product = await repository.FindAsync(query.Id, context.CancellationToken);
+        return ProductDto.From(product);
+    }
+}
+```
+
+```csharp
+var product = await mediator.QueryAsync(new GetProduct(id));
+```
+
+Bir dizi için `IStreamQuery<T>` bildirin ve `IStreamQueryHandler<TQuery, T>` implemente edin.
+Handler'ının metodu `StreamAsync`'tir ve `IAsyncEnumerable<T>` döndürür; çağıran onu
+`await foreach` ile okur.
+
+## 4. Bir event
+
+Event, zaten olmuş bir şeydir. Eşleşen her abone çalışır ve hiçbiri yayınlayana cevap vermez:
+
+```csharp
+using Stella.Ergosfare.Events.Abstractions;
+
+public sealed record ProductCreated(Guid Id, string Name);
+
+public sealed class SendWelcomeEmail(IEmailSender sender) : IEventHandler<ProductCreated>
+{
+    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
+        => sender.SendAsync($"{@event.Name} ürünü oluşturuldu", context.CancellationToken);
+}
+```
+
+`ProductCreated`'in hiçbir şey implemente etmediğine dikkat edin. Onu event yapan şey aboneyi
+yazmaktır; yani domain tiplerinizi bildiren projenin Ergosfare referansına ihtiyacı yoktur.
+
+```csharp
+await mediator.PublishAsync(new ProductCreated(id, name));
+```
 
 {% aside type="note" %}
-Bir pre-interceptor `void` yerine mesajı döndürür, çünkü onu *yeniden yazma* hakkı vardır:
-döndürdüğünüz şey bir sonraki aşamanın gördüğü şeydir. Yukarıdaki gibi mesajı değiştirmeden
-döndürmek, geçiş (pass-through) durumudur. Bkz.
-[Interceptorlar](/ergosfare.docs/tr/preview/core-concepts/interceptors).
+Kimsenin abone olmadığı bir publish sessiz bir no-op değil, derleme hatasıdır. Event'i yazıp
+aboneyi unutursanız derleyici bunu `ERGO005` ile söyler; çağrının hiçbir şey teslim etmeden
+dönmesine izin vermez.
 {% /aside %}
+
+## 5. Bir interceptor
+
+Interceptor'lar, kesişen işlerin handler'ın haberi olmadan bağlandığı yerdir. Bu, her
+command'dan önce çalışır:
+
+```csharp
+using Stella.Ergosfare.Core.Abstractions;
+
+public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        logger.LogInformation("{Command} dispatch ediliyor", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Kendine ait bir kayıt gerekmez — `RegisterGenerated()` onu zaten buldu. Tek bir mesaja
+daraltmak için `ICommandPreInterceptor<CreateProduct>` implemente edin; bu size tipli mesajı da
+verir:
+
+```csharp
+public sealed class TrimName : ICommandPreInterceptor<CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
+        => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+}
+```
+
+Dört aşama var — pre, post, exception ve final —
+[Interceptorlar](/ergosfare.docs/tr/preview/core-concepts/interceptors)'da anlatılıyor.
+
+## 6. Derleyin
+
+Derleyin ve derleyicinin size söylediklerini okuyun. Ergosfare kanıtlayabildiğini raporlar:
+
+```
+error ERGO005: This dispatch of 'ArchiveProduct' can never reach a handler…
+warning ERGO007: Handler 'ReindexProduct' handles 'ReindexProduct', but no dispatch site in
+the compiled closure can deliver that message — the handler never executes.
+```
+
+Bunların ikisi de bir stil önerisi değil. Birincisi bir çağrının her zaman başarısız olacağını,
+ikincisi yazdığınız kodun hiç çalışmayacağını söylüyor.
 
 ## Sırada ne var
 
-- [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery) — üreteç ne görüyor, nasıl kontrol edilir.
-- [Interceptorlar](/ergosfare.docs/tr/preview/core-concepts/interceptors) — dört aşama ve nasıl birleştikleri.
-- [Yürütme bağlamı](/ergosfare.docs/tr/preview/core-concepts/execution-context) — havuzlama, yaşam süresi ve getirdiği kurallar.
-- [İç içe dispatch](/ergosfare.docs/tr/preview/core-concepts/nested-dispatch) — handler içinden mediator çağırmak.
+- [Ergosfare'yi Yapılandırma](/ergosfare.docs/tr/preview/getting-started/configuring) — sonuç
+  adapter'ları, memoized handler'lar, keşif anahtarları.
+- [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery) —
+  üretecin neyi kanıtlayabildiği ve neyi tahmin etmeyi reddettiği.
