@@ -3,7 +3,7 @@ title: "IEventExceptionInterceptorFor<TEvent, TException>"
 description: "An exception interceptor for a specific event type that runs only for exceptions of type TException."
 sidebar:
   label: "IEventExceptionInterceptorFor<TEvent, TException>"
-  order: 7
+  order: 4
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

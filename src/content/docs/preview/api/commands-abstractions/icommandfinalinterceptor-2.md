@@ -3,7 +3,7 @@ title: "ICommandFinalInterceptor<TCommand, TResult>"
 description: "Represents a final interceptor for commands in the pipeline with a strongly typed result."
 sidebar:
   label: "ICommandFinalInterceptor<TCommand, TResult>"
-  order: 13
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

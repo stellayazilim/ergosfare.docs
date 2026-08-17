@@ -19,9 +19,9 @@ static readonly GroupSet Reporting = GroupSet.Of("reporting");
 await mediator.SendAsync(new BuildDailyReport(), Reporting);
 ```
 
-A [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) is also an [`IReadOnlyList<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1) of its names, so it
-can be assigned anywhere a group sequence is accepted
-(`settings.Filters.Groups = Reporting;`) — the caches recognize it there too.
+A [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) is also an [`IReadOnlyList<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1) of its names, so it can
+be passed anywhere a group sequence is accepted — including the full dispatch overloads
+that take one alongside contextual items — and the caches recognize it there too.
 
 ```csharp
 public sealed class GroupSet : IReadOnlyList<string>, IReadOnlyCollection<string>, IEnumerable<string>, IEnumerable

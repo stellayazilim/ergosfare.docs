@@ -3,7 +3,7 @@ title: "SingleStreamHandlerMediationStrategy<TMessage, TResult>"
 description: "Implements a mediation strategy for a single asynchronous streaming handler."
 sidebar:
   label: "SingleStreamHandlerMediationStrategy<TMessage, TResult>"
-  order: 3
+  order: 1
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Strategies`](/ergosfare.docs/preview/api/core-abstractions-strategies)  

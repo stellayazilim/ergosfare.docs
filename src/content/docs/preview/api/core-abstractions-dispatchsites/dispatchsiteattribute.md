@@ -13,8 +13,8 @@ Assembly-level record of one dispatch site the source generator observed in the
 assembly's own source: a distinct (static message type, dispatch surface) pair reached
 by at least one call. The generator emitting into a composition root aggregates these
 manifests from every referenced assembly to judge whole-closure dispatch reachability —
-provably dead dispatches (ERGOSG005) and handlers no dispatch site can reach
-(ERGOSG007) — without needing the referenced assemblies' syntax.
+provably dead dispatches (ERGO005) and handlers no dispatch site can reach
+(ERGO007) — without needing the referenced assemblies' syntax.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
@@ -44,8 +44,8 @@ Assembly-level record of one dispatch site the source generator observed in the
 assembly's own source: a distinct (static message type, dispatch surface) pair reached
 by at least one call. The generator emitting into a composition root aggregates these
 manifests from every referenced assembly to judge whole-closure dispatch reachability —
-provably dead dispatches (ERGOSG005) and handlers no dispatch site can reach
-(ERGOSG007) — without needing the referenced assemblies' syntax.
+provably dead dispatches (ERGO005) and handlers no dispatch site can reach
+(ERGO007) — without needing the referenced assemblies' syntax.
 
 **Parameters**
 

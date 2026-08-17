@@ -11,14 +11,14 @@ sidebar:
 
 Extracts a value-carried failure out of a pipeline result of type
 `TResult` without throwing it — the bridge that lets result-pattern
-values (the framework's own [`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1), or foreign
+values (the framework's own [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1), or foreign
 carriers such as FluentResults/OneOf) trigger the exception-interceptor stage.
 
 ```csharp
 public interface IResultAdapter<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L18)
 
 **Type parameters**
 

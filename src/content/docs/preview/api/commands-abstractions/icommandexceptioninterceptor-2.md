@@ -3,7 +3,7 @@ title: "ICommandExceptionInterceptor<TCommand, TResult>"
 description: "Represents a type-safe exception interceptor for commands with a strongly-typed result."
 sidebar:
   label: "ICommandExceptionInterceptor<TCommand, TResult>"
-  order: 7
+  order: 4
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
@@ -37,7 +37,7 @@ returns it.
 ### `HandleAsync(TCommand, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult?> HandleAsync(TCommand command, TResult? result, Exception exception, ErgosfareContext context)
+ValueTask<TResult> HandleAsync(TCommand command, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
 Handles the exception asynchronously, potentially modifying the command result.
@@ -54,3 +54,8 @@ Handles the exception asynchronously, potentially modifying the command result.
 **Returns**
 
 `ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) producing the (possibly modified) result that continues through the pipeline.
+
+The stage owes a result. A dispatch of this message locked its result type at the call
+site, so nothing downstream may answer with null — to leave the failure unhandled,
+do not claim it: an unmatched stage lets the exception surface to the caller. Model
+absence in the value instead, the way `Result<T>` does.

@@ -3,7 +3,7 @@ title: "ICommandExceptionInterceptorFor<TException>"
 description: "A module-wide exception interceptor that runs for every command but only for exceptions of type TException — the filtered form of ICommandExceptionIntercepto…"
 sidebar:
   label: "ICommandExceptionInterceptorFor<TException>"
-  order: 11
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

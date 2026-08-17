@@ -12,7 +12,7 @@ sidebar:
 The application-wide fallback adapter, configured once inside `AddErgosfare` and
 registered into the container as a normal singleton service. A result slot that binds
 nothing more specific — no [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute) on the
-message, not a native [`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1) carrier —
+message, not a native [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carrier —
 falls back to this adapter when it can serve the slot; a slot it cannot serve keeps
 the classic try/catch semantics. Nobody is forced onto the value channel: with no
 default configured and no annotation, pipelines behave exactly as before.

@@ -14,7 +14,7 @@ The inverse of [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abst
 this contract declares its carrier type fully value-based — a real throw inside the
 pipeline is caught and materialized into a failed carrier instead of reaching the
 caller, and an unhandled carried failure flows out as the result rather than being
-rethrown. The framework's own Results.Result/Results.Result&lt;TValue>
+rethrown. The framework's own [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1)
 adapters implement it; a foreign carrier's adapter may opt in when the carrier can
 represent an arbitrary exception.
 

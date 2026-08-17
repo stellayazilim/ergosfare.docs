@@ -3,7 +3,7 @@ title: "ICommandExceptionInterceptor"
 description: "Represents a non-type-safe exception interceptor for commands."
 sidebar:
   label: "ICommandExceptionInterceptor"
-  order: 6
+  order: 3
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

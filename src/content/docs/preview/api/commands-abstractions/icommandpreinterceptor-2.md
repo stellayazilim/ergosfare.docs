@@ -3,7 +3,7 @@ title: "ICommandPreInterceptor<TCommand, TModifiedCommand>"
 description: "Represents a type-safe pre-interceptor for commands, allowing modification of the command before it enters the pipeline."
 sidebar:
   label: "ICommandPreInterceptor<TCommand, TModifiedCommand>"
-  order: 22
+  order: 19
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

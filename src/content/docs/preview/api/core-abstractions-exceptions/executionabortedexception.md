@@ -95,7 +95,7 @@ Stops a pipeline, saying why.
 ### `Reason`
 
 ```csharp
-public string? Reason { get; }
+public string Reason { get; }
 ```
 
 Why the pipeline was stopped, as the aborting participant stated it.

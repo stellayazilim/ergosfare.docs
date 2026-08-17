@@ -3,13 +3,13 @@ title: "ResultExceptionAdapter<TValue>"
 description: "The framework's default adapter for Result<TValue>; see ResultExceptionAdapter."
 sidebar:
   label: "ResultExceptionAdapter<TValue>"
-  order: 4
+  order: 6
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The framework's default adapter for [`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1); see
+The framework's default adapter for [`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1); see
 [`ResultExceptionAdapter`](/ergosfare.docs/preview/api/core-abstractions-results/resultexceptionadapter).
 
 ```csharp

@@ -3,13 +3,13 @@ title: "ResultExceptionAdapter"
 description: "The framework's default adapter for its own Result carrier: a field read, no boxing, no reflection."
 sidebar:
   label: "ResultExceptionAdapter"
-  order: 3
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The framework's default adapter for its own [`Result`](/ergosfare.docs/preview/api/core-abstractions/result) carrier: a field read,
+The framework's default adapter for its own [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) carrier: a field read,
 no boxing, no reflection. Bound automatically — never registered by hand.
 
 ```csharp
@@ -54,7 +54,7 @@ Builds the failed carrier representing `exception`.
 
 **Returns**
 
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result) — A failed [`Result`](/ergosfare.docs/preview/api/core-abstractions/result) carrying `exception`.
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) — A failed [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) carrying `exception`.
 
 ### `TryGetException(in Result, out Exception?)`
 
@@ -68,7 +68,7 @@ Attempts to extract a failure from `result` without throwing.
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `result` | [`Result`](/ergosfare.docs/preview/api/core-abstractions/result) | The pipeline result to inspect. |
+| `result` | [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) | The pipeline result to inspect. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The carried failure, when present. |
 
 **Returns**

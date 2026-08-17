@@ -3,7 +3,7 @@ title: "IEventPreInterceptor<TEvent>"
 description: "Represents a type-safe pre-interceptor for events."
 sidebar:
   label: "IEventPreInterceptor<TEvent>"
-  order: 17
+  order: 14
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

@@ -26,10 +26,10 @@ public interface IPipelineExecutor<TResult>
 
 ## Methods
 
-### `Execute(object, ErgosfareContext, IServiceProvider)`
+### `Execute(object, ErgosfareContext, IServiceProvider, IEnumerable<string>?)`
 
 ```csharp
-ValueTask<TResult> Execute(object message, ErgosfareContext context, IServiceProvider serviceProvider)
+ValueTask<TResult> Execute(object message, ErgosfareContext context, IServiceProvider serviceProvider, IEnumerable<string>? groups)
 ```
 
 Executes the void pipeline for `message`.
@@ -41,6 +41,7 @@ Executes the void pipeline for `message`.
 | `message` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The message instance; its runtime type is the executor's closed message type (or derived). |
 | `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for this dispatch. |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope the dispatch runs in. |
+| `groups` | `IEnumerable<string>` | The group filter for this dispatch, or `null` for the default pipeline. |
 
 **Returns**
 

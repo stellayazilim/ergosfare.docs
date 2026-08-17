@@ -3,7 +3,7 @@ title: "ICommandPreInterceptor"
 description: "Represents a pre-interceptor for commands that is invoked before the command enters the pipeline."
 sidebar:
   label: "ICommandPreInterceptor"
-  order: 21
+  order: 18
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

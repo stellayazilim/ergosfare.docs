@@ -10,7 +10,7 @@ sidebar:
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
 Opts a message type out of result adaptation entirely: no annotation binding, no
-built-in [`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1) adapter, no configured
+built-in [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) adapter, no configured
 default adapter — the message's pipelines keep the classic try/catch semantics, and
 the dispatch path performs no probing at all. The escape hatch for applications that
 configure a default adapter but want individual messages off the value channel.
@@ -20,7 +20,7 @@ configure a default adapter but want individual messages off the value channel.
 public sealed class IgnoreResultAdapterAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/IgnoreResultAdapterAttribute.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/IgnoreResultAdapterAttribute.cs#L19)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 
@@ -29,5 +29,5 @@ public sealed class IgnoreResultAdapterAttribute : Attribute
 Inherited like [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute): an annotation on a base message
 type covers its derived messages. Declaring both this attribute and
 [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute) on the same message (own or inherited, in any
-combination) is contradictory and fails the build (ERGOSG012); against assemblies
+combination) is contradictory and fails the build (ERGO012); against assemblies
 compiled before that rule, the runtime binding lets the opt-out win.

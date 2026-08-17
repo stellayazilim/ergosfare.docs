@@ -3,7 +3,7 @@ title: "ResultAdapterBinding"
 description: "Resolves the result adapter of a (message, result-slot) pair."
 sidebar:
   label: "ResultAdapterBinding"
-  order: 2
+  order: 4
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
@@ -13,7 +13,7 @@ Resolves the result adapter of a (message, result-slot) pair. Resolution ladder:
 [`IgnoreResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/ignoreresultadapterattribute) opts the message out entirely; else the
 message's [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute) when its adapter fits the slot exactly;
 else the built-in adapters of the framework's own
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1) carriers; else — on the
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carriers; else — on the
 provider-taking overload — the container's configured [`DefaultResultAdapter`](/ergosfare.docs/preview/api/core-abstractions-results/defaultresultadapter)
 when it can serve the slot; else `null`, the overwhelmingly common case, in which
 the pipeline performs no probing at all and keeps the classic try/catch semantics.
@@ -33,10 +33,10 @@ public static class ResultAdapterBinding
 The attribute tiers resolve once per closed pair into a static generic slot, so
 dispatch paths only ever read a field; the default tier is per-container and cached by
 the callers that consult it. Both attributes are inherited; declaring both on one
-message (own or inherited) fails the build (ERGOSG012) — against assemblies compiled
+message (own or inherited) fails the build (ERGO012) — against assemblies compiled
 before that rule, the opt-out wins here. This is the runtime mirror of a compile-time
 fact: the source generator bakes the same attribute-tier binding into execution plans
-and fails the build on a mismatched annotation (ERGOSG011).
+and fails the build on a mismatched annotation (ERGO011).
 
 ## Methods
 

@@ -3,7 +3,7 @@ title: "IEventPreInterceptor<TEvent, TModifiedEvent>"
 description: "Represents a type-safe pre-interceptor for events that can optionally modify the event before it reaches its handlers."
 sidebar:
   label: "IEventPreInterceptor<TEvent, TModifiedEvent>"
-  order: 16
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

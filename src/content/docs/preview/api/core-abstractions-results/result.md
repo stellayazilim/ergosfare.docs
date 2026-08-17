@@ -3,14 +3,14 @@ title: "Result"
 description: "The framework's default value-carried outcome for pipelines without a payload: success, or a failure wrapping the Result.Exception that describes it — withou…"
 sidebar:
   label: "Result"
-  order: 14
+  order: 2
 ---
 
-**Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
+**Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
 The framework's default value-carried outcome for pipelines without a payload: success,
-or a failure wrapping the [`Result.Exception`](/ergosfare.docs/preview/api/core-abstractions/result#exception) that describes it — without throwing.
+or a failure wrapping the [`Result.Exception`](/ergosfare.docs/preview/api/core-abstractions-results/result#exception) that describes it — without throwing.
 
 ```csharp
 public readonly record struct Result : IEquatable<Result>
@@ -24,7 +24,7 @@ public readonly record struct Result : IEquatable<Result>
 
 A `readonly record struct` by design: constructing and returning one allocates
 nothing, and — because .NET captures an exception's stack trace at `throw` time,
-not at construction — a handler that returns [`Result.Fail(Exception)`](/ergosfare.docs/preview/api/core-abstractions/result#failexception) instead of throwing
+not at construction — a handler that returns [`Result.Fail(Exception)`](/ergosfare.docs/preview/api/core-abstractions-results/result#failexception) instead of throwing
 skips the stack capture and the two-pass unwind entirely. The success path costs a
 single field read to check.
 
@@ -77,7 +77,7 @@ stack trace is captured and no unwind runs.
 
 **Returns**
 
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result)
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)
 
 ### `Ok()`
 
@@ -89,7 +89,7 @@ The successful outcome. Allocation-free.
 
 **Returns**
 
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result)
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)
 
 ### `ToString()`
 
