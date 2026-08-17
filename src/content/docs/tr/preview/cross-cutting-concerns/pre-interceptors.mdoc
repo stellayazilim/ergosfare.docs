@@ -1,0 +1,134 @@
+---
+title: Ön-Interceptorlar
+description: Handler'dan önce çalışan aşama — reddetmek, zenginleştirmek ve mesajı yeniden yazmak.
+---
+
+Bir pre-interceptor handler'dan önce çalışır ve bir sonraki aşamanın göreceği mesajı döndürür.
+İşin olup olmayacağına karar veren ya da girdisini önce düzelten her şey için doğru aşamadır.
+
+## Sözleşmeler
+
+```csharp
+ICommandPreInterceptor                    // her command
+ICommandPreInterceptor<TCommand>          // tek command ya da tek hiyerarşi
+```
+
+Query ve event'lerin aynı ikilisi vardır — `IQueryPreInterceptor`, `IEventPreInterceptor` — ve
+aynı şekilde davranırlar.
+
+## Gözlemlemek
+
+Tipsiz form base marker'ı alır ve onu döndürür. Yalnız izliyorsanız girdiyi değiştirmeden
+döndürün:
+
+```csharp
+public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        logger.LogInformation("{Command} dispatch ediliyor", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+## Yeniden yazmak
+
+Tipli form tipli mesajı döndürür, dolayısıyla yeniden yazma cast gerektirmez:
+
+```csharp
+public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
+        => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+}
+```
+
+Bir sonraki aşamanın aldığı şey, döndürdüğünüz şeydir. İkisini zincirleyin, ikincisi birincinin
+çıktısını görür.
+
+**Türetilmiş** bir mesaj döndürmek serbesttir ve çoğu zaman amaç budur — `TCommand` bir
+sözleşmedir ve ona atanabilen her şey onu karşılar:
+
+```csharp
+public sealed class Enrich : ICommandPreInterceptor<PlaceOrder>
+{
+    public ValueTask<PlaceOrder> HandleAsync(PlaceOrder command, ErgosfareContext context)
+        => ValueTask.FromResult<PlaceOrder>(new ValidatedPlaceOrder(command, _clock.UtcNow));
+}
+```
+
+Handler onu yine bir `PlaceOrder` olarak alır. Zenginleştirilmiş şekli isteyen bir handler,
+zenginleştirilmiş tipi kendi mesajı olarak bildirmelidir.
+
+{% aside type="note" %}
+Önceki önizlemelerde tam olarak bunun için `ICommandPreInterceptor<TCommand, TModified>` vardı.
+Tek parametreli form tipli mesajı döndürmeye başlayınca ikinci argüman hiçbir şey satın almadığı
+için kaldırıldı. Geçiş bir silme işlemidir: ikinci tip argümanını atın.
+{% /aside %}
+
+## Reddetmek
+
+Dispatch'i durdurmak için abort edin:
+
+```csharp
+public sealed class RequireTenant(ITenantAccessor tenant) : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        if (tenant.Current is null)
+            context.Abort("bu istekte tenant yok");
+
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+`Abort`, pipeline'ın bir başarısızlık değil durdurma olarak ele aldığı
+`ExecutionAbortedException` fırlatır: **exception aşaması çalışmaz, final aşaması da çalışmaz.**
+Sinyal çağırana olduğu gibi gider.
+
+Kendi exception'ınızı fırlatmak farklı bir ifadedir — o, dispatch'in *başarısız olduğunu* söyler
+ve hata yolunu çalıştırır. Hangisini kastediyorsanız onu kullanın.
+
+{% aside type="caution" %}
+Abort final aşamasını atladığı için, bir pre-interceptor'ın açtığı bir şey — transaction, kilit —
+orada kapatılmayacaktır. Kontrolü, kaynağı açan şeyin önüne daha yüksek bir `[Weight]` ile
+koyun, ya da kaynağı bir `try`/`finally`'nin kapsadığı bir yerde açın.
+{% /aside %}
+
+## Bilgiyi ileri taşımak
+
+Mesaj tek kanal değildir. Sonraki bir aşamanın mesaja ait olmayan bir şeye ihtiyacı olduğunda
+context'i kullanın:
+
+```csharp
+context.Set("correlationId", Guid.NewGuid());
+```
+
+## Sıralama
+
+Aşama içinde: `[Weight]` azalan, doğrudan kayıtlar kovaryant olanlardan önce. İki interceptor
+gerçekten sıraya bağlıysa açıkça söyleyin:
+
+```csharp
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor { … }
+```
+
+## Tipik kullanımlar
+
+**Doğrulama.** Handler bir şeye dokunmadan erken reddedin.
+
+**Yetkilendirme**, önce çalışsın diye yüksek bir ağırlıkla.
+
+**Normalleştirme** — kırpma, harf düzeltme, varsayılan atama — böylece aşağıdaki her handler temiz
+girdi görür.
+
+**Korelasyon ve zamanlama**, bunun koyduğunu okuyan bir final interceptor ile eşleştirilmiş.
+
+## Dar tutun
+
+`ICommand`'a karşı yazılmış bir interceptor uygulamadaki her command için çalışır, iç içe
+dispatch'ler dahil. İş gerçekten evrensel değilse onu sahip olduğunuz bir base tipe daraltın —
+üstelik tipli mesajı da alırsınız, ki bu tek başına değerlidir.

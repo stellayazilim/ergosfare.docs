@@ -1,182 +1,159 @@
 ---
-title: Migrating from v1 to v2
-description: The breaking changes on the v2 line, in the order you will hit them, with the replacement for each.
+title: v1 to v2
+description: The shape of the jump from v1, and the order to make the changes in.
 ---
 
-v2 removes two long-deprecated APIs, moves the whole surface to `ValueTask`, and replaces
-runtime assembly scanning with compile-time registration. This page lists what breaks and
-what to do about it.
+v2 changed how a pipeline is decided. In v1 the answer was assembled when your application
+started; in v2 it is compiled into your assembly and the container only selects from it.
 
-{% aside type="caution" %}
-v2 is the stable line. v1.x receives no further work, so this migration is the supported path
-forward. You are reading it on the preview line, where APIs may still move between
-`-preview` releases — the [stable version of this page](/ergosfare.docs/migration/v1-to-v2)
-tracks the released line.
+Almost everything below follows from that one change.
+
+{% aside type="tip" %}
+Two releases matter on the way. **v2.3** removed the runtime registry, and **v2.12** renamed the
+diagnostics and tightened several contracts. If you are jumping straight from v1 to the current
+preview, work through this page, then
+[v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3), then
+[v2.11 to v2.12](/ergosfare.docs/preview/migration/v2.11-to-v2.12).
 {% /aside %}
 
-## 1. `AmbientExecutionContext` is gone
+## 1. Reference the source generator
 
-Deprecated since v1.2.0, removed in v2. The dispatch path now carries **zero `AsyncLocal`
-state**, which is what makes nested and parallel dispatch predictable.
+Nothing else works without it. It writes the registration, the composition table and the plans:
+
+```xml
+<PackageReference Include="Stella.Ergosfare.SourceGenerator" Version="…">
+  <PrivateAssets>all</PrivateAssets>
+  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+</PackageReference>
+```
+
+In every project that declares handlers, and in the composition root. The `Stella.Ergosfare`
+facade already references it.
+
+## 2. Replace assembly scanning with `RegisterGenerated()`
 
 ```csharp
-// v1
-var tenant = AmbientExecutionContext.Current.Get<string>("tenant");
+// Before
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterFromAssembly(typeof(Program).Assembly)));
 
-// v2 — the context is a parameter on every handler and interceptor
-public ValueTask HandleAsync(DoThing command, IExecutionContext context)
+// Now
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+Discovery covers your assembly and every referenced one that references Ergosfare.
+
+## 3. Handlers take a context, not a token
+
+```csharp
+// Before
+public ValueTask<Guid> HandleAsync(PlaceOrder command, CancellationToken cancellationToken)
+
+// Now
+public ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+```
+
+The token is `context.CancellationToken`. The context also carries per-dispatch state and the way
+to stop a pipeline — see
+[Execution context](/ergosfare.docs/preview/core-concepts/execution-context).
+
+{% aside type="danger" %}
+Contexts are pooled and returned when the dispatch completes. **Do not keep one** after your
+handler returns — no field, no closure captured by a background task. Copy the values you need.
+{% /aside %}
+
+## 4. Interceptors replace behaviours
+
+Cross-cutting work attaches through four named stages rather than a wrapping delegate:
+
+```csharp
+public sealed class LogCommands : ICommandPreInterceptor
 {
-    var tenant = context.Get<string>("tenant");
-    …
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
 }
 ```
 
-If a helper deep in your call stack needed the ambient context, pass `IExecutionContext`
-down to it, or read what it needs in the handler and pass that.
+A pre-interceptor returns the message the next stage sees, so returning the input unchanged is
+the pass-through case. Post, exception and final cover the rest — see
+[Interceptors](/ergosfare.docs/preview/core-concepts/interceptors).
 
-**`CreateScope` changed shape too.** It no longer takes a context to install:
+Order is `[Weight]` descending rather than registration order, so anything that relied on the
+order you registered things in has to say so explicitly.
 
-```csharp
-// v1
-using (var _ = context.CreateScope(new ExecutionContext())) { … }
-
-// v2 — returns a struct scope carrying a child context you pass explicitly
-using var scope = context.CreateScope();
-await _commands.SendAsync(new Inner(), scope.Context);
-```
-
-See [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
-
-## 2. `Task` becomes `ValueTask`
-
-Handlers, interceptors and the mediator facades all return `ValueTask` /
-`ValueTask<TResult>`. Synchronously completing handlers now allocate nothing.
+## 5. Ordering and selection are attributes
 
 ```csharp
-// v1
-public Task<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
-    => Task.FromResult(Guid.NewGuid());
-
-// v2
-public ValueTask<Guid> HandleAsync(CreateProduct command, IExecutionContext context)
-    => ValueTask.FromResult(Guid.NewGuid());
+[Weight(100)]                 // runs before lower weights in its stage
+[Group("audit")]              // runs only when a dispatch names this group
+[DiscoveryKey("reporting")]   // registered only when a selection names this key
+public sealed class WriteAuditRow : ICommandFinalInterceptor { … }
 ```
 
-Mechanical replacements:
+`[Group]` is per dispatch; `[DiscoveryKey]` is per deployment. They answer different questions —
+see [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys).
 
-| v1 | v2 |
+## 6. Events do not need a marker
+
+A subscriber is what makes a type an event, so a domain type in a project with no Ergosfare
+reference can be published as-is:
+
+```csharp
+public sealed record OrderShipped(Guid Id, DateTimeOffset At);   // no interface
+
+public sealed class NotifyCustomer : IEventHandler<OrderShipped> { … }
+```
+
+Existing `IEvent` messages keep working. This arrived in v2.12 — earlier v2 releases required
+the marker.
+
+## 7. Build, and read the diagnostics
+
+This is where most of the migration effort actually lands, and it is worth the time. The build
+now reports what the runtime used to discover:
+
+| Code | Means |
 |---|---|
-| `Task` | `ValueTask` |
-| `Task<T>` | `ValueTask<T>` |
-| `Task.CompletedTask` | `ValueTask.CompletedTask` |
-| `Task.FromResult(x)` | `ValueTask.FromResult(x)` |
+| `ERGO005` | this dispatch can never reach a handler |
+| `ERGO006` | only subtypes of the dispatched type are handled |
+| `ERGO007` | no dispatch can reach this handler |
+| `ERGO010` | two handlers claim one message at the same level |
+| `ERGO018` | a `Register` call names its type at run time |
 
-{% aside type="caution" %}
-`ValueTask` must not be awaited twice or stored for later. If you were caching a returned
-`Task`, call `.AsTask()` on the `ValueTask` first.
-{% /aside %}
+None of these is new behaviour. `ERGO005` describes a call that already threw; `ERGO007`
+describes code that already never ran. Work through them rather than suppressing them — see
+[Working with diagnostics](/ergosfare.docs/preview/best-practices/diagnostics).
 
-## 3. Three-parameter `TModifiedResult` interceptors are gone
+## 8. Mark your composition root, if it is a library
 
-Deprecated in v1.4.0, removed in v2. The two-parameter typed interfaces now expose the typed
-`HandleAsync` directly:
-
-```csharp
-// v1
-public class Stamp : ICommandPostInterceptor<CreateProduct, Guid, Guid> { … }
-
-// v2
-public sealed class Stamp : ICommandPostInterceptor<CreateProduct, Guid>
-{
-    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, IExecutionContext context)
-        => ValueTask.FromResult(result);
-}
+```xml
+<ErgosfareCompositionRoot>true</ErgosfareCompositionRoot>
 ```
 
-## 4. `RegisterFromAssembly` → `RegisterGenerated`
+Only needed when the project that sees the whole application is not an executable.
 
-Still supported, but no longer the default path. Add the generator package and swap the call:
+## What you get for it
 
-```bash
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
-```
+Worth knowing what the work buys, since most of it is mechanical:
 
-```csharp
-// v1
-services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterFromAssembly(Assembly.GetExecutingAssembly())));
+- **A dispatch stops deciding.** Handler selection and interceptor ordering are compiled, and
+  most pipelines run as a straight line of calls.
+- **Mistakes surface at build time.** A missing handler, a contested one, a handler nothing
+  reaches — all of it before the process starts.
+- **NativeAOT is a first-class case**, because nothing on the dispatch path needs a JIT to close
+  a generic.
 
-// v2
-using Stella.Ergosfare.Generated;      // required — this is where the method lives
+## Checklist
 
-services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated()));
-```
-
-This is the change that gets you compile-time registration, reflection-free dispatch and a
-clean Native AOT publish. Keep `RegisterFromAssembly` only for assemblies genuinely loaded at
-runtime.
-
-Watch for `ERGOSG001` / `ERGOSG002` after the switch: they flag types the generator found but
-cannot name, which runtime scanning would have registered silently. See
-[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery#diagnostics).
-
-{% aside type="caution" %}
-This page describes the v1 → v2.0 move and is kept as written. Since then **v2.3 removed
-`RegisterFromAssembly` entirely** — runtime assembly scanning is no longer supported at all,
-so the "keep it for assemblies loaded at runtime" advice above no longer has an API behind it.
-See [Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
-{% /aside %}
-
-## 5. Event broadcast now matches handlers covariantly
-
-In v1, only interceptors matched covariantly; event handlers had to name the exact event
-type. In v2 a handler registered against a base type or interface receives every assignable
-event.
-
-```csharp
-public sealed class AppendToOutbox : IEventHandler<IDomainEvent> { … }
-```
-
-**This can activate handlers that were previously dormant.** If you have an
-`IEventHandler<IEvent>` or similar broad registration in a v1 codebase, it now runs for every
-event. Narrow it, or opt individual messages out with
-[`[ExcludeFromPipeline]`](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
-
-## 6. Typed dispatch everywhere
-
-Interceptor object roots and default-interface-method bridges were removed; invocation is
-generic end to end. This affects you only if you implemented Ergosfare's internal
-abstractions directly — normal handler and interceptor code is unaffected.
-
-## What is new and worth adopting
-
-Nothing here is required, but these are the reasons to be on v2 at all:
-
-- [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery), including
-  cross-assembly registration with no code in the library.
-- [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) for registration-time
-  feature gating.
-- [Final interceptors](/ergosfare.docs/preview/cross-cutting-concerns/final-interceptors) — the stage
-  that runs whether the pipeline succeeded or threw.
-- [`[ExcludeFromPipeline]`](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights) for
-  keeping high-volume messages out of blanket interceptors.
-- [Nested dispatch scopes](/ergosfare.docs/preview/core-concepts/nested-dispatch).
-- [Native AOT support](/ergosfare.docs/preview/advanced/aot-and-trimming) that actually holds under
-  `PublishAot`.
-
-## Suggested order
-
-1. Add the source generator package, switch to `RegisterGenerated()`, fix `ERGOSG*` warnings.
-2. Replace `Task` with `ValueTask` across handlers and interceptors — the compiler finds
-   every site.
-3. Remove `AmbientExecutionContext` usages; thread the execution context parameter instead.
-   (It was `IExecutionContext` in v2.0–v2.2 and is `ErgosfareContext` from v2.3 on.)
-4. Collapse three-parameter interceptors to their two-parameter form.
-5. Audit broad `IEventHandler<…>` registrations for the new covariant delivery.
-6. Then adopt what is new, at whatever pace suits you.
-
-The full list of changes is in
-[CHANGELOG.md](https://github.com/stellayazilim/ergosfare/blob/preview/CHANGELOG.md); the
-support policy is in
-[COMPATIBILITY.md](https://github.com/stellayazilim/ergosfare/blob/preview/COMPATIBILITY.md).
+1. Add the source generator to handler projects and the composition root.
+2. Swap assembly scanning for `RegisterGenerated()`.
+3. Change handler signatures to take `ErgosfareContext`.
+4. Rewrite behaviours as interceptors in the right stage.
+5. Add `[Weight]` where order was implicit.
+6. Build, and work through the diagnostics.
+7. Continue with [v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3) and
+   [v2.11 to v2.12](/ergosfare.docs/preview/migration/v2.11-to-v2.12).

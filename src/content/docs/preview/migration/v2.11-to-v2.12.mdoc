@@ -1,0 +1,191 @@
+---
+title: v2.11 to v2.12
+description: The breaking changes in v2.12.0-preview — the publish surface, exception interceptor results, the diagnostic prefix, and the two-parameter pre-interceptors.
+slug: preview/migration/v2.11-to-v2.12
+---
+
+Five changes need your attention. Four are compiler errors, so the build tells you where to
+look; the fifth is a rename that silently stops matching.
+
+Work through them in this order — the diagnostic rename first, because it decides whether you
+can see the others.
+
+## 1. `ERGOSG###` becomes `ERGO###`
+
+Numbers are preserved, so the mapping is one rule: **drop the `SG`.**
+
+```diff
+- <NoWarn>$(NoWarn);ERGOSG005</NoWarn>
++ <NoWarn>$(NoWarn);ERGO005</NoWarn>
+```
+
+```diff
+- dotnet_diagnostic.ERGOSG009.severity = warning
++ dotnet_diagnostic.ERGO009.severity = warning
+```
+
+```diff
+- [SuppressMessage("Usage", "ERGOSG007", Justification = "…")]
++ [SuppressMessage("Usage", "ERGO007", Justification = "…")]
+```
+
+{% aside type="caution" %}
+This is the one that bites quietly. A suppression naming the old id simply stops matching, and
+the diagnostic comes back — as a **build failure** for the error-severity rules. Search your
+solution for `ERGOSG` before anything else: `.editorconfig`, `.csproj`, `Directory.Build.props`,
+`#pragma` lines and `[SuppressMessage]` attributes.
+{% /aside %}
+
+`ERGOEXP001` and `ERGOEXP002` are untouched.
+
+## 2. The two-parameter pre-interceptors are gone
+
+`ICommandPreInterceptor<TCommand, TModifiedCommand>` and its query and event siblings are
+removed.
+
+**Migration is a deletion.** Drop the second type argument:
+
+```diff
+- public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct, CreateProduct>
++ public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
+  {
+      public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
+          => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+  }
+```
+
+The interceptor keeps returning exactly what it returned. The one-parameter form returns the
+typed message, and `TCommand` is a contract — anything assignable to it satisfies it — so
+returning a *derived* message still works:
+
+```diff
+- public sealed class Enrich : ICommandPreInterceptor<PlaceOrder, ValidatedPlaceOrder>
++ public sealed class Enrich : ICommandPreInterceptor<PlaceOrder>
+  {
+-     public ValueTask<ValidatedPlaceOrder> HandleAsync(PlaceOrder command, ErgosfareContext context)
+-         => ValueTask.FromResult(new ValidatedPlaceOrder(command));
++     public ValueTask<PlaceOrder> HandleAsync(PlaceOrder command, ErgosfareContext context)
++         => ValueTask.FromResult<PlaceOrder>(new ValidatedPlaceOrder(command));
+  }
+```
+
+The second parameter existed from a time when the one-parameter contracts still returned
+`object`. Once those started returning the typed message it bought nothing.
+
+If you were using the **event** variant, note it was also the odd one out: alone among the
+pre-interceptor contracts it did not carry `IEvent`, so discovery never found it and it had to
+be registered by hand. The surviving contract is found normally, so you can drop that manual
+registration.
+
+## 3. Typed-result exception interceptors return a non-nullable result
+
+`ICommandExceptionInterceptor<TCommand, TResult>`, `IQueryExceptionInterceptor<TQuery, TResult>`
+and their `For<TException>` variants now return `ValueTask<TResult>` rather than
+`ValueTask<TResult?>`.
+
+```diff
+  public sealed class NotFoundToEmpty : IQueryExceptionInterceptor<GetProduct, ProductDto>
+  {
+-     public ValueTask<ProductDto?> HandleAsync(
++     public ValueTask<ProductDto> HandleAsync(
+          GetProduct query, ProductDto? result, Exception exception, ErgosfareContext context)
+      {
+          if (exception is NotFoundException)
+              return ValueTask.FromResult(ProductDto.Empty);
+
+-         return ValueTask.FromResult<ProductDto?>(null);
++         throw exception;
+      }
+  }
+```
+
+**If you were returning `null` to mean "I did not handle this", rethrow instead.** That is what
+an unhandled failure looks like, and it lets the exception surface as it should.
+
+Returning `null` used to make the dispatch return `null` into a non-nullable slot — with the
+handler's exception gone, no diagnostic and no throw. The parameter stays nullable, and the
+asymmetry is the point: the handler may have thrown before producing anything, so there
+genuinely may be no result yet. **Nullable in, non-nullable out.**
+
+The erased core contracts keep their nullable return, because they serve the void lane too,
+where an empty slot legitimately reaches this stage as `null`.
+
+An assembly compiled against the older contracts now meets a throw naming both types rather
+than the silent default.
+
+## 4. `PublishAsync` loses `throwIfNoHandlerFound` and its `string[]` overloads
+
+```diff
+- await mediator.PublishAsync(@event, throwIfNoHandlerFound: true, ct);
++ await mediator.PublishAsync(@event, ct);
+```
+
+```diff
+- await mediator.PublishAsync(@event, new[] { "audit" }, ct);
++ await mediator.PublishAsync(@event, GroupSet.Of("audit"), ct);
+```
+
+The full call takes `IEnumerable<string>?`, which subsumes the array overloads — and keeping
+both made `PublishAsync(@event, ["a"], token)` ambiguous.
+
+**Grouped publishing is untouched.** Five of the seven `PublishAsync` overloads still take
+groups, as `GroupSet` or `IEnumerable<string>?`, for both `IEvent` messages and plain ones. Only
+the `string[]` spelling went — and only on `PublishAsync`: the `string[]` overloads on
+`SendAsync` and `QueryAsync` are still there.
+
+**A publish that reaches nobody now returns, unconditionally.** The flag asked the caller to
+decide at run time about something the compilation can prove, and measured before removal it
+was never passed `true` outside the tests that existed to exercise it.
+
+If you were relying on it to catch a missing subscriber, you now get that earlier — see below.
+
+## 5. A publish nothing subscribes to is a build error
+
+```
+error ERGO005: This dispatch of 'OrderShipped' can never reach a handler … so the publish is
+guaranteed to reach nobody.
+```
+
+Event dispatch sites used to be exempt from the dead-dispatch judgment, on the reasoning that
+reaching zero subscribers is a legal no-op. That answers a different question: what happens
+when no handler matched *on this call* is the container's business, while this asks whether any
+subscriber can **ever** match. Declaring the event and forgetting the subscriber is the ordinary
+way to get there, and it used to compile in silence.
+
+**Fix:** write the subscriber, or remove the publish.
+
+**Legitimately suppress it** when the subscriber is registered somewhere the compiler cannot
+see — a plugin container loading assemblies at run time, a test host registering by hand.
+Suppress at the call site with a reason.
+
+Reaching zero subscribers *at run time* is still legal and still returns.
+
+## Worth knowing, but not breaking
+
+These arrived in the same release and need no migration:
+
+**A plain domain type can be an event.** Writing an `IEventHandler<T>` is what makes `T` an
+event, so the project declaring your domain events no longer needs an Ergosfare reference. Your
+existing `IEvent` messages keep working unchanged.
+
+**Typed result dispatch.** `SendAsync<TMessage, TResult>` and `DispatchAsync<TMessage, TResult>`
+are additive, implemented as default interface methods — an existing `ICommandMediator`
+implementation keeps compiling and forwards to its untyped call. Worth adopting for NativeAOT,
+where it keeps the construction path off `MakeGenericType`.
+
+**More pipelines get compiled plans.** Two handlers in different groups no longer read as a
+contested pipeline, and a message with one direct handler is plannable regardless of what its
+base types carry. Nothing to do; some dispatches simply get faster.
+
+**A stream no longer drops `null` elements.** If you worked around that by filtering, you can
+stop.
+
+## Checklist
+
+1. Search for `ERGOSG` across the solution and rename.
+2. Build. Fix what the compiler reports.
+3. Drop the second type argument from any two-parameter pre-interceptor.
+4. Replace `return null` in typed-result exception interceptors with `throw exception`.
+5. Remove `throwIfNoHandlerFound` arguments, and swap `string[]` group arguments for
+   `GroupSet.Of` **on `PublishAsync` only** — `SendAsync` and `QueryAsync` keep theirs.
+6. Address any `ERGO005` on a publish — write the subscriber, or suppress with a reason.

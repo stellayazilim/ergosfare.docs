@@ -1,0 +1,198 @@
+---
+title: Interceptorlar
+description: Dört pipeline aşaması — pre, post, exception ve final — nasıl birleştikleri ve her birinin geldiği arite'ler.
+---
+
+Interceptor'lar, kesişen işlerin handler'ın haberi olmadan bir dispatch'e bağlandığı yerdir.
+Handler'lar gibi keşfedilir ve kaydedilirler, ve aynı derlenmiş pipeline'ın parçası olarak
+çalışırlar.
+
+## Dört aşama
+
+```
+pre*  →  main handler  →  post*        →  final*
+                       ↘  exception*  ↗
+```
+
+- **pre** handler'dan önce çalışır ve mesajı yeniden yazabilir.
+- **post** başarılı bir handler'dan sonra çalışır ve sonucu yeniden yazabilir.
+- **exception** handler ya da bir interceptor fırlattığında çalışır ve bunun yerine bir sonuç
+  verebilir.
+- **final** her zaman en son çalışır; başarıda da başarısızlıkta da.
+
+Bir aşama içinde sıra `[Weight]` azalan, doğrudan kayıtlar kovaryant olanlardan öncedir. Bkz.
+[Gruplar ve ağırlıklar](/ergosfare.docs/tr/preview/cross-cutting-concerns/groups-and-weights).
+
+## Pre-interceptorlar
+
+Bir pre-interceptor, bir sonraki aşamanın göreceği mesajı döndürür. Girdiyi değiştirmeden
+döndürmek, geçiş durumudur:
+
+```csharp
+public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        logger.LogInformation("{Command} dispatch ediliyor", command.GetType().Name);
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Genişlik ile tip güvenliğini takas eden iki arite var:
+
+| Arayüz | `HandleAsync` imzası | Ne zaman |
+|---|---|---|
+| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, ErgosfareContext)` | her command'a uyguluyorsa |
+| `ICommandPreInterceptor<TCommand>` | `ValueTask<TCommand>(TCommand, ErgosfareContext)` | tek bir command ya da hiyerarşiye uyguluyorsa |
+
+Tipli form tipli mesajı döndürür, dolayısıyla yeniden yazmak için cast gerekmez:
+
+```csharp
+public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
+{
+    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
+        => ValueTask.FromResult(command with { Name = command.Name.Trim() });
+}
+```
+
+*Türetilmiş* bir mesaj döndürmek de serbesttir ve çoğu zaman amaç budur — `TCommand` bir
+sözleşmedir ve ona atanabilen her şey onu karşılar.
+
+{% aside type="note" %}
+Önceki önizlemelerde iki parametreli bir form vardı: `ICommandPreInterceptor<TCommand, TModified>`.
+Kaldırıldı: tek parametreli form tipli mesajı döndürmeye başladığından beri ikinci argüman hiçbir
+şey satın almıyordu. Geçiş bir silme işlemidir — ikinci tip argümanını atın, interceptor
+döndürdüğünü döndürmeye devam eder.
+{% /aside %}
+
+## Post-interceptorlar
+
+Bir post-interceptor başarılı bir sonucu görür ve onu değiştirebilir:
+
+```csharp
+public sealed class StampCreatedAt : ICommandPostInterceptor<CreateProduct, Guid>
+{
+    public ValueTask<Guid> HandleAsync(CreateProduct command, Guid result, ErgosfareContext context)
+    {
+        _metrics.Record(command.Name);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+Üç arite: `ICommandPostInterceptor`, `ICommandPostInterceptor<TCommand>` ve
+`ICommandPostInterceptor<TCommand, TResult>`.
+
+Sonuç üretmeyen bir pipeline'da sonuç slot'u `Unit` taşır; sonucu olmayan bir command'a karşı
+yazılmış bir post-interceptor'ın yine de iyi tanımlı bir şey alması bunu sağlar.
+
+## Exception interceptorlar
+
+Bir exception interceptor bir şey fırlattığında çalışır ve exception'ın kaçmasına izin vermek
+yerine dispatch'i bir sonuçla cevaplayabilir:
+
+```csharp
+public sealed class TranslateNotFound
+    : ICommandExceptionInterceptor<GetProduct, ProductDto>
+{
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct command, ProductDto? result, Exception exception, ErgosfareContext context)
+    {
+        if (exception is NotFoundException)
+            return ValueTask.FromResult(ProductDto.Empty);
+
+        throw exception;
+    }
+}
+```
+
+Asimetriye dikkat, bilinçli: **sonuç nullable girer, non-nullable çıkar.** Handler bir şey
+üretmeden fırlatmış olabilir, yani gerçekten henüz sonuç olmayabilir — ama bir dispatch sonuç
+tipini çağrı yerinde kilitlemiştir ve aşağıdaki hiçbir aşama çağırana istemediği bir `null`
+veremez.
+
+Sonuç üretemeyen bir interceptor hatayı sahiplenmemelidir. Yeniden fırlatın ya da eşleşmeyin;
+eşleşmeyen bir aşama exception'ın yükselmesine izin verir. Yokluğu modellemek isteyen kod bunu
+değerin içinde modeller — `Result<T>` bunun içindir.
+
+Herhangi bir exception interceptor çalıştığında exception ele alınmış sayılır ve pipeline final
+aşamasına devam eder. Hiçbiri eşleşmediyse yükselir.
+
+### Exception tipine göre filtreleme
+
+`For` varyantını implemente etmek bir interceptor'ı tek bir exception tipine daraltır; bu bir
+`is` kontrolünden daha iyi okunur ve derlenmiş planın testi gömmesini sağlar:
+
+```csharp
+public sealed class HandleTimeouts
+    : ICommandExceptionInterceptorFor<PlaceOrder, Guid, TimeoutException>
+{
+    public ValueTask<Guid> HandleAsync(
+        PlaceOrder command, Guid? result, TimeoutException exception, ErgosfareContext context)
+        => ValueTask.FromResult(Guid.Empty);
+}
+```
+
+## Final interceptorlar
+
+Bir final interceptor her zaman çalışır — başarıdan, ele alınmış bir hatadan ve ele alınmamış bir
+hatadan sonra. Hiçbir şey döndürmez, çünkü o noktada dispatch'in cevabı çoktan bellidir:
+
+```csharp
+public sealed class RecordDuration : ICommandFinalInterceptor<PlaceOrder, Guid>
+{
+    public ValueTask HandleAsync(
+        PlaceOrder command, Guid? result, Exception? exception, ErgosfareContext context)
+    {
+        _metrics.Record(command.GetType().Name, exception is null);
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Burada hem sonuç hem exception nullable'dır, aynı sebeple: bir `finally`'den çalışır, dolayısıyla
+ikisi de yok olabilir.
+
+Çalışmadığı tek durum bilinçli bir durdurmadır — aşağıya bakın.
+
+## Bir pipeline'ı durdurmak
+
+Herhangi bir katılımcı `ExecutionAbortedException` fırlatarak dispatch'i erkenden bitirebilir:
+
+```csharp
+public sealed class RejectUnauthorized : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        if (!_user.IsAuthenticated)
+            throw new ExecutionAbortedException("kimlik doğrulanmadı");
+
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Bu bir başarısızlık değildir ve öyle muamele görmez: exception aşaması çalışmaz, final aşaması
+çalışmaz ve sinyal çağırana gider. "Bu dispatch devam etmemeli" der, "bu dispatch ters gitti"
+demez.
+
+## Hangi modülün sözleşmeleri
+
+Her modülün kendi interceptor sözleşmeleri vardır — `ICommandPreInterceptor`,
+`IQueryPreInterceptor`, `IEventPreInterceptor` — ve o modülün marker'ını taşırlar; keşfin onları
+bulma şekli budur.
+
+Gerçekten evrensel bir şey için `Stella.Ergosfare.Core.Abstractions.Handlers` içindeki çekirdek
+sözleşmeleri `IMessage`'a karşı implemente edin. Bu her modülün mesajlarına ulaşır, karşılığında
+daha zayıf bir statik tip alırsınız.
+
+## Maliyeti
+
+İstemediğiniz hiçbir şey, dispatch başına. Aşamalar derleme zamanında kurulur ve şekli tamamen
+oturmuş bir pipeline için üretilen plan, interceptor'ları yerinde olan düz bir çağrı dizisidir —
+descriptor listesi yok, sıralama işi yok, ve doğrudan kurulabildiği kanıtlanan katılımcılar için
+container çözümü de yok.
+
+Hiç interceptor'ı olmayan bir pipeline hiçbirinin bedelini ödemez: aynı düz çizgi, çağrılar
+olmadan.

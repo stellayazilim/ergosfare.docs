@@ -1,0 +1,137 @@
+---
+title: Ergosfare'yi Yapılandırma
+description: Registry'ye neler söyleyebilirsiniz — modüller, sonuç adapter'ları, memoized handler'lar — ve neye bunun yerine derleme karar verir.
+---
+
+Yapılandırma bilinçli olarak küçük. Bir mediator'ün genelde ayar olarak sunduğu şeylerin çoğuna
+burada derleme zamanında karar veriliyor; geriye registry'ye gerçekten bir tipe değil bir
+uygulamaya ait olan sorular kalıyor.
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+`AddErgosfare` dispatch makinesini kaydeder — mediator'ler, executor'lar, bağımlılık fabrikası —
+ve bu container'ın derlenmiş kompozisyon tablosuna bakışını. Her modül kendi mediator'ünü ve
+seçtiği katılımcıları ekler.
+
+## Bir modülün neyi kaydedeceğini seçmek
+
+Modül builder'ının içinde üç şekil var.
+
+**`RegisterGenerated()`** toplu yoldur ve çoğu uygulamanın çağırdığı budur. Üreteç tarafından
+yazılır ve varsayılan keşfe katılan her yapıyı adıyla sayar.
+
+**`RegisterGenerated(desen)`** bunun yerine keşif anahtarına göre seçer — tam bir anahtar, ya da
+`*` ile biten bir önek:
+
+```csharp
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .RegisterGenerated("reporting.*"))
+```
+
+Seçimler birleşimdir, dolayısıyla örtüşen desenleri zincirlemek güvenlidir. Bkz.
+[Keşif anahtarları](/ergosfare.docs/tr/preview/core-concepts/discovery-keys).
+
+**`Register<T>()` / `Register(typeof(T))`** tek bir yapıyı adlandırır. Toplu keşiften bilinçli
+olarak uzak tutulmuş bir şey için kullanın.
+
+{% aside type="caution" %}
+Bir `Register` çağrısının tipini açıkça adlandırması gerekir. Çalışma zamanında hesaplanan bir
+`Type` geçmek `ERGO018`'dir ve uyarı değil hatadır: tipi yalnız çalışma zamanında bilinen bir
+yapı derlenmiş bir pipeline, donmuş bir kompozisyon ve bir plan almaz — dolayısıyla kayıt,
+göründüğü anlama gelemez.
+{% /aside %}
+
+## Varsayılan sonuç adapter'ı
+
+Varsayılan olarak başarısız bir pipeline fırlatır. Uygulamanız hataları değer olarak taşıyorsa —
+`Result<T>`, ya da kendi taşıyıcınız — registry'ye bir kez söyleyin; o adapter'ın hizmet ettiği
+her sonuç slot'u fırlatmayı bırakır:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .UseDefaultResultAdapter(typeof(ResultAdapter<>))
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+Açık bir generic, uyduğu her sonuç slot'u için kapatılır. Kapalı bir tip adlandırmak o tek
+slot'u bağlar.
+
+Bir varsayılan yapılandırmak, değer taşıyan hatayı uygulamanın sözleşmesi hâline getirir ve
+derleyici sizi buna bağlı tutar: sonucuna hiçbir adapter'ın hizmet etmediği, sonuç üreten bir
+mesaj `ERGO013`'tür — çünkü uygulamanın geri kalanı bunu beklemeyi bırakmışken onun pipeline'ı
+fırlatmaya devam ederdi. Bu bilinçliyse mesajda `[IgnoreResultAdapter]` ile söyleyin; hata bunun
+yerine görünür bir uyarıya dönüşür.
+
+{% aside type="note" %}
+Sonuç adapter'ı yüzeyi deneyseldir ve `ERGOEXP001` ile işaretlidir. Bkz.
+[Deneysel API'ler](/ergosfare.docs/preview/advanced/experimental-apis).
+{% /aside %}
+
+## Memoized handler'lar
+
+Varsayılan olarak her dispatch için handler örneği dispatch eden scope'tan çözülür; scoped
+bağımlılıkları çalıştıran şey budur. `ForceMemoizedHandlers()` bunun yerine çözülmüş
+katılımcıları saklar:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .ForceMemoizedHandlers()
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+Bu, handler'ları gerçekten durumsuz ve bağımlılıkları singleton olan uygulamalar içindir — bir
+kuyruğu boşaltan arka plan işçisi gibi. Bir handler scoped bir şeye bağımlıysa yanlış seçimdir,
+çünkü yakaladığı örnek onu üreten scope'tan daha uzun yaşar.
+
+## Bir plugin kurmak
+
+Bir plugin paketi registry üzerinde kendi `Add<Ad>` uzantısını üretir:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddTiming()
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+Plugin seçenek bildiriyorsa o çağrı onları alır. Plugin'ler deneyseldir — `ERGOEXP002` — ve
+[Eklentiler](/ergosfare.docs/preview/advanced/plugins)'de anlatılır.
+
+## Neyin yapılandırılamadığı, ve neden
+
+Başka mediator'lerin ayar olarak sunduğu bazı şeylere burada derleme karar verir:
+
+**Bir mesaja hangi handler'ın hizmet ettiği.** Tiplerin bir özelliği; üreteç bir kez çözer. İki
+handler'ın bir mesajı aynı seviyede talep etmesi, ilk dispatch'te bir istisna değil derleme
+zamanında `ERGO010`'dur.
+
+**Interceptor sırası.** Tipteki `[Weight]`, doğrudan kayıtlar kovaryant olanlardan önce. Sıralama
+derlenen şeyin parçasıdır, dolayısıyla çağrı başına yeniden düzenlenemez.
+
+**Handler'sız bir dispatch'in fırlatıp fırlatmayacağı.** Fırlatır, ve abonesiz bir publish döner
+— ama ikisi de bir anahtar değil, çünkü hiç kimseye ulaşamamak derleme zamanında `ERGO005`'tir.
+Çalışma zamanında kalan şey container'ınızın yaptığı seçimdir, ki istediğiniz de odur.
+
+**Dispatch başına pipeline seçenekleri.** Bir dispatch mesajı, bir grup kümesini, bir context'i
+ve bir cancellation token'ı alır. Pipeline'ın şeklini değiştirecek her şey derlenmiş planı
+anahtarlayan şeyin parçasıdır, dolayısıyla seçenek olarak geçilmez, çağrıda grup olarak
+adlandırılır. Bkz.
+[Gruplar ve ağırlıklar](/ergosfare.docs/tr/preview/cross-cutting-concerns/groups-and-weights).
+
+## Derleme seviyesindeki ayarlar
+
+Birkaç şey registry çağrısı değil MSBuild özelliğidir, çünkü neyin derleneceğini etkilerler:
+
+| Özellik | Varsayılan | Ne yapar |
+|---|---|---|
+| `ErgosfareCompositionRoot` | çıktı türü | Kapanışı yargılanacak projeyi işaretler. |
+| `ErgosfareSourceGeneratorScanReferences` | `true` | Referans assembly'lerin handler için taranıp taranmayacağı. |
+| `ErgosfareTrimUnusedHandlers` | `false` | Erişilemeyen handler'ları kayıt dışında bırakır. |
+
+Her birinin nereye ait olduğu için bkz.
+[Kurulum](/ergosfare.docs/tr/preview/getting-started/installation).

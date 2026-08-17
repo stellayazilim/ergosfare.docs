@@ -67,6 +67,33 @@ await mediator.SendAsync(command, GroupSet.Empty);              // the default g
 `GroupSet.Empty` and passing nothing mean the same thing. Passing an empty `string[]` does not
 — that is a set naming no groups, which selects nothing.
 
+### `GroupSet` is also a list
+
+It implements `IReadOnlyList<string>`, so it is a named type *and* the sequence itself — you can
+count it, index it, enumerate it, and hand it to anything expecting `IEnumerable<string>`:
+
+```csharp
+var groups = GroupSet.Of("audit", "metrics");
+
+groups.Count;                      // 2
+groups[0];                         // "audit"
+foreach (var name in groups) { … }
+
+await mediator.SendAsync(command, groups, ct);
+logger.LogInformation("dispatching under {Groups}", string.Join(", ", groups));
+```
+
+That is why the group parameter comes in several spellings without them getting in each other's
+way. A collection expression cannot target `GroupSet` — it has no collection builder — so
+`["audit"]` resolves against the sequence overloads, while `GroupSet.Of("audit")` picks the named
+one. Both reach the same place.
+
+{% aside type="note" %}
+The spellings are not quite symmetric across the mediators: `SendAsync` and `QueryAsync` carry a
+`string[]` overload that `PublishAsync` does not. `["audit"]` compiles on all three regardless —
+on publish it simply binds to the `IEnumerable<string>?` overload instead.
+{% /aside %}
+
 ## Groups do not touch handlers
 
 A group narrows the **interceptors**. The handler is chosen the same way regardless:

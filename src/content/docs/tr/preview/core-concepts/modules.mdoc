@@ -1,0 +1,132 @@
+---
+title: Modüller
+description: Modül nedir, command, query ve event'ler neden ayrı modüller ve kendinizinkini nasıl yazarsınız.
+---
+
+Modül bir kayıt birimidir. Bir mesaj ailesine sahiptir — mediator'ü, katılımcıları ve kompozisyon
+tablosundaki payı — ve uygulamanızın kullandıklarını eklersiniz:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+Event'i olmayan bir uygulama event modülü eklemez ve eklemediği hiçbir şeyin bedelini ödemez.
+
+## Neden üç tane
+
+Üç modül **teslimatta** ayrışır, makinede değil:
+
+| Modül | Mesaj başına handler | Çağırana cevap verir |
+|---|---|---|
+| Command | tam olarak bir | bir sonuçla, ya da hiç |
+| Query | tam olarak bir | bir sonuçla, ya da akışıyla |
+| Event | eşleşen hepsi | asla |
+
+Geri kalan her şey — dört interceptor aşaması, sıralama kuralları, keşif, derlenmiş planlar —
+ortaktır. Onları ayırmak teslimat farkını çalışma zamanı bayrağı yerine tip sisteminde tutar: bir
+`SendAsync` kazara dağıtım yapamaz, bir `PublishAsync` kazara cevap döndüremez.
+
+Sınırı kendi kodunuzda da kullanışlı tutar. Kurucudaki `ICommandMediator` bu sınıfın talimat
+verdiğini söyler; `IQueryMediator` yalnız soru sorduğunu. Bu, sınıf hakkında okunabilir bir ifade
+ve zorunlu tutuluyor.
+
+## Bir modül neyi kaydeder
+
+Modül eklemek üç şey kaydeder:
+
+**Mediator'ünü** — `ICommandMediator`, `IQueryMediator`, `IEventMediator` — böylece enjekte
+edebilirsiniz.
+
+**Katılımcılarını**, builder'ın seçtiği her neyse. `RegisterGenerated()` onları toplu adlandırır;
+`Register<T>()` tek birini; bir keşif anahtarı deseni bir altkümeyi.
+
+**Kompozisyon tablosuna bakışını.** Tablonun kendisi assembly'ye derlenmiştir ve süreç
+genelindedir; bir modülün kaydettiği şey, *bu container*'ın hangi satırlarını seçtiğidir.
+
+Bir handler kütüphanesini paylaşan iki uygulamanın aynı derlenmiş tabloyu ve ondan farklı
+davranışı almasının sebebi bu ayrımdır.
+
+## Birleşik mediator
+
+`IMessageMediator` hangi modüle ait olduğunu bilmeden herhangi bir mesajı dispatch eder:
+
+```csharp
+public sealed class QueueConsumer(IMessageMediator mediator)
+{
+    public ValueTask ProcessAsync(IMessage message, CancellationToken ct)
+        => mediator.DispatchAsync(message, ct);
+}
+```
+
+Gerçekten bilmeyen kod içindir — bir kuyruk tüketicisi, bir replay aracı — ve karşılığında size
+derleme zamanı yargılarını kaybettirir, çünkü çağrı yerindeki statik tip hangi mesajın geldiği
+hakkında hiçbir şey kanıtlamaz. Kodun bildiği her yerde özel mediator'ü tercih edin.
+
+Sonuç tipi çağrı yerinde biliniyorsa onu adlandırın; dispatch executor'ını reflection ile
+kurmaktan kaçınır:
+
+```csharp
+var result = await mediator.DispatchAsync<PlaceOrder, Guid>(command, ct);
+```
+
+## Elle modül kaydetmek
+
+`AddCommandModule` ve kardeşleri küçük bir sözleşme üzerindeki uzantı metotlarıdır:
+
+```csharp
+public interface IModule
+{
+    void Build(IModuleConfiguration configuration);
+}
+```
+
+`IModuleConfiguration` size `IServiceCollection`'ı ve container'ın kompozisyon kataloğunu verir.
+Doğrudan implemente etmek, bir paketin kendi kaydını yayınlama yoludur:
+
+```csharp
+public sealed class ReportingModule : IModule
+{
+    public void Build(IModuleConfiguration configuration)
+    {
+        configuration.Services.AddSingleton<IReportRenderer, PdfRenderer>();
+    }
+}
+```
+
+```csharp
+services.AddErgosfare(registry => registry
+    .Register(new ReportingModule())
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+{% aside type="note" %}
+`Register(IModule)` bir modül alır, bir yapı değil. Bu, modül builder'ındaki handler ya da
+interceptor adlandıran `Register<T>()`'dan farklı bir metottur. Bir modülün `Build` içinde yaptığı
+çağrılar gerçek kayıtlardır.
+{% /aside %}
+
+Bir plugin paketi bunu, tüketicilerinin çağırdığı `Add<Ad>` uzantısıyla birlikte sizin için
+üretir. Bkz. [Eklentiler](/ergosfare.docs/preview/advanced/plugins).
+
+## Assembly'ler arası kayıt
+
+Referans bir kütüphanedeki handler, referans taraması tarafından bulunur ve onu tüketen
+uygulamanın `RegisterGenerated()`'ı üzerinden kaydolur. Fazladan bir şey gerekmez ve kütüphane
+kendi kayıt kodunu yayınlamaz.
+
+İki şeyi bilmekte fayda var:
+
+**Kütüphanenin de üretece ihtiyacı vardır.** Neyi dispatch ettiğini kaydeder, böylece composition
+root bütün kapanış hakkında akıl yürütebilir.
+
+**Internal handler'lar izin ister.** Bir kütüphanenin `internal` handler'ı, kütüphane
+`InternalsVisibleTo` vermedikçe tüketicinin üretilen koduna görünmezdir; bu sessizce atlanmaz,
+`ERGO002` olarak raporlanır.
+
+## Nerede kaydetmeli
+
+Composition root'ta, bir kez. Derleme zamanı yargıları orada çalışır — uygulamanın tamamını gören
+tek yer orasıdır — ve kaydı birkaç yere bölmek resmi hem derleyici hem okuyucu için zorlaştırır.

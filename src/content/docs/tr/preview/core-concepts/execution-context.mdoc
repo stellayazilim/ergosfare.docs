@@ -1,0 +1,138 @@
+---
+title: Yürütme Bağlamı
+description: Her katılımcının aldığı ErgosfareContext — iptal, dispatch başına durum, durdurma ve neden havuzlandığı.
+---
+
+Her handler ve interceptor bir `ErgosfareContext` alır. İptal token'ını, dispatch başına bir
+durum torbasını ve bir pipeline'ı durdurmanın yolunu taşır.
+
+```csharp
+public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
+{
+    context.CancellationToken.ThrowIfCancellationRequested();
+    …
+}
+```
+
+## İptal
+
+`context.CancellationToken`, dispatch'in başlatıldığı token'dır. `CancellationToken.None`'a
+uzanmak yerine onu aşağı geçirin:
+
+```csharp
+await repository.AddAsync(product, context.CancellationToken);
+```
+
+## Dispatch başına durum
+
+`Items`, tek bir dispatch'teki her katılımcının paylaştığı bir sözlüktür. Bir
+pre-interceptor'ın mesajı değiştirmeden sonraki bir aşamaya bir şey söyleme yoludur:
+
+```csharp
+public sealed class StartTimer : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        context.Set("startedAt", Stopwatch.GetTimestamp());
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Erişimciler:
+
+| Üye | Ne yapar |
+|---|---|
+| `Set(key, value)` | Bir değer saklar. |
+| `Has(key)` | Anahtarın var olup olmadığı. |
+| `Get<T>(key)` | Okur; yoksa ya da tip yanlışsa fırlatır. |
+| `TryGet<T>(key, out value)` | Fırlatmadan okur. |
+| `Items` | Yukarıdakilerin kapsamadığı her şey için alttaki sözlük. |
+
+{% aside type="caution" %}
+`Items` dispatch başınadır, istek başına değil. İç içe bir dispatch, siz açıkça geçirmedikçe
+kendi context'ini alır; dolayısıyla bir HTTP istek scope'una ait olması gereken bir şey için
+yanlış yerdir. Onu scoped bir servise koyup enjekte edin.
+{% /aside %}
+
+## Pipeline'ı durdurmak
+
+`Abort()` dispatch'i hemen bitirir:
+
+```csharp
+public sealed class RequireTenant : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        if (_tenant.Current is null)
+            context.Abort("bu istekte tenant yok");
+
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+`ExecutionAbortedException` fırlatır ve pipeline bunu bir başarısızlık değil bir durdurma olarak
+ele alır: **exception aşaması çalışmaz, final aşaması da çalışmaz.** Sinyal çağırana olduğu gibi
+gider.
+
+Bu ayrım, ayrı bir sinyale sahip olmanın bütün amacıdır. Başarısızlık ters giden ve bir final
+interceptor'ın yine de görmesi gereken bir şeydir; durdurma ise bu dispatch'in devam etmemesi
+gerektiğine dair bir karardır.
+
+Aşırı yüklemeler bir sebep ve bir değer taşır:
+
+```csharp
+context.Abort("yetkili değil");
+context.Abort("kota aşıldı", kalanKota);
+```
+
+## Bir context'i aktarmak
+
+Her dispatch yüzeyi isteğe bağlı bir context alır. Kendinizinkini geçirmek, iç içe dispatch'in
+`Items`'ınızı ve iptalinizi paylaşmasını sağlar:
+
+```csharp
+public async ValueTask HandleAsync(PlaceOrder command, ErgosfareContext context)
+{
+    await _events.PublishAsync(new OrderPlaced(command.Id), context);
+}
+```
+
+Geçirmemek iç dispatch'e taze bir context verir. Hangisini istediğiniz, iç işin aynı mantıksal
+işlemin parçası olup olmadığına bağlıdır — bkz.
+[İç içe dispatch](/ergosfare.docs/tr/preview/core-concepts/nested-dispatch).
+
+## Scope'lar
+
+`CreateScope()` tek bir dispatch içinde iç içe bir yaşam süresi verir; pipeline'ın bir bölümünden
+uzun yaşamaması gereken durum için:
+
+```csharp
+using var scope = context.CreateScope();
+```
+
+## Neden havuzlanıyor
+
+Context'ler havuzlanır ve dispatch tamamlandığında geri verilir. Bir dispatch'in sıcak yolda
+çağrı başına bir tane ayırmasını engelleyen şey budur, ve bilinmesi gereken tek bir sonucu
+vardır:
+
+{% aside type="danger" %}
+**Katılımcınız döndükten sonra bir context'i saklamayın.** Onu bir alanda tutmak, arka plan
+görevinde kapatmak ya da dispatch'ten uzun yaşayan bir şeye vermek, havuza çoktan geri verilmiş
+ve artık ilgisiz bir dispatch'e ait olabilecek bir nesneyi tutuyorsunuz demektir. Bunun yerine
+ihtiyacınız olan değerleri kopyalayın.
+{% /aside %}
+
+```csharp
+// yanlış — bu çalıştığında context çoktan gitmiş olur
+_ = Task.Run(() => Audit(context.Get<string>("user")));
+
+// doğru — önce okuyun
+var user = context.Get<string>("user");
+_ = Task.Run(() => Audit(user));
+```
+
+Havuzlama, dispatch yolunda hiçbir yerde `AsyncLocal` olmamasının da sebebidir: context bir
+parametredir, dolayısıyla tam olarak geçirdiğiniz kadar akar, daha ileri değil.

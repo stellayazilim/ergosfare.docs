@@ -1,0 +1,119 @@
+---
+title: Hata Interceptorları
+description: Bir şey fırlattığında çalışan aşama — dispatch'i bir sonuçla cevaplamak, ya da hatanın yükselmesine izin vermek.
+---
+
+Bir exception interceptor, handler ya da başka bir interceptor fırlattığında çalışır. Hatanın
+kaçmasına izin vermek yerine dispatch'i bir sonuçla cevaplayabilir.
+
+## Sözleşmeler
+
+```csharp
+ICommandExceptionInterceptor                                  // her command
+ICommandExceptionInterceptor<TCommand>                        // tek command
+ICommandExceptionInterceptor<TCommand, TResult>               // tipli sonuç
+ICommandExceptionInterceptorFor<TException>                   // tek exception tipi
+ICommandExceptionInterceptorFor<TCommand, TException>
+ICommandExceptionInterceptorFor<TCommand, TResult, TException>
+```
+
+Query'lerin aynı kümesi vardır. Event'lerin sonuçsuz olanları vardır.
+
+## Dispatch'i cevaplamak
+
+```csharp
+public sealed class NotFoundToEmpty
+    : IQueryExceptionInterceptor<GetProduct, ProductDto>
+{
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto? result, Exception exception, ErgosfareContext context)
+    {
+        if (exception is NotFoundException)
+            return ValueTask.FromResult(ProductDto.Empty);
+
+        throw exception;
+    }
+}
+```
+
+Bir exception interceptor çalıştığında exception ele alınmış sayılır ve pipeline final aşamasına
+devam eder. Hiçbiri çalışmadıysa çağırana yükselir.
+
+## Nullable girer, non-nullable çıkar
+
+İmzaya tekrar bakın: `ProductDto? result` girer, `ValueTask<ProductDto>` çıkar. Asimetri
+bilinçlidir.
+
+**Parametre nullable'dır**, çünkü handler bir şey üretmeden fırlatmış olabilir. Gerçekten henüz
+sonuç olmayabilir.
+
+**Dönüş değildir**, çünkü çağıran sonuç tipini çağrı yerinde kilitlemiştir. `IQuery<ProductDto>`
+dispatch'i bir `ProductDto` vaat etti ve aşağıdaki hiçbir aşama çağırana istemediği bir `null`
+veremez — o, exception'ı kaybolmuş hâlde nullable olmayan bir slot'a varırdı, ki bu her iki
+dünyanın da en kötüsüdür.
+
+Dolayısıyla sonuç üretemeyen bir interceptor hatayı sahiplenmemelidir:
+
+```csharp
+// doğru: yükselmesine izin ver
+throw exception;
+
+// yanlış: derlenmez, ve derlenmemeli
+return ValueTask.FromResult<ProductDto>(null);
+```
+
+Yokluğu modellemek isteyen kod bunu değerin içinde modeller — bir `Option`, bir `Result<T>`, boş
+bir örnek — sonuç slot'unun nullability'sinde değil.
+
+{% aside type="note" %}
+Silinmiş çekirdek sözleşmeler hâlâ nullable sonuç döndürür, çünkü void hattına da hizmet
+ederler; orada boş slot meşru olarak bu aşamaya `null` olarak ulaşır. Sıkılaştırılan, tipli
+sonuç sözleşmeleridir.
+{% /aside %}
+
+## Exception tipine göre filtreleme
+
+`For` varyantları tek bir exception tipine daraltır. Bu bir `is` kontrolünden daha iyi okunur ve
+derlenmiş planın testi gömmesini sağlar:
+
+```csharp
+public sealed class HandleTimeouts
+    : ICommandExceptionInterceptorFor<PlaceOrder, Guid, TimeoutException>
+{
+    public ValueTask<Guid> HandleAsync(
+        PlaceOrder command, Guid? result, TimeoutException exception, ErgosfareContext context)
+        => ValueTask.FromResult(Guid.Empty);
+}
+```
+
+Filtresi eşleşmeyen bir interceptor hiç çalıştırılmaz ve bir şeyi ele almış sayılmaz. Aşamadaki
+her interceptor filtreliyse ve hiçbiri eşleşmiyorsa, exception aşama boşmuş gibi yükselir.
+
+## Abort bir başarısızlık değildir
+
+`ExecutionAbortedException` bu aşamaya ulaşmaz. Abort bilinçli bir durdurmadır, dolayısıyla
+exception ve final aşamalarının ikisi de atlanır ve sinyal çağırana gider. Onu filtrelemeniz
+gerekmez.
+
+## Tipik kullanımlar
+
+**Bir altyapı hatasını domain cevabına çevirmek** — timeout'u boş sayfaya, bulunamadı'yı boş
+nesneye.
+
+**Yeniden fırlatmadan önce zenginleştirmek**, bağlam ekleyip orijinalin yükselmesine izin vermek.
+
+**Bir sonuç taşıyıcısına dönüştürmek**, uygulamanız hataları değer olarak taşıyorsa. Bir
+varsayılan sonuç adapter'ı yapılandırırsanız framework'ün bunu adapter'ın hizmet ettiği slot'lar
+için zaten yaptığını unutmayın.
+
+## Buraya ait olmayanlar
+
+**Temizlik.** Her iki yolda da çalışan final interceptor'ı kullanın.
+
+**Her şeyi yutmak.** Her exception'ı yakalayıp varsayılan döndüren geniş bir interceptor, her
+hatayı sessiz bir yanlış cevaba çevirir. Gerçekten nasıl cevaplayacağınızı bildiğiniz
+exception'lara filtreleyin.
+
+**Yeniden denemeler.** Bu aşama pipeline'dan sonra bir kez çalışır. Yeniden deneme işi tekrar
+çalıştırmak ister; bu, başarısız olan bağımlılığın üzerindeki bir dekoratöre ya da çağırana
+aittir.
