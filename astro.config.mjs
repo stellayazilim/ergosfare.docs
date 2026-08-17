@@ -276,6 +276,7 @@ export default defineConfig({
             },
             {
                 label: "Migration", translations: { tr: "Geçiş" }, items: [
+                    { label: "v2.11 to v2.12", slug: "preview/migration/v2.11-to-v2.12", translations: { tr: "v2.11'den v2.12'ye" } },
                     { label: "v2.2 to v2.3", slug: "preview/migration/v2.2-to-v2.3", translations: { tr: "v2.2'den v2.3'e" } },
                     { label: "v1 to v2", slug: "preview/migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]
