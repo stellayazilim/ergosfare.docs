@@ -80,17 +80,18 @@ A clean publish is the check. Ergosfare's own surface should contribute nothing.
 removed in v2.3, so the reflective registration path that the trimmer could not follow is
 gone from the surface entirely. Nothing to forfeit and nothing to suppress.
 
-**Open generic handlers and interceptors.** A type like
-`ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` cannot be closed at compile
-time by the generator, so its instantiations go through the reflective `MakeGenericType`
-path. If you need one in an AOT build, select the closed forms explicitly:
+**Participants that take their message as a type parameter.** A type like
+`ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` binds to no message in any
+build configuration, AOT or not: participants are matched to messages by concrete type, and a
+concrete command carries no generic arguments to close it over. It registers and never runs,
+and the generator reports it as `ERGOSG016`. Registering closed forms explicitly does not
+rescue it — the composition table holds the types the generator saw declared, and a
+constructed generic is not one of them. Declare the participant over the message type, or
+over `ICommand`.
 
-```csharp
-.AddCommandModule(c => c
-    .RegisterGenerated()
-    .Register<ValidateCommands<CreateProduct>>()
-    .Register<ValidateCommands<DeleteProduct>>())
-```
+A participant for a *generic message* is a different shape and is fully supported under AOT:
+`WrapHandler<T> : ICommandHandler<Wrap<T>>` is named in the table by its unbound `typeof` and
+closed over the dispatched message's own type arguments, which the generated roots anchor.
 
 **Genuine runtime plugins.** Assemblies loaded with `Assembly.LoadFrom` at runtime are outside
 AOT's model entirely — there is no compiled code for types the publish step never saw. They

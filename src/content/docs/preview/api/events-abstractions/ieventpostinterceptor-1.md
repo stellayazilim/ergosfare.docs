@@ -3,7 +3,7 @@ title: "IEventPostInterceptor<TEvent>"
 description: "Represents a type-safe asynchronous post-interceptor for events, allowing custom logic to execute after the event handlers have been invoked."
 sidebar:
   label: "IEventPostInterceptor<TEvent>"
-  order: 14
+  order: 11
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

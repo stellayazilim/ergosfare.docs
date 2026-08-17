@@ -37,7 +37,7 @@ returns it.
 ### `HandleAsync(TQuery, TResult?, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult?> HandleAsync(TQuery query, TResult? result, Exception exception, ErgosfareContext context)
+ValueTask<TResult> HandleAsync(TQuery query, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
 Handles the exception asynchronously, potentially modifying the query result.
@@ -54,3 +54,8 @@ Handles the exception asynchronously, potentially modifying the query result.
 **Returns**
 
 `ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) producing the (possibly modified) result that continues through the pipeline.
+
+The stage owes a result. A dispatch of this message locked its result type at the call
+site, so nothing downstream may answer with null — to leave the failure unhandled,
+do not claim it: an unmatched stage lets the exception surface to the caller. Model
+absence in the value instead, the way `Result<T>` does.

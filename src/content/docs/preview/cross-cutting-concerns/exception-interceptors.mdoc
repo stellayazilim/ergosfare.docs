@@ -1,161 +1,138 @@
 ---
 title: Exception interceptors
-description: Turning failures into results, translating exceptions, and deciding what propagates to the caller.
+description: The stage that runs when something threw — answering the dispatch with a result, or letting the failure surface.
 ---
 
-An exception interceptor runs when the handler — or anything earlier in the pipeline — threw.
-It receives the message, whatever result had been produced so far, and the exception, and it
-decides what the caller sees.
+An exception interceptor runs when the handler or another interceptor threw. It can answer the
+dispatch with a result instead of letting the exception escape.
+
+## The contracts
 
 ```csharp
-public sealed class TranslateNotFound : IQueryExceptionInterceptor<GetProduct, Product?>
+ICommandExceptionInterceptor                                  // every command
+ICommandExceptionInterceptor<TCommand>                        // one command
+ICommandExceptionInterceptor<TCommand, TResult>               // typed result
+ICommandExceptionInterceptorFor<TException>                   // one exception type
+ICommandExceptionInterceptorFor<TCommand, TException>
+ICommandExceptionInterceptorFor<TCommand, TResult, TException>
+```
+
+Queries have the same set. Events have the ones without a result.
+
+## Answering the dispatch
+
+```csharp
+public sealed class NotFoundToEmpty
+    : IQueryExceptionInterceptor<GetProduct, ProductDto>
 {
-    public ValueTask<Product?> HandleAsync(
-        GetProduct query, Product? result, Exception exception, ErgosfareContext context)
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto? result, Exception exception, ErgosfareContext context)
     {
-        if (exception is KeyNotFoundException)
-            return ValueTask.FromResult<Product?>(null);
-
-        throw exception;      // not ours — let it propagate
-    }
-}
-```
-
-Two outcomes, and nothing in between:
-
-- **Return a value** — the exception is considered handled, and the caller receives that value.
-- **Throw** — the exception propagates. Rethrow the original when it is not yours to handle.
-
-## Where it sits
-
-```
-pre*  →  main handler  →  post*        →  final*
-                       ↘  exception*  ↗
-```
-
-Post-interceptors do not run when the pipeline threw; the exception stage takes their place.
-Final interceptors run either way — but neither stage runs after an
-[abort](/ergosfare.docs/preview/core-concepts/execution-context#aborting).
-
-## Declaring the exception type
-
-There are two contract families, and they are alternatives — not a replacement and a legacy
-form. The untyped contracts above receive **every** exception and decide for themselves; the
-`...For<TException>` contracts declare one type up front and run only for it:
-
-```csharp
-public sealed class TranslateNotFound
-    : IQueryExceptionInterceptorFor<GetProduct, Product?, KeyNotFoundException>
-{
-    public ValueTask<Product?> HandleAsync(
-        GetProduct query, Product? result, KeyNotFoundException exception, ErgosfareContext context)
-        => ValueTask.FromResult<Product?>(null);
-}
-```
-
-The exception arrives already typed, so the `is` check and the rethrow-what-isn't-mine line
-both disappear. Matching follows `catch` semantics: a `TException` of `HttpRequestException`
-accepts its derived types too. Each module carries the same three arities as the untyped
-family — `...For<TException>`, `...For<TMessage, TException>` and
-`...For<TMessage, TResult, TException>`.
-
-**Which to reach for:**
-
-| | Use |
-|---|---|
-| One exception type per interceptor | `...For<TException>` — the filter is the contract, and nothing can forget to rethrow |
-| Several exception types in **one** interceptor | the untyped contracts — switch on the exception yourself, and rethrow what you do not handle |
-| Logging or enriching every failure | the untyped contracts — a blanket interceptor is exactly the point |
-
-Ordering does not change between them: `[Weight]` decides who runs, the filter only decides
-who is *eligible*.
-
-{% aside type="tip" %}
-The typed family sharpens what "handled" means. Previously, having any exception interceptor
-registered meant the exception could be swallowed; now **an exception is swallowed only when
-an interceptor that actually matched it returns a value.** A pipeline whose only exception
-interceptor filters on a type that did not occur leaves the original exception, and its stack,
-entirely untouched — the forgotten `throw` in an untyped interceptor cannot silently eat a
-failure any more, because a typed one never sees it in the first place.
-{% /aside %}
-
-## Logging without swallowing
-
-The common case is enriching the failure and letting it continue:
-
-```csharp
-public sealed class LogFailures : ICommandExceptionInterceptor
-{
-    private readonly ILogger<LogFailures> _logger;
-
-    public LogFailures(ILogger<LogFailures> logger) => _logger = logger;
-
-    public ValueTask<object?> HandleAsync(
-        ICommand command, object? result, Exception exception, ErgosfareContext context)
-    {
-        _logger.LogError(exception, "{Command} failed", command.GetType().Name);
-        throw exception;
-    }
-}
-```
-
-{% aside type="caution" %}
-Returning a value from an exception interceptor **swallows the exception**. A blanket
-interceptor that returns `null` on every failure will hide real bugs. Handle the exception
-types you actually know about and rethrow the rest.
-{% /aside %}
-
-## Fallbacks
-
-Supplying a degraded result is legitimate when the caller can use one:
-
-```csharp
-public sealed class FallbackToCache : IQueryExceptionInterceptor<GetRates, Rates>
-{
-    private readonly IMemoryCache _cache;
-
-    public FallbackToCache(IMemoryCache cache) => _cache = cache;
-
-    public ValueTask<Rates?> HandleAsync(
-        GetRates query, Rates? result, Exception exception, ErgosfareContext context)
-    {
-        if (exception is HttpRequestException && _cache.TryGetValue<Rates>("rates", out var stale))
-            return ValueTask.FromResult<Rates?>(stale);
+        if (exception is NotFoundException)
+            return ValueTask.FromResult(ProductDto.Empty);
 
         throw exception;
     }
 }
 ```
 
-## Ordering
+Once an exception interceptor has run, the exception is considered handled and the pipeline
+continues to the final stage. If none ran, it surfaces to the caller.
 
-Direct registrations first, then covariant ones, each by `[Weight]` descending — the same
-rule as every other stage. The first interceptor that returns a value ends the stage;
-interceptors after it do not run.
+## Nullable in, non-nullable out
 
-Put specific translations at a high weight and the blanket logger at a low one, so the logger
-sees failures that the specific handlers declined.
+Look at the signature again: `ProductDto? result` comes in, `ValueTask<ProductDto>` goes out.
+The asymmetry is deliberate.
+
+**The parameter is nullable** because the handler may have thrown before producing anything.
+There genuinely may be no result yet.
+
+**The return is not** because the caller locked the result type at the call site. A dispatch of
+`IQuery<ProductDto>` promised a `ProductDto`, and no stage downstream may hand back a `null`
+the caller never asked for — that would arrive in a non-nullable slot with the exception gone,
+which is the worst of both.
+
+So an interceptor that cannot produce a result should not claim the failure:
+
+```csharp
+// right: let it surface
+throw exception;
+
+// wrong: it does not compile, and it should not
+return ValueTask.FromResult<ProductDto>(null);
+```
+
+Code that wants to model absence models it in the value — an `Option`, a `Result<T>`, an empty
+instance — rather than in the nullability of the result slot.
+
+{% aside type="note" %}
+The erased core contracts still return a nullable result, because they serve the void lane too,
+where an empty slot legitimately reaches this stage as `null`. It is the typed result contracts
+that were tightened.
+{% /aside %}
+
+## Filtering by exception type
+
+The `For` variants narrow to one exception type. That reads better than an `is` check, and it
+lets the compiled plan bake the test:
+
+```csharp
+public sealed class HandleTimeouts
+    : ICommandExceptionInterceptorFor<PlaceOrder, Guid, TimeoutException>
+{
+    public ValueTask<Guid> HandleAsync(
+        PlaceOrder command, Guid? result, TimeoutException exception, ErgosfareContext context)
+    {
+        _metrics.Increment("order.timeout");
+        return ValueTask.FromResult(Guid.Empty);
+    }
+}
+```
+
+An interceptor whose filter does not match is not run at all, and does not count as having
+handled anything. If every interceptor in the stage is filtered and none matches, the exception
+surfaces exactly as if the stage were empty.
 
 ## Aborts are not failures
 
-`context.Abort(...)` throws `ExecutionAbortedException`, but the exception stage does **not**
-see it. An abort is a decision, not a failure, and exception interceptors exist to handle
-failures — so the signal passes through every stage untouched, with its stack intact, and
-reaches the caller.
+`ExecutionAbortedException` does not reach this stage. An abort is a deliberate stop, so the
+exception stage and the final stage are both skipped and the signal travels to the caller. You
+never need to filter it out.
 
-That is deliberate: an exception interceptor that caught aborts would be able to swallow a
-deliberate refusal and hand the caller a fabricated result. Catch
-`ExecutionAbortedException` at the **call site**, where the decision is yours to act on.
+## Ordering
 
-## Coverage
+`[Weight]` descending, direct before covariant. With several interceptors that could all match,
+put the specific ones first:
 
-| Interface | `HandleAsync` |
-|---|---|
-| `ICommandExceptionInterceptor` | `ValueTask<object?>(ICommand, object?, Exception, ErgosfareContext)` |
-| `ICommandExceptionInterceptor<TCommand>` | `ValueTask<object?>(TCommand, object?, Exception, ErgosfareContext)` |
-| `ICommandExceptionInterceptor<TCommand, TResult>` | `ValueTask<TResult?>(TCommand, TResult?, Exception, ErgosfareContext)` |
-| `ICommandExceptionInterceptorFor<TException>` and its `<TCommand, …>` arities | as above, with `TException` in place of `Exception` |
-| `IQueryExceptionInterceptor` / `<TQuery, TResult>` / `…For<TException>` | as above |
-| `IEventExceptionInterceptor` / `<TEvent>` / `…For<TException>` | `ValueTask<object?>(TEvent, ValueTask, Exception, ErgosfareContext)` |
+```csharp
+[Weight(100)] public sealed class HandleTimeouts   : ICommandExceptionInterceptorFor<PlaceOrder, Guid, TimeoutException> { … }
+[Weight(10)]  public sealed class HandleEverything : ICommandExceptionInterceptor<PlaceOrder, Guid> { … }
+```
 
-Next: [Final interceptors](/ergosfare.docs/preview/cross-cutting-concerns/final-interceptors).
+## Typical uses
+
+**Translating an infrastructure failure into a domain answer** — a timeout into an empty page,
+a not-found into a null object.
+
+**Enriching before rethrowing**, adding context and letting the original surface:
+
+```csharp
+_logger.LogError(exception, "Dispatching {Command} failed", command.GetType().Name);
+throw exception;
+```
+
+**Converting to a result carrier**, when your application carries failures as values. Note that
+if you configure a default result adapter, the framework already does this for the slots the
+adapter serves — see
+[Configuring Ergosfare](/ergosfare.docs/preview/getting-started/configuring).
+
+## What does not belong here
+
+**Cleanup.** Use a final interceptor, which runs on both paths.
+
+**Swallowing everything.** A broad interceptor that catches every exception and returns a
+default turns every bug into a silent wrong answer. Filter to the exceptions you actually know
+how to answer.
+
+**Retries.** This stage runs once, after the pipeline. A retry wants to re-run the work, which
+belongs in a decorator on the dependency that fails, or in the caller.

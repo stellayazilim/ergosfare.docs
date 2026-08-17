@@ -1,0 +1,185 @@
+---
+title: Composition root and testing
+description: Where registration belongs, how to lay projects out so discovery works for you, and how to test a pipeline without mocking the mediator.
+---
+
+## One composition root
+
+Register once, in the project that becomes your application. That is where the generator judges
+reachability, because it is the only place that sees the whole closure — which is why `ERGO005`
+and `ERGO007` appear when you build the executable rather than the library that declared the
+handler.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+If your root is a library rather than an executable — a test host, a plugin container, a
+function app — say so, or the judgments never run:
+
+```xml
+<PropertyGroup>
+  <ErgosfareCompositionRoot>true</ErgosfareCompositionRoot>
+</PropertyGroup>
+```
+
+Splitting registration across several places is the main way people lose the diagnostics.
+Everything the compiler can tell you depends on one project seeing the whole picture.
+
+## Laying projects out
+
+A layout that works with discovery rather than against it:
+
+```
+MyApp.Domain            ← domain types, plain events. No Ergosfare reference.
+MyApp.Application       ← messages, handlers, interceptors. Abstractions + generator.
+MyApp.Infrastructure    ← implementations the handlers depend on.
+MyApp.Api               ← composition root. Extensions + generator.
+```
+
+Three things make this work:
+
+**Messages live with their handlers**, in the application layer. A message and the code that
+serves it change together.
+
+**Domain events stay plain.** A subscriber is what makes a type an event, so `MyApp.Domain` can
+declare `OrderShipped` with no reference to anything.
+
+**The generator is referenced in both the application layer and the root.** In the library it
+finds handlers and records what that assembly dispatches; in the root it writes the registration
+and runs the judgments.
+
+## Libraries that ship handlers
+
+A library's handlers register through the application that consumes it — the reference scan
+finds them, and the library ships no registration code.
+
+Two things to get right:
+
+**Grant access to internal handlers**, or they are invisible to the consumer's generated code:
+
+```csharp
+[assembly: InternalsVisibleTo("MyApp.Api")]
+```
+
+Otherwise they surface as `ERGO002`. Making them `public` is the other answer.
+
+**Give optional handlers a discovery key**, so a consumer opts in rather than getting them
+whether they wanted them or not:
+
+```csharp
+[DiscoveryKey("myLibrary.optional")]
+public sealed class OptionalHandler : ICommandHandler<Something> { … }
+```
+
+## Testing: build the real pipeline
+
+The instinct to mock `ICommandMediator` is worth resisting. A mocked mediator tests that your
+code called a mediator — it does not test that a handler exists, that its interceptors run, or
+that the dispatch resolves at all. Those are exactly the things that break.
+
+Build a container instead. It is a few lines, and it is the real thing:
+
+```csharp
+private static IServiceProvider BuildHost()
+{
+    var services = new ServiceCollection();
+
+    services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+    services.AddErgosfare(registry => registry
+        .AddCommandModule(module => module.RegisterGenerated())
+        .AddEventModule(module => module.RegisterGenerated()));
+
+    return services.BuildServiceProvider();
+}
+
+[Fact]
+public async Task PlacingAnOrder_ReturnsItsId()
+{
+    using var scope = BuildHost().CreateScope();
+    var mediator = scope.ServiceProvider.GetRequiredService<ICommandMediator>();
+
+    var id = await mediator.SendAsync(new PlaceOrder(customerId, lines));
+
+    Assert.NotEqual(Guid.Empty, id);
+}
+```
+
+This runs the pipeline your application runs: the same handler selection, the same interceptors,
+the same order.
+
+{% aside type="tip" %}
+Mark the test project a composition root. Then the reachability diagnostics run over your test
+assembly too, and a test dispatching a message with no handler fails at build rather than at
+run time.
+{% /aside %}
+
+## Testing a handler on its own
+
+A handler is an ordinary class, so when you want to test its logic and nothing else, construct
+it:
+
+```csharp
+[Fact]
+public async Task Handler_SavesTheOrder()
+{
+    var repository = new InMemoryOrderRepository();
+    var handler = new PlaceOrderHandler(repository, new FlatPricing());
+
+    var id = await handler.HandleAsync(new PlaceOrder(customerId, lines),
+                                       new ErgosfareContext());
+
+    Assert.Single(repository.Saved);
+}
+```
+
+Use both kinds. The unit test pins the logic; the container test pins that the logic is
+reachable.
+
+## Testing an interceptor
+
+Through the pipeline, because ordering and matching are the parts worth testing. Register a
+handler that records what it saw, dispatch, and assert on the effect:
+
+```csharp
+[Fact]
+public async Task PreInterceptor_TrimsTheName()
+{
+    using var scope = BuildHost().CreateScope();
+    var mediator = scope.ServiceProvider.GetRequiredService<ICommandMediator>();
+    var spy = scope.ServiceProvider.GetRequiredService<RecordingRepository>();
+
+    await mediator.SendAsync(new CreateProduct("  Bench  ", 10m));
+
+    Assert.Equal("Bench", spy.Last.Name);
+}
+```
+
+Testing an interceptor by calling `HandleAsync` directly tells you the body works. It does not
+tell you the interceptor is reached, which is usually the failure you are guarding against.
+
+## Isolating tests from each other
+
+Handler instances come from the dispatching scope, so a scope per test gives each one its own
+scoped services:
+
+```csharp
+using var scope = provider.CreateScope();
+```
+
+Avoid `ForceMemoizedHandlers()` in tests unless you are specifically testing it. It keeps
+resolved participants, which is exactly the state leak you do not want between cases.
+
+## Before you ship
+
+**Build the composition root with warnings as errors.** That is where the reachability
+judgments run, and where `ERGO007` catches the handler whose dispatch you removed last week.
+
+**If you publish NativeAOT, publish it in CI.** The compile-time work is what makes AOT viable,
+but the way to know is to publish and run — see
+[Native AOT and trimming](/ergosfare.docs/preview/advanced/aot-and-trimming).

@@ -3,7 +3,7 @@ title: "ICommand"
 description: "Base command and a marker interface that can be registered by command module"
 sidebar:
   label: "ICommand"
-  order: 4
+  order: 1
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

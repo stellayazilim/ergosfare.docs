@@ -1,156 +1,143 @@
 ---
 title: Configuring Ergosfare
-description: Registration entry points, the two ways to select from the frozen composition table, and the knobs on AddErgosfare.
+description: What you can tell the registry — modules, result adapters, memoized handlers — and what is decided by the build instead.
 ---
 
-Everything Ergosfare needs at runtime comes from one call:
+Configuration is deliberately small. Most of what a mediator usually exposes as a setting is
+decided at compile time here, so the registry is left with the questions that genuinely belong
+to an application rather than to a type.
 
 ```csharp
-services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
 ```
 
-`AddErgosfare` takes an `Action<IModuleRegistry>`. Each `AddXModule` call opens a module
-builder that **selects** from the compiled composition table for this container. Only add the
-modules you use — an application that never publishes events has no reason to register the
-event module.
+`AddErgosfare` registers the dispatch machinery — the mediators, the executors, the
+dependencies factory — along with this container's view of the compiled composition table.
+Each module adds its own mediator and the participants it selected.
 
-## Registration is selection
+## Choosing what a module registers
 
-The source generator compiles the whole closure's handlers and interceptors into a frozen
-composition table before the application runs. Registration does not discover anything; it
-records which of that table's participant rows *this* container runs. Selection is a union,
-so registering the same type twice — or through two different calls — is harmless.
+Inside a module builder, three shapes are available.
 
-A row nobody selected is not part of any pipeline, and a container that selected nothing runs
-nothing. That is the whole failure model: a message with no selected handler raises
-`NoHandlerFoundException`.
+**`RegisterGenerated()`** is the bulk path and what most applications call. It is written by
+the generator and names every construct that takes part in default discovery.
 
-### Generated (preferred)
+**`RegisterGenerated(pattern)`** selects by discovery key instead — an exact key, or a prefix
+glob ending in `*`:
 
 ```csharp
-.AddCommandModule(c => c.RegisterGenerated())
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .RegisterGenerated("reporting.*"))
 ```
 
-The bulk path. The generator names every command construct it discovered — in your
-compilation *and in referenced assemblies* — and emits dispatch roots so Native AOT has a
-static anchor for every generic instantiation. See
-[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+Selections are a union, so chaining overlapping patterns is safe. See
+[Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys).
 
-`RegisterGenerated("reporting.*")` narrows the same call to the constructs whose
-[discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) match a pattern.
-
-### Explicit
+**`Register<T>()` / `Register(typeof(T))`** names one construct. Use it for something
+deliberately kept out of bulk discovery.
 
 ```csharp
-.AddCommandModule(c => c
-    .Register<CreateProductHandler>()
-    .Register(typeof(LogCommands)))
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .Register<AuditEverything>())
 ```
-
-Useful when you want a construct selected under conditions the generator cannot see — a
-feature flag read from configuration, for example. The type still has to exist in the
-compiled table; `Register<T>()` chooses, it does not add.
 
 {% aside type="caution" %}
-There is no third way. `RegisterFromAssembly(...)`, `RegisterDescriptors(...)` and the
-`IMessageRegistry` surface were removed in v2.3 — a dynamically loaded assembly cannot append
-a message shape after compilation. See
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+A `Register` call has to name its type outright. Passing a `Type` computed at run time is
+`ERGO018`, and it is an error rather than a warning: a construct whose type is only known at
+run time gets no compiled pipeline, no frozen composition and no plan, so the registration
+cannot mean what it appears to mean.
 {% /aside %}
 
-## Handler lifetimes
+## A default result adapter
 
-Handlers and interceptors resolve from the **calling DI scope** on every dispatch. Their
-lifetime is whatever you registered them as:
-
-| Registration | Behaviour per dispatch |
-|---|---|
-| Singleton | Container-cached; one instance for the process |
-| Scoped | One instance per DI scope |
-| Transient | A new instance for every dispatch |
-
-Transient handlers allocating once per dispatch is not a leak — it is what a transient
-registration declares. For dispatch-heavy loops inside a single scope that want instance
-reuse, either register handlers as singletons or opt in globally:
+By default a failing pipeline throws. If your application carries failures as values instead —
+`Result<T>`, or a carrier of your own — tell the registry once and every result slot that
+adapter serves stops throwing:
 
 ```csharp
-services.AddErgosfare(o => o
-    .ForceMemoizedHandlers()
-    .AddCommandModule(c => c.RegisterGenerated()));
+services.AddErgosfare(registry => registry
+    .UseDefaultResultAdapter(typeof(ResultAdapter<>))
+    .AddCommandModule(module => module.RegisterGenerated()));
 ```
 
-## Per-dispatch settings
+An open generic is closed per result slot it fits. Naming a closed type binds that one slot.
 
-Each module's mediator takes an optional settings object. It carries a group filter and a
-seed for the context's item bag:
+Configuring a default makes value-carried failure the application's contract, and the compiler
+holds you to it: a result-bearing message whose result no adapter serves is `ERGO013`, because
+its pipeline would keep throwing while the rest of the application stopped expecting that. If
+that is deliberate, say so on the message with `[IgnoreResultAdapter]`, which turns the error
+into a visible warning instead.
 
-```csharp
-var settings = new CommandMediationSettings
-{
-    Items = { ["tenant"] = tenantId }
-};
-settings.Filters.Groups = ["audit"];
-
-await commands.SendAsync(new CreateProduct("Laptop", 999m), settings);
-```
-
-- **`Filters.Groups`** restricts the pipeline to handlers and interceptors carrying a
-  matching `[Group]`. An empty collection means "everything registered". See
-  [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
-- **`Items`** seeds `context.Items` for this dispatch.
-
-Group filters participate in the pipeline plan cache key, so the filtering itself is done once
-per `(message type, group set)` rather than per dispatch. A filtered dispatch is still not free
-relative to an unfiltered one: **generated plans are only consulted for a group-less dispatch**,
-so filtering means taking the general executor path. Prefer
-[`GroupSet`](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights#groupset--the-reusable-filter)
-over a fresh settings object when you do filter.
-
-## Result adapters
-
-When a handler returns a value-carried failure — a foreign `Result<T>` type — an
-`IResultAdapter<TResult>` surfaces that failure out of the pipeline without the handler
-throwing. The binding is declarative, per message:
-
-```csharp
-[ResultAdapter(typeof(MyResultAdapter))]
-public sealed record CreateProduct(string Name) : ICommand<MyResult<Guid>>;
-```
-
-The framework's own `Result` / `Result<T>` carriers need no annotation, and an unannotated
-message with any other result type is not probed at all. `[IgnoreResultAdapter]` opts a
-message out.
-
-For a codebase-wide carrier, configure one fallback instead of annotating every message:
-
-```csharp
-services.AddErgosfare(o => o
-    .UseDefaultResultAdapter(typeof(MyResultAdapter<>))
-    .AddCommandModule(c => c.RegisterGenerated()));
-```
-
-The type may be closed over one result type or an open generic definition closed per served
-result; it needs a public parameterless constructor, and a bad type fails inside
-`AddErgosfare` rather than on some first dispatch.
-
-{% aside type="caution" %}
-This binding surface is `[Experimental]` under **`ERGOEXP001`** — `[ResultAdapter]`,
-`[IgnoreResultAdapter]` and `UseDefaultResultAdapter` alike. The value channel's semantics
-are settled; the way you bind to it may still shift in a minor release. See
+{% aside type="note" %}
+The result-adapter surface is experimental and marked `ERGOEXP001`. See
 [Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).
 {% /aside %}
 
-## What is *not* configurable
+## Memoized handlers
 
-Two omissions are deliberate:
+By default a handler instance is resolved from the dispatching scope for every dispatch, which
+is what makes scoped dependencies work. `ForceMemoizedHandlers()` keeps resolved participants
+instead:
 
-- **The execution context exposes no service provider.** Handler resolution belongs to the
-  dispatcher. If a handler needs a service, take it in the constructor.
-- **There is no ambient context.** `AmbientExecutionContext` was removed in v2. The context
-  is a parameter on every handler and interceptor, and the only way to reach it. See
-  [Execution context](/ergosfare.docs/preview/core-concepts/execution-context).
+```csharp
+services.AddErgosfare(registry => registry
+    .ForceMemoizedHandlers()
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
 
-Next: [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+This is for applications whose handlers are genuinely stateless and whose dependencies are
+singletons — a background worker draining a queue, say. It is the wrong choice anywhere a
+handler depends on something scoped, because the instance it captured outlives the scope that
+produced it.
+
+## Installing a plugin
+
+A plugin package generates its own `Add<Name>` extension on the registry:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddTiming()
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+When the plugin declares options, that call takes them. Plugins are experimental —
+`ERGOEXP002` — and covered in [Plugins](/ergosfare.docs/preview/advanced/plugins).
+
+## What is not configurable, and why
+
+Some things that other mediators expose as settings are decided by the build here:
+
+**Which handler serves a message.** A property of the types, resolved once by the generator.
+Two handlers claiming one message at the same level is `ERGO010` at build time rather than an
+exception on the first dispatch.
+
+**Interceptor order.** `[Weight]` on the type, direct registrations before covariant ones.
+Ordering is part of what gets compiled, so it cannot be rearranged per call.
+
+**Whether a dispatch with no handler throws.** It does, and a publish with no subscriber
+returns — but neither is a switch, because reaching nobody at all is `ERGO005` at build time.
+What remains at run time is the selection your container made, which is what you asked for.
+
+**Per-dispatch pipeline options.** A dispatch takes the message, a group set, a context and a
+cancellation token. Anything that would change the pipeline's shape is part of what keys the
+compiled plan, so it is named at the call as a group rather than passed as an option. See
+[Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## Build-level settings
+
+A few things are MSBuild properties rather than registry calls, because they affect what gets
+compiled:
+
+| Property | Default | What it does |
+|---|---|---|
+| `ErgosfareCompositionRoot` | output kind | Marks the project whose closure is judged. |
+| `ErgosfareSourceGeneratorScanReferences` | `true` | Whether referenced assemblies are scanned for handlers. |
+| `ErgosfareTrimUnusedHandlers` | `false` | Leaves unreachable handlers out of the registration. |
+
+See [Installation](/ergosfare.docs/preview/getting-started/installation) for where each one
+belongs.

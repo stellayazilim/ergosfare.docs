@@ -3,7 +3,7 @@ title: "IEventPreInterceptor"
 description: "Represents a non-generic pre-interceptor for events, allowing custom logic to execute before any event handlers are invoked."
 sidebar:
   label: "IEventPreInterceptor"
-  order: 15
+  order: 12
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

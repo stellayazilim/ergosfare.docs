@@ -15,7 +15,7 @@ call whose type argument is statically known. Manual registration is the same
 source-generated collection path as `RegisterGenerated()` — per type instead of in
 bulk — so an aggregating composition root counts these types' handler contracts as
 coverage evidence exactly like discovered ones when judging dead dispatches
-(ERGOSG005/006).
+(ERGO005/006).
 
 ```csharp
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
@@ -48,7 +48,7 @@ call whose type argument is statically known. Manual registration is the same
 source-generated collection path as `RegisterGenerated()` — per type instead of in
 bulk — so an aggregating composition root counts these types' handler contracts as
 coverage evidence exactly like discovered ones when judging dead dispatches
-(ERGOSG005/006).
+(ERGO005/006).
 
 **Parameters**
 

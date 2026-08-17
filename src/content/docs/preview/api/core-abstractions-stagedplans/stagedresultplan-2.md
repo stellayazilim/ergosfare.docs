@@ -3,7 +3,7 @@ title: "StagedResultPlan<TMessage, TResult>"
 description: "The typed closure of StagedResultPlan; subclassed by generated (or hand-written) plans."
 sidebar:
   label: "StagedResultPlan<TMessage, TResult>"
-  order: 5
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.StagedPlans`](/ergosfare.docs/preview/api/core-abstractions-stagedplans)  
@@ -96,6 +96,52 @@ default forwards to [`StagedVoidPlan<TMessage>.Execute(TMessage, ErgosfareContex
 | `message` | `TMessage` |  |
 | `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
 | `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
+
+**Returns**
+
+`ValueTask<TResult>`
+
+### `ExecuteFiltered(TMessage, ErgosfareContext, IServiceProvider, IReadOnlyList<string>)`
+
+```csharp
+public virtual ValueTask<TResult> ExecuteFiltered(TMessage message, ErgosfareContext context, IServiceProvider serviceProvider, IReadOnlyList<string> groups)
+```
+
+Runs the baked pipeline for a dispatch whose group filter is a runtime value: every
+participant is present in the body and each call is guarded by the group test the
+generator baked for it. Only invoked on a plan that reports
+[`StagedResultPlan.FilterGroups`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan#filtergroups); the default forwards to the unfiltered body.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `message` | `TMessage` |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
+| `groups` | `IReadOnlyList<string>` |  |
+
+**Returns**
+
+`ValueTask<TResult>`
+
+### `ExecuteFilteredDirect(TMessage, ErgosfareContext, IServiceProvider, IReadOnlyList<string>)`
+
+```csharp
+public virtual ValueTask<TResult> ExecuteFilteredDirect(TMessage message, ErgosfareContext context, IServiceProvider serviceProvider, IReadOnlyList<string> groups)
+```
+
+The direct-construction variant of [`StagedResultPlan<TMessage, TResult>.ExecuteFiltered(TMessage, ErgosfareContext, IServiceProvider, IReadOnlyList<string>)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan-2#executefilteredtmessage-ergosfarecontext-iserviceprovider-ireadonlyliststring); see
+[`StagedResultPlan<TMessage, TResult>.ExecuteDirect(TMessage, ErgosfareContext, IServiceProvider)`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan-2#executedirecttmessage-ergosfarecontext-iserviceprovider) for when it qualifies.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `message` | `TMessage` |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
+| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) |  |
+| `groups` | `IReadOnlyList<string>` |  |
 
 **Returns**
 

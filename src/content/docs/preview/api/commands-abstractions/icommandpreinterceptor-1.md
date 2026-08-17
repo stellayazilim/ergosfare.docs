@@ -3,7 +3,7 @@ title: "ICommandPreInterceptor<TCommand>"
 description: "Defines a type-safe pre-interceptor for a command."
 sidebar:
   label: "ICommandPreInterceptor<TCommand>"
-  order: 23
+  order: 20
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

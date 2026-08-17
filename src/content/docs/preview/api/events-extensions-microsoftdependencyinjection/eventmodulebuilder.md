@@ -70,12 +70,20 @@ serving events (their contracts carry the module marker too).
 
 | Type | Condition |
 | --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) |  |
+| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | The type carries pipeline contracts but is not an event construct. |
+
+The module assertion applies to participants, not to messages. A subscriber or
+interceptor belongs to a module and registering one in the wrong module is a mistake
+worth reporting; a message does not belong to anything — a plain domain type with an
+`IEventHandler<T>` written for it is exactly the shape this lane exists to
+carry, and it has no marker to assert against. Selecting a type nothing subscribes to
+is inert rather than wrong: the catalog only ever asks whether a *participant*
+was selected.
 
 ### `Register<TEvent>()`
 
 ```csharp
-public EventModuleBuilder Register<TEvent>() where TEvent : IEvent
+public EventModuleBuilder Register<TEvent>() where TEvent : notnull
 ```
 
 Registers an event construct.
@@ -84,11 +92,18 @@ Registers an event construct.
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type to register. Must be an event construct. |
+| `TEvent` | The type to register. |
 
 **Returns**
 
 [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The current [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) instance for fluent chaining.
+
+`notnull`, not [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent). The whole publish lane is already declared
+over `notnull` — `IEventHandler<TEvent>`, `PublishAsync<TEvent>`,
+`FrozenBroadcastDispatch<TEvent>` — because a broadcast carries no result
+and needs nothing from `IMessage`. Requiring the marker here was the one place
+that forced an Ergosfare reference into the layer declaring a domain event, which is
+the wrong direction for a dependency to run.
 
 ### `RegisterParticipants(IEnumerable<Type>)`
 

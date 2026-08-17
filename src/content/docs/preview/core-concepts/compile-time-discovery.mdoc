@@ -1,231 +1,157 @@
 ---
 title: Compile-time discovery
-description: How the Ergosfare source generator finds handlers, what it emits, and how to control it.
+description: What the source generator finds, what it writes into your build, and what it deliberately refuses to guess at.
 ---
 
-Most mediators discover handlers by reflecting over assemblies at startup. Ergosfare does it
-at compile time: a Roslyn source generator walks your compilation, finds everything
-registrable, compiles the relationships into a **frozen composition table**, and writes a
-registration method into your project.
+Ergosfare has no assembly scan. What another mediator discovers when your application starts,
+this one works out while you compile, and writes into your assembly as code you can read.
 
-The result is a startup path with **no reflection over handler types at all**, and a build
-where the compiler — not the runtime — tells you if something cannot be registered. This is
-the only discovery path: since v2.3 there is no runtime scanning to fall back to.
+## What gets found
 
-## What the generator emits
+The generator looks for types that reach a module marker — `ICommand`, `IQuery` or `IEvent`.
+A message declares one itself. A handler or interceptor inherits one through the contract it
+implements, so a single check finds all three.
 
-After a build, look in:
+It looks in two places:
 
-```
-obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
-```
+**Your own compilation**, by visiting every type declaration with a base list.
 
-You will find an `internal static class ErgosfareGeneratedRegistrations` in namespace
-`Stella.Ergosfare.Generated`, carrying extension methods on each module builder:
+**Referenced assemblies**, so a library's handlers register through the application that
+consumes it. Only assemblies that themselves reference Ergosfare are read — nothing else can
+carry a marker — and Ergosfare's own assemblies are skipped, since its contract interfaces
+inherit the markers and would otherwise all match.
 
-```csharp
-namespace Stella.Ergosfare.Generated
-{
-    internal static class ErgosfareGeneratedRegistrations
-    {
-        public static CommandModuleBuilder RegisterGenerated(this CommandModuleBuilder builder);
-        public static CommandModuleBuilder RegisterGenerated(this CommandModuleBuilder builder, string discoveryKeyPattern);
-        // …the same pair for QueryModuleBuilder and EventModuleBuilder
-    }
-}
+```xml
+<!-- Turn the reference scan off for a project that does not want it -->
+<ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
 ```
 
-This is why `RegisterGenerated()` appears in no NuGet package and in no API reference: it
-does not exist until your project compiles. It is generated *per compilation*, already
-containing your handlers.
+A type the generated code cannot name is reported rather than dropped in silence: `ERGO001`
+for a `private`, `protected` or file-local type in your own code, `ERGO002` for an internal
+type in a referenced assembly that has not granted you `InternalsVisibleTo`.
 
-{% aside type="tip" %}
-The class is `internal`, so `RegisterGenerated()` is only callable from the project that
-generated it. Each application generates its own.
-{% /aside %}
+## What gets written
 
-## Using it
+Three things land in `ErgosfareRegistrations.g.cs`.
 
-```csharp
-using Stella.Ergosfare.Generated;
+### The registration
 
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
+`RegisterGenerated()` names each construct through `typeof`, which is also what keeps the
+trimming and AOT analyzers satisfied. Nothing here is convention-based, and nothing depends on
+a type's name.
+
+### The frozen composition table
+
+One entry per message: its handler rows and its four interceptor stages, already in the order
+they will run. This is the answer to "what serves this message", computed once at compile time
+rather than assembled from descriptors on each dispatch.
+
+The table describes the whole compiled world. Which of its rows a given container actually runs
+is decided separately, by what that container registered — so two applications sharing a
+library get the same table and different selections from it.
+
+### The compiled plans
+
+For pipelines whose shape is fully settled, the generator writes the body as a straight line of
+calls: resolve, invoke, resolve, invoke. There is no loop over a descriptor list, and for
+participants it can prove are plain transients, no container resolution either — the plan
+constructs them with `new`.
+
+A plan is always advisory. Before running one, the executor compares the composition it was
+baked against with the pipeline the container actually composed, and falls back to the general
+path on any difference. That is what makes the whole mechanism safe: a plan can lose you its
+speedup, never change your behaviour.
+
+## What it can prove about your code
+
+Because the closure is visible at compile time, some questions that are normally runtime
+surprises become build output. These run in the **composition root** — the project that sees
+the whole application — which is why they appear when you build your executable rather than the
+library that declared the handler.
+
+| Diagnostic | Severity | What it means |
+|---|---|---|
+| `ERGO005` | error | This dispatch can never reach a handler. |
+| `ERGO006` | warning | Only subtypes of the dispatched type are handled. |
+| `ERGO007` | warning | No dispatch anywhere can reach this handler. |
+| `ERGO010` | error | Two main handlers claim one message at the same level. |
+| `ERGO018` | error | A `Register` call names its type at run time. |
+
+`ERGO005` is the one people meet first:
+
+```
+error ERGO005: This dispatch of 'ArchiveOrder' can never reach a handler: neither
+'ArchiveOrder' nor any of its subtypes in the compiled closure has a covering handler
+registration, so the call is guaranteed to throw NoHandlerFoundException at runtime.
+Register a handler for it or remove the dispatch.
 ```
 
-A missing `using Stella.Ergosfare.Generated;` is the single most common reason
-`RegisterGenerated()` fails to resolve.
+It applies to publishing too. An event no subscriber in the compilation serves is a dead
+dispatch like any other — writing the event and forgetting the subscriber is the ordinary way
+to get there, and it used to compile in silence.
 
-## What counts as registrable
+`ERGO007` points the other way, at a handler nothing can reach. Left alone it is a warning; opt
+in and it becomes a size saving instead:
 
-The generator looks for concrete, non-abstract types implementing any of:
-
-- a handler contract — `ICommandHandler<…>`, `IQueryHandler<…>`, `IStreamQueryHandler<…>`, `IEventHandler<…>`
-- an interceptor contract — pre, post, exception or final, in any of their arities
-- a message contract — `ICommand`, `ICommand<TResult>`, `IQuery<TResult>`, `IStreamQuery<TResult>`, `IEvent`
-
-Messages matter as much as handlers: the generator uses them to emit **dispatch roots**.
-
-## Dispatch roots
-
-For every dispatchable message the generator emits a static reference that closes the
-runtime's generic executor and invoker types over that message:
-
-```csharp
-GeneratedDispatchRoots.AddMessage<CreateProduct>();
-GeneratedDispatchRoots.AddResult<CreateProduct, Guid>();
+```xml
+<ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
 ```
 
-Two things fall out of this:
+Unreachable handlers are then left out of the registration entirely — reported as `ERGO008` so
+the exclusion is visible — and the linker can drop them.
 
-- The runtime constructs executors without `MakeGenericType`. That call survives only as a
-  fallback for message types without a generated root, chiefly open generics.
-- Native AOT gets a **static anchor for every generic instantiation** — including
-  `record struct` messages, which shared generic code cannot cover and which would otherwise
-  fail at runtime in a trimmed build.
+## What it refuses to guess at
 
-Dispatch-root additions are idempotent, so every registration surface calls them
-unconditionally.
+The judgments above are only sound while the picture is complete, and the generator is careful
+about saying so. Each of these makes it stand down rather than report something it cannot
+prove:
 
-## Cross-assembly discovery
+**A registration it cannot read.** `Register(someType)` where `someType` is computed at run
+time. This is `ERGO018` at the registration itself, and the dead-dispatch judgment stays quiet
+— the defect is the registration, not the dispatches downstream of it.
 
-The generator also walks **referenced assemblies**. A library that ships handlers needs no
-registration code of its own — its handlers register through the consuming application's
-generated code:
+**Reference scanning turned off.** The composition is then knowingly incomplete, so no
+closure-wide verdict holds.
 
-```csharp
-// In a class library. No AddErgosfare, no registration code, nothing.
-public sealed record LibGreet(string Name) : ICommand<string>;
+**A missing manifest.** Each assembly records what it dispatches. If some Ergosfare-referencing
+assembly in the closure carries none, dispatch sites may be invisible, and the
+unreachable-handler side stays silent.
 
-public sealed class LibGreetHandler : ICommandHandler<LibGreet, string>
-{
-    public ValueTask<string> HandleAsync(LibGreet message, ErgosfareContext context)
-        => new($"lib says hi, {message.Name}");
-}
+**An opaque dispatch site.** `SendAsync` through a variable typed as `ICommand` proves nothing
+about which command arrives. Reachability can still reason about it in aggregate, but not
+precisely. `ERGO009` reports these, off by default; teams who want every dispatch provable turn
+it on:
+
+```ini
+dotnet_diagnostic.ERGO009.severity = warning
 ```
 
-The application's `RegisterGenerated()` picks it up.
+**A keyed or grouped registration.** Whether two such handlers are ever live together is a
+container's choice, not a property of the types, so a contest between them is not reported.
 
-Internal types in a referenced assembly participate when that assembly grants
-`InternalsVisibleTo` to the consuming project.
+## What stays at run time
 
-To turn reference scanning off for a project:
+Instance resolution. A handler is resolved from the dispatching scope for each dispatch, so
+scoped dependencies behave as they do everywhere else. The generator decides *which* handler;
+your container decides *which instance*.
+
+## Seeing the output
 
 ```xml
 <PropertyGroup>
-  <ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
 </PropertyGroup>
 ```
 
-### Assemblies under the `Stella.Ergosfare.*` prefix
+The file is plain, readable C#. Reading it is the fastest way to answer "is my handler actually
+registered", and the generated plan bodies show exactly what a dispatch will do.
 
-Reference scanning skips assemblies whose name begins with `Stella.Ergosfare` — that prefix
-is the library's own, and its contract interfaces (`ICommandHandler<T>` and friends) inherit
-the module markers, so scanning them would register the framework's own types. If you
-deliberately name an application assembly under that prefix, opt it back in:
+## Next
 
-```xml
-<PropertyGroup>
-  <ErgosfareSourceGeneratorForceScanReferences>true</ErgosfareSourceGeneratorForceScanReferences>
-</PropertyGroup>
-```
-
-The property is baked into the assembly as
-`[assembly: AssemblyMetadata("ErgosfareSourceGeneratorForceScanReferences", "true")]`, which
-the generator reads per referenced assembly. Only assemblies that set it are force-included,
-so the library's own contracts are never scanned — even though they share the prefix.
-
-## Diagnostics
-
-Because discovery happens at compile time, the generator can see problems a runtime scanner
-could only fail on. It reports them rather than registering something surprising.
-
-**Visibility — the type cannot be named**
-
-| ID | Severity | Meaning |
-|---|---|---|
-| `ERGOSG001` | Warning | A registrable type in this compilation is private, protected or file-local, so generated registration cannot name it. |
-| `ERGOSG002` | Warning | A registrable type in a referenced assembly is not visible — usually internal without `InternalsVisibleTo`. |
-
-**Reachability — the dispatch and the handler do not meet**
-
-| ID | Severity | Meaning |
-|---|---|---|
-| `ERGOSG005` | Error | This dispatch can never reach a handler: nothing in the closure handles the message or any of its subtypes. It would throw `NoHandlerFoundException`. |
-| `ERGOSG006` | Warning | The dispatched static type has no covering handler; only subtypes are handled. |
-| `ERGOSG007` | Warning | A handler exists that no dispatch site in the closure can deliver to. |
-| `ERGOSG008` | Info | An unreachable handler was trimmed out of generated registration. |
-| `ERGOSG009` | Info | The dispatch site's static message type is opaque, so nothing can be proved about it. |
-| `ERGOSG010` | Error | Several main handlers claim the same message at the same priority level — see [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism). |
-
-**Construction — the plan falls back to the container**
-
-| ID | Severity | Meaning |
-|---|---|---|
-| `ERGOSG003` | Info | The handler has more than one public constructor, so generated plans cannot prove which to call and keep it on the container path. |
-| `ERGOSG004` | Info | `[FromServices]` on a constructor parameter has no effect — constructor injection already resolves from the container. |
-
-**Result adapters** (the `ERGOEXP001` surface)
-
-| ID | Severity | Meaning |
-|---|---|---|
-| `ERGOSG011` | Error | The `[ResultAdapter]` declared on a message can never bind to its declared result type. |
-| `ERGOSG012` | Error | A message carries both `[ResultAdapter]` and `[IgnoreResultAdapter]`. |
-| `ERGOSG013` | Error | The message's result type is not served by the configured default adapter. |
-| `ERGOSG014` | Warning | An opted-out message keeps a throwing pipeline while the default adapter cannot serve its result. |
-
-Take the warnings seriously — a handler that silently never runs is worse than a build break.
-
-## The composition root
-
-The reachability diagnostics (`ERGOSG005`–`ERGOSG008`) only mean anything where the closure is
-complete: a library compiled on its own cannot know which of its handlers the application will
-dispatch to. So the generator judges reachability in the **composition root** — by default, any
-project whose output is an executable. Libraries are not judged.
-
-Override it when the default guesses wrong:
-
-```xml
-<PropertyGroup>
-  <!-- a library that composes the final pipeline: judge it -->
-  <ErgosfareCompositionRoot>true</ErgosfareCompositionRoot>
-
-  <!-- an executable that is not the real root (a test host, a tool): stay quiet -->
-  <ErgosfareCompositionRoot>false</ErgosfareCompositionRoot>
-</PropertyGroup>
-```
-
-## Trimming unreachable handlers
-
-In a composition root, a handler no dispatch site can reach is dead weight the linker cannot
-prove is dead — it is named by generated registration, so it stays. Opt in and the generator
-stops naming it:
-
-```xml
-<PropertyGroup>
-  <ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
-</PropertyGroup>
-```
-
-Each trimmed handler is reported as `ERGOSG008` (Info), so the build still says what it
-dropped. This is opt-in for a reason: the judgment is only as complete as the dispatch
-manifests, and a handler reached through a path the generator cannot see would be trimmed out
-of a build that needs it. Leave it off unless you are chasing size in a
-[trimmed or AOT publish](/ergosfare.docs/preview/advanced/aot-and-trimming), where `ERGOSG007` is
-already telling you the handler is unreachable.
-
-## There is no runtime scanning
-
-`RegisterFromAssembly(assembly)` was removed in v2.3. An assembly loaded with
-`Assembly.LoadFrom` after compilation cannot append a message shape to the frozen composition
-table, and `Register<T>()` selects only types the table already holds.
-
-A genuine plugin host has one supported shape: compile the plugin contracts into the closure
-the generator sees, and let the host choose at registration time which of them to select —
-with `RegisterGenerated(pattern)` over [discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys),
-or explicit `Register<T>()` calls behind your own feature flag.
-
-Next: [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) — registering only part
-of what was discovered.
+- [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) — registering subsets
+  of what was found.
+- [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism) — how base contracts and
+  covariant handlers resolve.
+- [Working with diagnostics](/ergosfare.docs/preview/best-practices/diagnostics) — reading the
+  ERGO codes as signals rather than noise.

@@ -1,0 +1,195 @@
+---
+title: Working with diagnostics
+description: Every ERGO code, what it is telling you, and when suppressing one is the right answer.
+---
+
+Ergosfare's diagnostics are not style advice. Most of them report something that will go wrong
+at run time, proved at compile time — so the default posture is to fix them, and suppressing
+one should be a decision you can explain.
+
+They come in two families: `ERGO###` for what the generator can prove about your code, and
+`ERGOEXP###` marking a surface that is still moving.
+
+## The errors
+
+These fail the build, because each one describes a call that cannot work.
+
+### ERGO005 — this dispatch can never reach a handler
+
+Neither the dispatched type nor any subtype in the compiled closure has a handler.
+
+```csharp
+await mediator.SendAsync(new ArchiveOrder(id));   // nothing handles ArchiveOrder
+```
+
+**Fix:** write the handler, or delete the dispatch. It applies to publishing too — an event no
+subscriber serves is a dead dispatch, and writing the event while forgetting the subscriber is
+the ordinary way to get there.
+
+**Legitimately suppress it** when the handler is registered somewhere the compiler cannot see:
+a plugin container loading assemblies at run time, a test host registering by hand. Suppress at
+the call site with a reason.
+
+### ERGO010 — two handlers claim one message
+
+A command or query has exactly one handler, and the priority ladder has no tiebreaker within a
+level.
+
+**Fix:** delete one; make one direct so it wins outright; or separate them by group or
+discovery key if they are genuinely alternatives.
+
+### ERGO011 / ERGO012 — result adapter annotations
+
+`ERGO011` is a `[ResultAdapter]` naming an adapter that can never bind — it does not implement
+the contract for any slot the message dispatches, or cannot be instantiated. `ERGO012` is a
+message carrying both `[ResultAdapter]` and `[IgnoreResultAdapter]`, which asks for two
+opposite things.
+
+### ERGO013 — a result no adapter serves
+
+You configured a default result adapter, which makes value-carried failure the application's
+contract — and this message's result cannot take part, so its pipeline keeps throwing.
+
+**Fix:** return a carrier the adapter serves, declare a `[ResultAdapter]` for the message, or
+acknowledge it with `[IgnoreResultAdapter]`, which turns it into the `ERGO014` warning instead.
+
+### ERGO018 — a registration naming a runtime type
+
+```csharp
+registry.Register(typeof(T).Assembly.GetTypes().First());   // ERGO018
+```
+
+The closed world compiles a construct's pipeline, freezes its composition and bakes its plan
+from what the compilation can see. A type known only at run time enters none of that, so the
+registration cannot mean what it appears to.
+
+**Fix:** `Register<T>()` or `Register(typeof(T))` with a concrete type, or let
+`RegisterGenerated()` collect it.
+
+## The warnings
+
+### ERGO001 / ERGO002 — a type that cannot be named
+
+`ERGO001` is a `private`, `protected` or file-local type in your own code. `ERGO002` is an
+`internal` type in a referenced assembly with no `InternalsVisibleTo` grant for you.
+
+**Fix:** make it `internal` at least, or grant access. Both say the declaration promises
+something its accessibility takes back.
+
+### ERGO006 — only subtypes are handled
+
+The dispatched static type is a concrete message with no handler, while a subtype has one. An
+instance of exactly that type throws.
+
+**Fix:** usually the base type should be `abstract`. If instances of it are real, it needs its
+own handler.
+
+### ERGO007 — a handler nothing can reach
+
+No dispatch in the compiled closure can deliver this handler's message.
+
+**Fix:** it is usually dead code — the dispatch was renamed or removed. If the registration is
+deliberate, suppress it at the type with a reason, or turn on the trim:
+
+```xml
+<ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
+```
+
+which reports `ERGO008` for each handler it excludes instead.
+
+### ERGO015 — a plugin under the reserved prefix
+
+A plugin assembly named `Stella.Ergosfare.*` is skipped by reference scanning, so none of its
+hooks reach any pipeline.
+
+**Fix:** rename it. If you must keep the name, opt back in with
+`[assembly: AssemblyMetadata("ErgosfareSourceGeneratorForceScanReferences", "true")]`.
+
+### ERGO016 — a generic participant that closes over nothing
+
+Its contract names a bare type parameter as the message, so no concrete message can bind it:
+
+```csharp
+public sealed class ValidateAnything<TCommand> : ICommandPreInterceptor<TCommand>
+    where TCommand : ICommand { … }
+```
+
+It registers and never runs, which is the worst shape a validation or authorization interceptor
+can take.
+
+**Fix:** declare it over the message type or a base contract such as `ICommand`. If the
+constraint admits compiled messages, they are closed over automatically and this never fires.
+
+### ERGO017 — a plugin service that cannot receive its options
+
+No constructor to pass them to, several public constructors, or not `partial`.
+
+**Fix:** write a constructor taking the options type, or mark the class `partial` and let the
+generator write the field for you.
+
+## The informational ones
+
+These cost you nothing at run time. They report a fast path you did not get.
+
+**ERGO003** — a handler with several public constructors. Which one the container picks depends
+on what is registered, so direct construction cannot be proven equivalent. Collapse to one
+public constructor to get it.
+
+**ERGO004** — `[FromServices]` on a constructor parameter, where it does nothing. Constructor
+injection resolves services with or without it. Remove it; for keyed services use
+`[FromKeyedServices]`.
+
+**ERGO008** — a handler the trim excluded. Visible so the exclusion is on record.
+
+**ERGO009** — an opaque dispatch site, off by default. The static type at the call — `object`,
+`IMessage`, a bare marker — proves nothing about which message arrives, so reachability can only
+reason in aggregate there. Turn it on when you want every dispatch provable:
+
+```ini
+dotnet_diagnostic.ERGO009.severity = warning
+```
+
+## How to suppress one properly
+
+Narrowly, and with a reason. Prefer the attribute at the exact site over a project-wide
+`NoWarn`:
+
+```csharp
+[SuppressMessage("Usage", "ERGO007",
+    Justification = "Dispatched by the integration test host, which registers by hand.")]
+public sealed class ReplayHandler : ICommandHandler<Replay> { … }
+```
+
+A project-wide suppression is worth it only for a whole category you have decided against —
+and it belongs in the project file with a comment saying why.
+
+{% aside type="caution" %}
+`ERGO005` and `ERGO010` are errors on purpose. Suppressing one without understanding it means
+shipping a call that throws on its first execution. If you are reaching for `NoWarn` on either,
+check first that the handler really is registered somewhere the compiler cannot see.
+{% /aside %}
+
+## The experimental markers
+
+`ERGOEXP001` marks the result-adapter surface and `ERGOEXP002` the plugin surface. They are not
+findings — they say the API is still moving and using it is opting into that.
+
+Suppress them where you opt in, which for a plugin is the one `Add<Name>()` line:
+
+```csharp
+#pragma warning disable ERGOEXP002
+registry.AddTiming();
+#pragma warning restore ERGOEXP002
+```
+
+See [Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).
+
+## Keeping a build honest
+
+Two habits are worth having:
+
+**Treat warnings as errors in CI**, so `ERGO006`, `ERGO007` and `ERGO016` cannot accumulate.
+
+**Turn on `ERGO009` before an AOT push.** Opaque dispatch sites are exactly where the compiler
+stops being able to prove things, and where a NativeAOT publish is most likely to differ from
+your development run.

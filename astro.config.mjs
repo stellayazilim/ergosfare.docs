@@ -37,6 +37,57 @@ function apiReferenceCollection() {
 }
 
 /**
+ * Directives for an AI client reading the catalog.
+ *
+ * `@stellayazilim/mcp-starlight` has no first-class "instructions" option, so the
+ * one place a standing directive can live is a published collection: its label
+ * lands in the `search_reference` tool description, which a client sees before it
+ * asks anything, and its entries are retrievable like any other reference entry.
+ *
+ * Both entries answer questions a model otherwise gets wrong by default — it
+ * answers from a remembered surface that has since moved, and it reasons from
+ * whichever locale the conversation happens to be in.
+ */
+function researchGuidance() {
+    return {
+        guidance: {
+            label: 'read this before answering from memory',
+            entries: [
+                {
+                    id: 'guidance:lines',
+                    title: 'Stable and preview document different surfaces',
+                    summary:
+                        'Two documentation lines are published. Pages under /preview describe the pre-release ' +
+                        'surface; pages at the site root describe stable v2. They are not interchangeable, and ' +
+                        'APIs removed in one still exist in the other.',
+                    detail:
+                        'version line stable preview which line release pre-release surface differs. ' +
+                        'Decide which line the question is about before answering. If the user does not say, ' +
+                        'ask, or answer for both and label each. Never blend a signature from one line into an ' +
+                        'example for the other. When a remembered API contradicts these pages, these pages are ' +
+                        'right: this library changed substantially across the preview line.',
+                },
+                {
+                    id: 'guidance:language',
+                    title: 'Research against the English pages; Turkish covers the basics only',
+                    summary:
+                        'The English documentation is the canonical set and covers every section. The Turkish ' +
+                        'pages translate the basics — getting started, core concepts, cross-cutting concerns — ' +
+                        'and lag the English ones when the surface changes.',
+                    detail:
+                        'language locale turkish türkçe english canonical translation research which pages to read. ' +
+                        'Search and read the English pages when researching a topic, including when the user is ' +
+                        'writing in Turkish, then answer in the language they used. Cite the English page. ' +
+                        'Reach for a Turkish page when the user asks for the Turkish wording itself, or wants a ' +
+                        'link to send someone — not as the source to reason from. A topic absent from the Turkish ' +
+                        'set is not absent from the documentation.',
+                },
+            ],
+        },
+    };
+}
+
+/**
  * Sidebar entries for the generated API Reference, keyed by documented line
  * (`stable` for the site root, `preview` for the line under /preview). The keys
  * come from `VERSIONS` in scripts/api-ref/config.ts.
@@ -171,7 +222,7 @@ export default defineConfig({
                     { label: "Interceptors", slug: "preview/core-concepts/interceptors", translations: { tr: "Interceptorlar" } },
                     { label: "Execution context", slug: "preview/core-concepts/execution-context", translations: { tr: "Yürütme Bağlamı" } },
                     { label: "Nested dispatch", slug: "preview/core-concepts/nested-dispatch", translations: { tr: "İç İçe Dispatch" } },
-                    { label: "Modules and plugins", slug: "preview/core-concepts/plugins", translations: { tr: "Modüller ve Eklentiler" } },
+                    { label: "Modules", slug: "preview/core-concepts/modules", translations: { tr: "Modüller" } },
                 ]
             },
             {
@@ -202,15 +253,25 @@ export default defineConfig({
                 ]
             },
             {
+                label: "Best practices", translations: { tr: "İyi Uygulamalar" }, items: [
+                    { label: "Messages and handlers", slug: "preview/best-practices/messages-and-handlers", translations: { tr: "Mesajlar ve Handler'lar" } },
+                    { label: "Interceptor or handler", slug: "preview/best-practices/interceptor-or-handler", translations: { tr: "Interceptor mı Handler mı" } },
+                    { label: "Working with diagnostics", slug: "preview/best-practices/diagnostics", translations: { tr: "Tanılamalarla Çalışmak" } },
+                    { label: "Composition root and testing", slug: "preview/best-practices/composition-root", translations: { tr: "Composition Root ve Test" } },
+                ]
+            },
+            {
                 label: "Advanced", translations: { tr: "İleri Seviye" }, items: [
                     { label: "Performance", slug: "preview/advanced/performance", translations: { tr: "Performans" } },
                     { label: "Native AOT and trimming", slug: "preview/advanced/aot-and-trimming", translations: { tr: "Native AOT ve Trimming" } },
+                    { label: "Plugins", slug: "preview/advanced/plugins", translations: { tr: "Eklentiler" } },
                     { label: "Experimental APIs", slug: "preview/advanced/experimental-apis", translations: { tr: "Deneysel API'ler" } },
                 ]
             },
             {
                 label: "Recipes", translations: { tr: "Tarifler" }, items: [
                     { label: "RabbitMQ consumer", slug: "preview/recipes/rabbitmq-consumer", translations: { tr: "RabbitMQ Consumer" } },
+                    { label: "Unit of work", slug: "preview/recipes/unit-of-work", translations: { tr: "Unit of Work" } },
                 ]
             },
             {
@@ -250,7 +311,7 @@ export default defineConfig({
     // structured collection below; indexing 300 more pages of it as prose would
     // only dilute search.
     exclude: ['api'],
-    collections: apiReferenceCollection,
+    collections: () => ({ ...researchGuidance(), ...apiReferenceCollection() }),
 })],
 
   vite: {

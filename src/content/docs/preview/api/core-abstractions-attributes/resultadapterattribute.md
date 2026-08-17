@@ -12,7 +12,7 @@ sidebar:
 Declares, on a message type, the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that surfaces
 value-carried failures out of the message's pipeline result — the declarative,
 per-message binding: no runtime registration, no adapter list. The framework's own
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1) carriers need no annotation (they
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carriers need no annotation (they
 bind to their built-in adapters); an unannotated message with any other result type
 performs no probing at all.
 
@@ -21,7 +21,7 @@ performs no probing at all.
 public sealed class ResultAdapterAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ResultAdapterAttribute.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ResultAdapterAttribute.cs#L20)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 
@@ -31,7 +31,7 @@ The adapter type must implement [`IResultAdapter<TResult>`](/ergosfare.docs/prev
 declared result type and expose a public parameterless constructor; one instance is
 created per message type and cached. The source generator bakes the binding into the
 message's execution plan and fails the build when the adapter does not fit the declared
-result (planned diagnostic ERGOSG011).
+result (planned diagnostic ERGO011).
 
 ## Constructors
 
@@ -44,7 +44,7 @@ public ResultAdapterAttribute(Type adapterType)
 Declares, on a message type, the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that surfaces
 value-carried failures out of the message's pipeline result — the declarative,
 per-message binding: no runtime registration, no adapter list. The framework's own
-[`Result`](/ergosfare.docs/preview/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1) carriers need no annotation (they
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carriers need no annotation (they
 bind to their built-in adapters); an unannotated message with any other result type
 performs no probing at all.
 
@@ -58,7 +58,7 @@ The adapter type must implement [`IResultAdapter<TResult>`](/ergosfare.docs/prev
 declared result type and expose a public parameterless constructor; one instance is
 created per message type and cached. The source generator bakes the binding into the
 message's execution plan and fails the build when the adapter does not fit the declared
-result (planned diagnostic ERGOSG011).
+result (planned diagnostic ERGO011).
 
 ## Properties
 

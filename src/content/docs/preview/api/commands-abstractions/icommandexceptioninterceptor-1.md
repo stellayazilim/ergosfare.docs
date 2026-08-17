@@ -3,7 +3,7 @@ title: "ICommandExceptionInterceptor<TCommand>"
 description: "Marker interface for asynchronous exception interceptors for commands."
 sidebar:
   label: "ICommandExceptionInterceptor<TCommand>"
-  order: 8
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

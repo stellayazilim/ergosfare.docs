@@ -3,7 +3,7 @@ title: "IEventExceptionInterceptorFor<TException>"
 description: "A module-wide exception interceptor that runs for every event but only for exceptions of type TException — the filtered form of IEventExceptionInterceptor, a…"
 sidebar:
   label: "IEventExceptionInterceptorFor<TException>"
-  order: 8
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

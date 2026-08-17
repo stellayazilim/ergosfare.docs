@@ -1,29 +1,23 @@
 ---
 title: Giriş
-description: Ergosfare, .NET'te CQRS tarzı mesajlaşma için kaynak-üretimli, yüksek performanslı bir mediator — command, query ve event'ler tek bir pipeline modeli üzerinde.
+description: Ergosfare, .NET'te command, query ve event'ler için kaynak-üretimli bir mediator — bir dispatch'in şekli çalışma zamanında keşfedilmez, derleme zamanında kararlaştırılır.
 ---
 
-Ergosfare, .NET'te CQRS tarzı mesajlaşma için bir mediator'dür: command, query ve event'ler tek
-bir pipeline modeli üzerinde çalışır. Tek bir tasarım öncülü üzerine kuruludur — **dispatch'in
-şekliyle ilgili tüm iş derleme zamanında ya da mesaj tipi başına bir kez yapılır, asla her
-dispatch'te değil.**
+Ergosfare, .NET'te CQRS tarzı mesajlaşma için bir mediator'dür. Command, query ve event'ler tek
+bir pipeline modelinden geçer ve tasarım öncülü tek cümledir: **bir dispatch'in şekli siz derleme
+yaparken kararlaştırılır, çalışırken değil.**
 
-Bir Roslyn kaynak üreteci **donmuş kompozisyon tablosunu** derler — mesaj tipi başına bir
-değişmez kompozisyon; handler satırlarını ve dört interceptor aşamasını yürütme sırasıyla
-tutar — ve ondan seçim yapan kayıt kodunu üretir. Pipeline planları `(mesaj tipi, grup kümesi)`
-başına bir kez hesaplanır ve süreç genelinde önbelleğe alınır. Dispatch generic'leri derleme
-zamanında kapatılır ve execution context'ler havuzlanır. Bir dispatch, handler *örneklerini*
-çağıran DI scope'undan çözer ve önceden kurulmuş bir planı yürür — reflection yok,
-`MakeGenericType` yok, assembly taraması yok, `AsyncLocal` yok ve sıcak yolda context
-allocation'ı yok.
+Bir Roslyn kaynak üreteci assembly'nizi ve referans verdiklerinizi okur, her mesaja hangi
+handler ve interceptor'ların hizmet ettiğini çıkarır ve bu cevabı derlemenize bir tablo olarak
+yazar. Çalışma zamanında bir dispatch'in yaptığı şey, önceden kurulmuş bir listeyi yürümektir —
+assembly taraması yok, handler tipleri üzerinde reflection yok, `MakeGenericType` yok ve
+context'i taşımak için dispatch başına allocation yok.
 
 {% aside type="caution" %}
-**Önizleme hattının** dokümantasyonunu okuyorsunuz;
+**Önizleme hattını** okuyorsunuz;
 [`preview` dalından](https://github.com/stellayazilim/Ergosfare/tree/preview) üretiliyor.
-Paketler `-preview` ön-sürümleri olarak yayınlanır ve API'ler aralarında değişebilir. Kararlı
-hat, [sitenin kökündeki v2](/ergosfare.docs/tr/getting-started/introduction). v2.2'den mi
-yükseltiyorsunuz? v2.3 çalışma zamanı registry'sini kaldırdı —
-[v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/preview/migration/v2.2-to-v2.3) sayfasına bakın.
+Paketler `-preview` ön-sürümleri olarak yayınlanır ve yüzey aralarında değişebilir. Kararlı hat
+[sitenin kökündeki v2](/ergosfare.docs/tr/getting-started/introduction).
 {% /aside %}
 
 ## Nasıl görünüyor
@@ -41,88 +35,95 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 }
 ```
 
-Bu handler'ı elle kaydeden hiçbir şey yok. Kaynak üreteci onu derleme zamanında bulur ve
-başlangıçta bir kez bağlayacağınız kayıt çağrısını üretir:
+Composition root'unuzda bir kez kayıt:
 
 ```csharp
-using Stella.Ergosfare.Generated;
-
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
 ```
 
-## Neden Ergosfare
+Ve dispatch:
 
-**Derleme zamanı kayıt.** Üreteç, handler'ları hem sizin derlemenizde *hem de referans verilen
-assembly'lerde* bulur, ilişkilerini donmuş kompozisyon tablosuna derler ve `RegisterGenerated()`
-üretir. Bir kütüphanenin handler'ları, kütüphanede hiç kayıt kodu olmadan, onu kullanan
-uygulamanın üretilmiş kodu üzerinden kaydolur.
-
-**Kayıt keşif değil, seçimdir.** `RegisterGenerated()` ve `Register<T>()`, derlenmiş tablonun
-hangi satırlarını tek bir container'ın çalıştıracağını seçer. Tekrarlanan ve örtüşen seçimler
-zararsız birleşimlerdir; derlemeden sonra hiçbir şey yeni bir mesaj şekli ekleyemez — dolayısıyla
-zamanlaması çalışan bir uygulamayı değiştirebilecek bir kayıt penceresi yoktur.
-
-**Reflection'sız dispatch.** Üretilen dispatch root'ları executor generic'lerini derleme
-zamanında kapatır, pipeline planları da generic handler tiplerini önceden kapatır.
-`MakeGenericType` yalnızca üretecin root'layamadığı mesaj tipleri — başta açık generic'ler —
-için bir yedek olarak kalır.
-
-**Hesabı verilebilir allocation.** Havuzlanmış execution context'ler, `ValueTask` öncelikli bir
-yüzey ve üretilmiş planlar; sonuçsuz bir command'i dispatch başına 19.9 ns / 24 B'a, sonuçlu bir
-query'yi 24.0 ns / 24 B'a indiriyor. Ölçülen şekiller ve nasıl okunacağı için
-[Performans](/ergosfare.docs/tr/preview/advanced/performance) sayfasına bakın.
-
-**Güvenli iç içe dispatch.** `context.CreateScope()`, handler içindeki mediator çağrıları için
-izole bir alt bağlam verir; iptal token'ı miras alınır. Ambient state kullanan mediator'ların
-güvenle sunamadığı desen budur.
-
-**Ambient state yok.** Execution context bir parametredir, asla bir `AsyncLocal` değil. Bir
-dispatch hakkında hiçbir şey thread-local depodan keşfedilemez — iç içe ve paralel dispatch'i
-öngörülebilir kılan da budur.
-
-**Native AOT ve trimming.** Her yapı `typeof` ile statik olarak referanslanır ve dispatch
-root'ları her generic örneklemeyi sabitler — paylaşımlı generic kodun kapsayamadığı
-`record struct` mesajlar dahil.
-
-**Modüler.** Command, Query ve Event ortak bir çekirdek üzerinde bağımsız paketlerdir. Sadece
-mesaj tanımlayan bir kütüphaneye yalnızca ilgili `.Abstractions` paketi yeter.
-
-## Bir dispatch nasıl birleşiyor
-
-```
-derleme zamanı                (mesaj tipi, gruplar) başına bir kez        her dispatch
-──────────────                ───────────────────────────────────        ────────────
-kaynak üreteci         ──►    kompozisyon ─► seçim ─► plan       ──►  havuzdan context alınır
-  donmuş kompozisyon tablosu    │                                          │
-  dispatch root'ları üretilir   │  altı sabit aşama, önceden sıralı        │  executor runtime tipe kapatılır
-  RegisterGenerated()           │  (önce doğrudan, sonra ağırlığa göre)    │  handler çağıran scope'tan çözülür
-                                └─ kapalı generic tipler önceden           └─ pre → main → post/exception → final
+```csharp
+var id = await mediator.SendAsync(new CreateProduct("Bench"));
 ```
 
-- **Kompozisyon ve seçim.** Üreteç, mesaj tipi başına bir `FrozenComposition`'ı süreç genelinde
-  tek bir tabloya derler. Kayıt, bu tablonun hangi katılımcı satırlarını bu container'ın
-  çalıştıracağını seçer — toplu hâlde `RegisterGenerated()`, teker teker `Register<T>()`. Seçim
-  bir birleşimdir; ikisi birlikte ve tekrarlı kullanılabilir.
-- **Pipeline planı.** Mesaj başına altı sabit aşama: ana handler'lar (doğrudan/dolaylı ayrımıyla)
-  ve dört interceptor aşaması; her biri önceden sıralanmış bir dizi. Önce doğrudan girdiler,
-  sonra kovaryant eşleşmeler ağırlığa göre. Grup filtreleri ve `[ExcludeFromPipeline]` burada,
-  bir kez uygulanır.
-- **Dispatch.** Mediator havuzdan bir context alır, mesajın çalışma zamanı tipine karşılık gelen
-  önbellekli executor'ı bulur ve planı yürür. Handler çözümü dispatcher'a aittir — execution
-  context bilinçli olarak **hiçbir** service provider sunmaz.
+`RegisterGenerated()` üreteç tarafından yazılır. Bulduğu her yapıyı adıyla sayar; dolayısıyla
+burada başlangıçta assembly taranmaz ve hiçbir şey isimlendirme kuralına bağlı değildir.
+
+## Derleyicinin zaten bildikleri
+
+Bir mediator'ün genelde her dispatch'te karar verdiği şeylerin çoğu daha erken bilinebilir, ve
+Ergosfare onları oraya taşır:
+
+**Bu mesaja hangi handler hizmet ediyor**, çağrının değil tiplerin bir özelliğidir. Üreteç bunu
+bir kez çözer ve cevabı derlemeye gömer.
+
+**Hangi interceptor'lar hangi sırayla çalışır** aynı soru. Her mesaj bir *kompozisyon* alır —
+handler satırları ve dört interceptor aşaması, önceden sıralanmış — ve şeklini tam olarak
+kanıtlayabildiği pipeline'lar için üreteç gövdeyi düz bir çağrı dizisi olarak yazar.
+
+**Bir dispatch'in çalışıp çalışamayacağı** da cevaplanabilir, ve framework'ün hissiyatını
+değiştiren kısım burası. Derlemede hiçbir şeyin karşılamadığı bir command için yazılan
+`SendAsync` çalışma zamanı sürprizi değildir; derleme hatasıdır:
+
+```
+error ERGO005: This dispatch of 'ArchiveOrder' can never reach a handler: neither
+'ArchiveOrder' nor any of its subtypes in the compiled closure has a covering handler
+registration, so the call is guaranteed to throw NoHandlerFoundException at runtime.
+```
+
+Aynı yargı ters yönde de çalışır: hiçbir dispatch'in ulaşamadığı bir handler raporlanır ve
+istenirse kayıttan tamamen çıkarılabilir. Bkz.
+[Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery).
+
+## Çalışma zamanında kalanlar
+
+Derleyici *şekle* karar verir. Container'ınız *seçime* karar verir: o tablodaki satırların
+hangilerini uygulamanızın gerçekten kaydettiğine ve hangi örneklere çözüleceklerine. Bir
+handler, diğer her servis gibi dispatch eden scope'tan çözülür; yani scoped bağımlılıklar
+uygulamanızın geri kalanındaki gibi davranır.
+
+Bir dispatch ayrıca **gruplarla** pipeline'ı çağrı başına daraltabilir — denetim pipeline'ı,
+içe aktarma pipeline'ı — handler'ı değiştirmeden. Bkz.
+[Gruplar ve ağırlıklar](/ergosfare.docs/tr/preview/cross-cutting-concerns/groups-and-weights).
+
+## Üç modül, tek pipeline
+
+| Modül | Mesaj | Handler'lar | Sonuç |
+|---|---|---|---|
+| Command | `ICommand`, `ICommand<TResult>` | tam olarak bir | yok, ya da `TResult` |
+| Query | `IQuery<TResult>`, `IStreamQuery<TResult>` | tam olarak bir | `TResult`, ya da akışı |
+| Event | `IEvent`, ya da bir abonenin adlandırdığı herhangi bir tip | eşleşen hepsi | yok |
+
+Farkları teslimatta, makinede değil: üçü de handler'ın etrafında aynı dört interceptor aşamasını
+kurar ve üçü de aynı şekilde derlenir.
+
+Bir event mesajının hiçbir şeyi implemente etmesi gerekmez. `IEventHandler<OrderShipped>`
+yazmak `OrderShipped`'i bir event yapar; dolayısıyla Ergosfare referansı olmayan bir projedeki
+domain tipi olduğu gibi publish edilebilir. Bkz.
+[Event tanımlama](/ergosfare.docs/tr/preview/core-components/event/event-definition).
+
+## Native AOT
+
+Framework, yayınlanmış bir NativeAOT uygulamasını "elimizden geleni yaparız" değil birinci sınıf
+bir durum olarak ele alır. Bunu mümkün kılan yine aynı derleme zamanı iş: generic
+örneklemeler üretilmiş kodda kapatılır, böylece dispatch yolunda reflection ile kurulacak bir
+şey kalmaz. Bkz. [Native AOT ve trimming](/ergosfare.docs/preview/advanced/aot-and-trimming).
 
 ## Sırada ne var
 
-- [Kurulum](/ergosfare.docs/tr/preview/getting-started/installation) — gerçekte hangi paketlere ihtiyacınız var.
-- [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — uçtan uca bir command, query ve event.
-- [Derleme zamanı keşif](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery) — `RegisterGenerated()` nereden geliyor.
-- [v2.2'den v2.3'e geçiş](/ergosfare.docs/tr/preview/migration/v2.2-to-v2.3) — v2.3 neyi kaldırdı ve yerine ne geldi.
-- [v1'den v2'ye geçiş](/ergosfare.docs/tr/preview/migration/v1-to-v2) — hâlâ v1 hattındaysanız.
+- [Kurulum](/ergosfare.docs/tr/preview/getting-started/installation) — paketler ve
+  destekledikleri hedef framework'ler.
+- [Hızlı başlangıç](/ergosfare.docs/tr/preview/getting-started/quick-start) — bir command, bir
+  query, bir event ve bir interceptor, baştan sona.
+- [Temel kavramlar](/ergosfare.docs/tr/preview/core-concepts/compile-time-discovery) — üretecin
+  ne yaptığı ve neyi tahmin etmeyi reddettiği.
 
 {% aside type="note" %}
-Bir yerde takıldınız mı?
-[GitHub](https://github.com/stellayazilim/ergosfare/issues) üzerinden issue açın.
+Türkçe dokümantasyon temelleri kapsar: başlarken, temel kavramlar ve katmanlar arası kaygılar.
+İleri seviye konular, iyi uygulamalar ve API referansı yalnızca İngilizce yayınlanır —
+bağlantılar sizi oraya götürür.
 {% /aside %}

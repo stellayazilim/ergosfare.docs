@@ -6,13 +6,10 @@ sidebar:
   order: 0
 ---
 
-The `Stella.Ergosfare.Commands.Abstractions` namespace contains 23 public types.
+The `Stella.Ergosfare.Commands.Abstractions` namespace contains 20 public types.
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`CommandMediationSettings`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings) | Class | Represents the configuration settings that control command mediation behavior. |
-| [`CommandMediationSettings.CommandMediationFilters`](/ergosfare.docs/preview/api/commands-abstractions/commandmediationsettings-commandmediationfilters) | Class | Represents the filters to be applied during command mediation. |
-| [`CommandMediatorExtensions`](/ergosfare.docs/preview/api/commands-abstractions/commandmediatorextensions) | Class | Provides extension methods for [`ICommandMediator`](/ergosfare.docs/preview/api/commands-abstractions/icommandmediator) to simplify sending commands. |
 | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) | Interface | Base command and a marker interface that can be registered by command module |
 | [`ICommand<TResult>`](/ergosfare.docs/preview/api/commands-abstractions/icommand-1) | Interface | Represents a command that produces a result of type `TResult` when handled. |
 | [`ICommandExceptionInterceptor`](/ergosfare.docs/preview/api/commands-abstractions/icommandexceptioninterceptor) | Interface | Represents a non-type-safe exception interceptor for commands. |

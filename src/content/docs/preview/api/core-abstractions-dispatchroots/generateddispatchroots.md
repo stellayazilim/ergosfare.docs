@@ -45,6 +45,112 @@ own selection to decide what to register for resolution.
 
 ## Methods
 
+### `AddBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent>, string[])`
+
+```csharp
+public static void AddBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent> plan, string[] groups) where TEvent : notnull
+```
+
+Group-keyed counterpart of the broadcast plan; see the void overload. Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TEvent` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedBroadcastPlan<TEvent>` |  |
+| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
+
+### `AddBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent>)`
+
+```csharp
+public static void AddBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent> plan) where TEvent : notnull
+```
+
+Roots a staged pipeline plan for a broadcast. Its own store rather than a shape of the
+void one: a publish asks here and a send asks there, so which store answered settles
+the delivery difference and nothing has to branch on the message.
+Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TEvent` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedBroadcastPlan<TEvent>` |  |
+
+### `AddFilteredBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent>)`
+
+```csharp
+public static void AddFilteredBroadcastPlan<TEvent>(StagedBroadcastPlan<TEvent> plan) where TEvent : notnull
+```
+
+Broadcast counterpart of [`GeneratedDispatchRoots.AddFilteredPlan<TMessage>(StagedVoidPlan<TMessage>)`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/generateddispatchroots#addfilteredplantmessagestagedvoidplantmessage). Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TEvent` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedBroadcastPlan<TEvent>` |  |
+
+### `AddFilteredPlan<TMessage, TResult>(StagedResultPlan<TMessage, TResult>)`
+
+```csharp
+public static void AddFilteredPlan<TMessage, TResult>(StagedResultPlan<TMessage, TResult> plan) where TMessage : IMessage
+```
+
+Result-producing counterpart of [`GeneratedDispatchRoots.AddFilteredPlan<TMessage>(StagedVoidPlan<TMessage>)`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/generateddispatchroots#addfilteredplantmessagestagedvoidplantmessage). Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedResultPlan<TMessage, TResult>` |  |
+
+### `AddFilteredPlan<TMessage>(StagedVoidPlan<TMessage>)`
+
+```csharp
+public static void AddFilteredPlan<TMessage>(StagedVoidPlan<TMessage> plan) where TMessage : IMessage
+```
+
+Roots the plan that serves dispatches whose group filter is a runtime value: one body
+carrying every participant, each call guarded by its own group test. Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedVoidPlan<TMessage>` |  |
+
 ### `AddFrozenComposition(FrozenComposition)`
 
 ```csharp
@@ -161,6 +267,28 @@ Idempotent.
 | --- | --- | --- |
 | `directHandlerFactory` | `Func<THandler>` |  |
 
+### `AddStagedPlan<TMessage, TResult>(StagedResultPlan<TMessage, TResult>, string[])`
+
+```csharp
+public static void AddStagedPlan<TMessage, TResult>(StagedResultPlan<TMessage, TResult> plan, string[] groups) where TMessage : IMessage
+```
+
+Group-keyed counterpart of the result plan; see the void overload. Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+| `TResult` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedResultPlan<TMessage, TResult>` |  |
+| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
+
 ### `AddStagedPlan<TMessage, TResult>(StagedResultPlan<TMessage, TResult>)`
 
 ```csharp
@@ -182,6 +310,29 @@ Result-producing counterpart of [`GeneratedDispatchRoots.AddStagedPlan<TMessage>
 | --- | --- | --- |
 | `plan` | `StagedResultPlan<TMessage, TResult>` |  |
 
+### `AddStagedPlan<TMessage>(StagedVoidPlan<TMessage>, string[])`
+
+```csharp
+public static void AddStagedPlan<TMessage>(StagedVoidPlan<TMessage> plan, string[] groups) where TMessage : IMessage
+```
+
+Group-keyed counterpart: the plan of the same message under one filter. A dispatch
+names a group set, and the set is part of what decides the pipeline — so it is part
+of what keys the plan, exactly like the message type. Idempotent.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TMessage` |  |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `plan` | `StagedVoidPlan<TMessage>` |  |
+| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
+
 ### `AddStagedPlan<TMessage>(StagedVoidPlan<TMessage>)`
 
 ```csharp
@@ -191,7 +342,7 @@ public static void AddStagedPlan<TMessage>(StagedVoidPlan<TMessage> plan) where 
 Roots a staged pipeline plan for a void message whose pipeline carries interceptor
 stages: bespoke straight-line code for the whole pipeline, replacing the runtime
 strategy's generic machinery. Advisory exactly like the single-handler plans — the
-hosting executor validates the plan's [`StagedPlanComposition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplancomposition) against
+hosting executor validates the plan's [`StagedPlanKey`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplankey) against
 the container's selected frozen composition and falls back to the general strategy
 on any mismatch.
 Idempotent.
@@ -301,6 +452,98 @@ semantically identical. Idempotent.
 | --- | --- | --- |
 | `directHandlerFactory` | `Func<THandler>` |  |
 
+### `FindBroadcastPlan(Type, IReadOnlyList<string>)`
+
+```csharp
+public static StagedBroadcastPlan? FindBroadcastPlan(Type messageType, IReadOnlyList<string> groups)
+```
+
+The broadcast plan for a filtered publish, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `groups` | `IReadOnlyList<string>` |  |
+
+**Returns**
+
+[`StagedBroadcastPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedbroadcastplan)
+
+### `FindBroadcastPlan(Type)`
+
+```csharp
+public static StagedBroadcastPlan? FindBroadcastPlan(Type messageType)
+```
+
+The broadcast plan of the message type's default pipeline, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`StagedBroadcastPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedbroadcastplan)
+
+### `FindFilteredBroadcastPlan(Type)`
+
+```csharp
+public static StagedBroadcastPlan? FindFilteredBroadcastPlan(Type messageType)
+```
+
+The group-filtering broadcast plan, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`StagedBroadcastPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedbroadcastplan)
+
+### `FindFilteredResultPlan(Type, Type)`
+
+```csharp
+public static StagedResultPlan? FindFilteredResultPlan(Type messageType, Type resultType)
+```
+
+The group-filtering result plan, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `resultType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`StagedResultPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan)
+
+### `FindFilteredVoidPlan(Type)`
+
+```csharp
+public static StagedVoidPlan? FindFilteredVoidPlan(Type messageType)
+```
+
+The group-filtering void plan, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+
+**Returns**
+
+[`StagedVoidPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan)
+
 ### `FindFrozenComposition(Type)`
 
 ```csharp
@@ -368,7 +611,7 @@ The result dispatch root of the (message, result) pair, or `null` when none was 
 ### `FindResultPlan(Type, Type)`
 
 ```csharp
-public static ResultPlanRoot? FindResultPlan(Type messageType, Type resultType)
+public static ResultHandlerPlan? FindResultPlan(Type messageType, Type resultType)
 ```
 
 The result pipeline plan of the (message, result) pair, or `null` when none was generated.
@@ -382,7 +625,27 @@ The result pipeline plan of the (message, result) pair, or `null` when none was 
 
 **Returns**
 
-[`ResultPlanRoot`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/resultplanroot)
+[`ResultHandlerPlan`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/resulthandlerplan)
+
+### `FindStagedResultPlan(Type, Type, IReadOnlyList<string>)`
+
+```csharp
+public static StagedResultPlan? FindStagedResultPlan(Type messageType, Type resultType, IReadOnlyList<string> groups)
+```
+
+The staged result plan for a filtered dispatch, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `resultType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `groups` | `IReadOnlyList<string>` |  |
+
+**Returns**
+
+[`StagedResultPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan)
 
 ### `FindStagedResultPlan(Type, Type)`
 
@@ -403,13 +666,32 @@ The staged result plan of the (message, result) pair, or `null` when none was ge
 
 [`StagedResultPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedresultplan)
 
+### `FindStagedVoidPlan(Type, IReadOnlyList<string>)`
+
+```csharp
+public static StagedVoidPlan? FindStagedVoidPlan(Type messageType, IReadOnlyList<string> groups)
+```
+
+The staged void plan for a filtered dispatch, or `null` when none was generated.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `groups` | `IReadOnlyList<string>` |  |
+
+**Returns**
+
+[`StagedVoidPlan`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedvoidplan)
+
 ### `FindStagedVoidPlan(Type)`
 
 ```csharp
 public static StagedVoidPlan? FindStagedVoidPlan(Type messageType)
 ```
 
-The staged void plan of the message type, or `null` when none was generated.
+The staged void plan of the message type's default pipeline, or `null` when none was generated.
 
 **Parameters**
 
@@ -443,7 +725,7 @@ The stream dispatch root of the (message, result) pair, or `null` when none was 
 ### `FindVoidPlan(Type)`
 
 ```csharp
-public static VoidPlanRoot? FindVoidPlan(Type messageType)
+public static VoidHandlerPlan? FindVoidPlan(Type messageType)
 ```
 
 The void pipeline plan of the message type, or `null` when none was generated.
@@ -456,4 +738,4 @@ The void pipeline plan of the message type, or `null` when none was generated.
 
 **Returns**
 
-[`VoidPlanRoot`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/voidplanroot)
+[`VoidHandlerPlan`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/voidhandlerplan)

@@ -6,9 +6,8 @@ sidebar:
   order: 0
 ---
 
-The `Stella.Ergosfare.Events` namespace contains 2 public types.
+The `Stella.Ergosfare.Events` namespace contains 1 public type.
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`AsyncBroadcastMediationStrategy<TMessage>`](/ergosfare.docs/preview/api/events/asyncbroadcastmediationstrategy-1) | Class | Represents a mediation strategy that broadcasts a message asynchronously to all registered handlers of the specified `TMessage`. |
-| [`EventMediator`](/ergosfare.docs/preview/api/events/eventmediator) | Class | Mediates events through broadcast pipelines closed over each event's runtime type, so handlers are always invoked through their typed members — including for the interface-erased [`EventMediator.PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`](/ergosfare.docs/preview/api/events/eventmediator#publishasyncievent-eventmediationsettings-cancellationtoken) overload. |
+| [`EventMediator`](/ergosfare.docs/preview/api/events/eventmediator) | Class | Mediates events through frozen publish pipelines closed over each event's runtime type, so handlers are always invoked through their typed members — including for the interface-erased [`EventMediator.PublishAsync(IEvent, IEnumerable<string>?, CancellationToken)`](/ergosfare.docs/preview/api/events/eventmediator#publishasyncievent-ienumerablestring-cancellationtoken) overload. |

@@ -1,0 +1,169 @@
+---
+title: Interceptor or handler
+description: Where cross-cutting work belongs, which stage to put it in, and the cases where an interceptor is the wrong tool.
+---
+
+An interceptor is for work that is **about** a dispatch rather than **part of** it. Logging,
+authorization, validation, metrics, retries — things you would otherwise write again in every
+handler.
+
+The test that settles most cases: *would you have to copy this into the next handler you write?*
+If yes, it is cross-cutting. If it only makes sense for this one message, it belongs in the
+handler.
+
+## Which stage
+
+| You want to | Stage |
+|---|---|
+| reject, enrich or rewrite before the work | **pre** |
+| shape or wrap a successful result | **post** |
+| translate a failure into a result | **exception** |
+| always observe the outcome | **final** |
+
+### Pre
+
+Anything that decides whether the work should happen at all, or fixes up the message first:
+
+```csharp
+public sealed class RequireTenant : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        if (_tenant.Current is null)
+            context.Abort("no tenant on this request");
+
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+Use `context.Abort()` rather than throwing your own exception when the answer is "this dispatch
+should not continue". An abort skips the exception *and* final stages and travels to the caller
+unchanged; a thrown exception runs the failure path, which is a different thing to say.
+
+### Post
+
+Result shaping that is not the handler's business — enveloping, cache population, an outbox
+append:
+
+```csharp
+public sealed class CacheProduct : IQueryPostInterceptor<GetProduct, ProductDto>
+{
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto result, ErgosfareContext context)
+    {
+        _cache.Set(query.Id, result);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+### Exception
+
+Translating a failure into an answer the caller can use:
+
+```csharp
+public sealed class NotFoundToEmpty
+    : IQueryExceptionInterceptorFor<GetProduct, ProductDto, NotFoundException>
+{
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto? result, NotFoundException exception, ErgosfareContext context)
+        => ValueTask.FromResult(ProductDto.Empty);
+}
+```
+
+Only claim a failure you can actually answer. The result goes out non-nullable because the
+caller locked its result type at the call site — an interceptor that has nothing to return
+should rethrow and let the exception surface, not invent an empty value to satisfy the
+signature.
+
+### Final
+
+Anything that must happen either way — timing, releasing something, an audit row:
+
+```csharp
+public sealed class RecordOutcome : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
+    {
+        _metrics.Record(message.GetType().Name, succeeded: exception is null);
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Remember it does not run after an abort. If you need cleanup on *every* exit including a
+deliberate stop, do it in the handler with `try`/`finally` where you can see it.
+
+## Scope it as narrowly as it is true
+
+Three arities, and the widest one is rarely the right answer:
+
+```csharp
+ICommandPreInterceptor                  // every command
+ICommandPreInterceptor<OrderCommand>    // one hierarchy
+ICommandPreInterceptor<PlaceOrder>      // one message
+```
+
+A validation interceptor written against `ICommand` runs for every command in the application,
+including the ones that need no validation, and including nested dispatches. Narrowing it to a
+base type you own keeps the cost where the value is — and gives you the typed message, which is
+worth having anyway.
+
+## Ordering is `[Weight]`, and it is worth being explicit
+
+Within a stage, order is weight descending, then direct before covariant. When two interceptors
+genuinely depend on order — authorize before validate, correlate before log — say so:
+
+```csharp
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor { … }
+```
+
+Leaving both at the default and relying on the tiebreaker means a rename can reorder your
+pipeline.
+
+## Groups, for pipelines that differ per call
+
+When a subset of interceptors should run only sometimes, that is a group rather than a flag:
+
+```csharp
+[Group("audit")]
+public sealed class WriteAuditRow : ICommandFinalInterceptor { … }
+```
+
+```csharp
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+```
+
+An interceptor with no group belongs to the default group and runs on an ungrouped dispatch.
+See [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## When an interceptor is the wrong tool
+
+**When it needs to know the specific message to do its job.** An interceptor written against
+`ICommand` that switches on the concrete type is a handler with extra steps, and it will keep
+growing.
+
+**When the behaviour is really a decorator on a dependency.** Retry, circuit-breaking and
+caching for one service belong on that service, where they apply whoever calls it — not on
+every dispatch that happens to reach it.
+
+**When the work belongs to a request, not a dispatch.** Interceptors run per dispatch, and one
+request can make several. Something that must happen once per request belongs in middleware.
+
+**When you need the failure path from a plugin.** A plugin's hooks deliberately do not cover
+the exception and final stages, because they are what force a pipeline to carry a
+`try`/`finally`. Ship an interceptor in the plugin package instead — see
+[Plugins](/ergosfare.docs/preview/advanced/plugins).
+
+## What interceptors cost
+
+For a pipeline whose shape is settled, the compiled plan is a straight line with the calls in
+place — no descriptor list, no ordering at run time. The cost is the work you wrote, not the
+mechanism around it.
+
+The one thing worth watching is a broad interceptor doing expensive work: written against
+`ICommand`, it runs for every command *and* every nested dispatch. That is a design cost rather
+than a framework one, and narrowing the contract is the fix.

@@ -3,7 +3,7 @@ title: "StagedResultPlan"
 description: "The result-producing counterpart of StagedVoidPlan: a compile-time staged pipeline plan for a message with a result contract."
 sidebar:
   label: "StagedResultPlan"
-  order: 4
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.StagedPlans`](/ergosfare.docs/preview/api/core-abstractions-stagedplans)  
@@ -28,14 +28,29 @@ public abstract class StagedResultPlan
 ### `Composition`
 
 ```csharp
-public abstract StagedPlanComposition Composition { get; }
+public abstract StagedPlanKey Composition { get; }
 ```
 
 The pipeline composition the plan was baked against.
 
 **Returns**
 
-[`StagedPlanComposition`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplancomposition)
+[`StagedPlanKey`](/ergosfare.docs/preview/api/core-abstractions-stagedplans/stagedplankey)
+
+### `FilterGroups`
+
+```csharp
+public virtual string[]? FilterGroups { get; }
+```
+
+The union of the groups this plan bakes a filter for, or `null` when the plan is
+keyed by one set and needs no filter. A group-filtering plan serves a dispatch whose
+set is a runtime value: it carries every participant and decides per call, so what the
+gate must validate is the composition over exactly these groups.
+
+**Returns**
+
+[`string[]`](https://learn.microsoft.com/dotnet/api/system.string)
 
 ### `SupportsDirectConstruction`
 

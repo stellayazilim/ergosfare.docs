@@ -23,6 +23,30 @@ public static class ExperimentalIds
 
 ## Fields
 
+### `PluginSurface`
+
+```csharp
+public const string PluginSurface = "ERGOEXP002"
+```
+
+The plugin surface: everything in `Stella.Ergosfare.Plugins.Abstractions` —
+`[ErgosfarePlugin]`, `[PipelineInvokable]`, `[PluginServiceFilter]` and
+the `Hook` and `Module` enums behind them — together with the module facade
+the generator emits from them. Each hook the surface names is a standing promise about
+the shape of the generated plan, and the list is not settled yet; the same goes for how
+a plugin declares what it filters on.
+Opt in per project with `<NoWarn>$(NoWarn);ERGOEXP002</NoWarn>` or
+per site with `#pragma warning disable ERGOEXP002`.
+
+**Returns**
+
+[`string`](https://learn.microsoft.com/dotnet/api/system.string)
+
+The plugin assembly references nothing, deliberately — it carries no types the
+generator resolves through a reference, which is what lets a new hook ship without
+moving the core's version. It therefore spells this id as a literal; this declaration
+is where consumers look it up.
+
 ### `ResultAdapterSurface`
 
 ```csharp

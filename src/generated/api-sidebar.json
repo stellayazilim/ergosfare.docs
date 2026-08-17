@@ -970,14 +970,6 @@
             "link": "/preview/api/core-abstractions/iresultmaterializer-1"
           },
           {
-            "label": "Result",
-            "link": "/preview/api/core-abstractions/result"
-          },
-          {
-            "label": "Result<TValue>",
-            "link": "/preview/api/core-abstractions/result-1"
-          },
-          {
             "label": "Unit",
             "link": "/preview/api/core-abstractions/unit"
           }
@@ -1032,18 +1024,6 @@
           {
             "label": "Overview",
             "link": "/preview/api/commands-abstractions"
-          },
-          {
-            "label": "CommandMediationSettings",
-            "link": "/preview/api/commands-abstractions/commandmediationsettings"
-          },
-          {
-            "label": "CommandMediationSettings.CommandMediationFilters",
-            "link": "/preview/api/commands-abstractions/commandmediationsettings-commandmediationfilters"
-          },
-          {
-            "label": "CommandMediatorExtensions",
-            "link": "/preview/api/commands-abstractions/commandmediatorextensions"
           },
           {
             "label": "ICommand",
@@ -1212,16 +1192,8 @@
             "link": "/preview/api/queries-abstractions/istreamqueryhandler-2"
           },
           {
-            "label": "QueryMediationSettings",
-            "link": "/preview/api/queries-abstractions/querymediationsettings"
-          },
-          {
-            "label": "QueryMediationSettings.QueryMediationFilters",
-            "link": "/preview/api/queries-abstractions/querymediationsettings-querymediationfilters"
-          },
-          {
-            "label": "QueryMediatorExtensions",
-            "link": "/preview/api/queries-abstractions/querymediatorextensions"
+            "label": "StreamRevision",
+            "link": "/preview/api/queries-abstractions/streamrevision"
           }
         ]
       },
@@ -1232,18 +1204,6 @@
           {
             "label": "Overview",
             "link": "/preview/api/events-abstractions"
-          },
-          {
-            "label": "EventMediationSettings",
-            "link": "/preview/api/events-abstractions/eventmediationsettings"
-          },
-          {
-            "label": "EventMediationSettings.EventMediationFilters",
-            "link": "/preview/api/events-abstractions/eventmediationsettings-eventmediationfilters"
-          },
-          {
-            "label": "EventMediatorExtensions",
-            "link": "/preview/api/events-abstractions/eventmediatorextensions"
           },
           {
             "label": "IEvent",
@@ -1390,12 +1350,12 @@
             "link": "/preview/api/core-abstractions-dispatchroots/imessagerootvisitor-2"
           },
           {
-            "label": "IResultPlanRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/iresultplanrootvisitor-2"
+            "label": "IResultHandlerPlanVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/iresulthandlerplanvisitor-2"
           },
           {
-            "label": "IVoidPlanRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/ivoidplanrootvisitor-2"
+            "label": "IVoidHandlerPlanVisitor<TReturn, TState>",
+            "link": "/preview/api/core-abstractions-dispatchroots/ivoidhandlerplanvisitor-2"
           },
           {
             "label": "MessageResultRoot",
@@ -1414,20 +1374,20 @@
             "link": "/preview/api/core-abstractions-dispatchroots/messageroot-1"
           },
           {
-            "label": "ResultPlanRoot",
-            "link": "/preview/api/core-abstractions-dispatchroots/resultplanroot"
+            "label": "ResultHandlerPlan",
+            "link": "/preview/api/core-abstractions-dispatchroots/resulthandlerplan"
           },
           {
-            "label": "ResultPlanRoot<TMessage, TResult, THandler>",
-            "link": "/preview/api/core-abstractions-dispatchroots/resultplanroot-3"
+            "label": "ResultHandlerPlan<TMessage, TResult, THandler>",
+            "link": "/preview/api/core-abstractions-dispatchroots/resulthandlerplan-3"
           },
           {
-            "label": "VoidPlanRoot",
-            "link": "/preview/api/core-abstractions-dispatchroots/voidplanroot"
+            "label": "VoidHandlerPlan",
+            "link": "/preview/api/core-abstractions-dispatchroots/voidhandlerplan"
           },
           {
-            "label": "VoidPlanRoot<TMessage, THandler>",
-            "link": "/preview/api/core-abstractions-dispatchroots/voidplanroot-2"
+            "label": "VoidHandlerPlan<TMessage, THandler>",
+            "link": "/preview/api/core-abstractions-dispatchroots/voidhandlerplan-2"
           }
         ]
       },
@@ -1620,6 +1580,14 @@
             "link": "/preview/api/core-abstractions-results/defaultresultadapter"
           },
           {
+            "label": "Result",
+            "link": "/preview/api/core-abstractions-results/result"
+          },
+          {
+            "label": "Result<TValue>",
+            "link": "/preview/api/core-abstractions-results/result-1"
+          },
+          {
             "label": "ResultAdapterBinding",
             "link": "/preview/api/core-abstractions-results/resultadapterbinding"
           },
@@ -1650,8 +1618,20 @@
             "link": "/preview/api/core-abstractions-stagedplans/istagedvoidplanvisitor-2"
           },
           {
-            "label": "StagedPlanComposition",
-            "link": "/preview/api/core-abstractions-stagedplans/stagedplancomposition"
+            "label": "PlanGroups",
+            "link": "/preview/api/core-abstractions-stagedplans/plangroups"
+          },
+          {
+            "label": "StagedBroadcastPlan",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedbroadcastplan"
+          },
+          {
+            "label": "StagedBroadcastPlan<TEvent>",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedbroadcastplan-1"
+          },
+          {
+            "label": "StagedPlanKey",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedplankey"
           },
           {
             "label": "StagedResultPlan",
@@ -1678,14 +1658,6 @@
           {
             "label": "Overview",
             "link": "/preview/api/core-abstractions-strategies"
-          },
-          {
-            "label": "SingleAsyncHandlerMediationStrategy<TMessage, TResult>",
-            "link": "/preview/api/core-abstractions-strategies/singleasynchandlermediationstrategy-2"
-          },
-          {
-            "label": "SingleAsyncHandlerMediationStrategy<TMessage>",
-            "link": "/preview/api/core-abstractions-strategies/singleasynchandlermediationstrategy-1"
           },
           {
             "label": "SingleStreamHandlerMediationStrategy<TMessage, TResult>",
@@ -1736,10 +1708,6 @@
             "link": "/preview/api/events"
           },
           {
-            "label": "AsyncBroadcastMediationStrategy<TMessage>",
-            "link": "/preview/api/events/asyncbroadcastmediationstrategy-1"
-          },
-          {
             "label": "EventMediator",
             "link": "/preview/api/events/eventmediator"
           }
@@ -1760,6 +1728,36 @@
           {
             "label": "ModuleRegistryExtensions",
             "link": "/preview/api/events-extensions-microsoftdependencyinjection/moduleregistryextensions"
+          }
+        ]
+      },
+      {
+        "label": "Plugins.Abstractions",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/plugins-abstractions"
+          },
+          {
+            "label": "ErgosfarePluginAttribute",
+            "link": "/preview/api/plugins-abstractions/ergosfarepluginattribute"
+          },
+          {
+            "label": "Hook",
+            "link": "/preview/api/plugins-abstractions/hook"
+          },
+          {
+            "label": "Module",
+            "link": "/preview/api/plugins-abstractions/module"
+          },
+          {
+            "label": "PipelineInvokableAttribute",
+            "link": "/preview/api/plugins-abstractions/pipelineinvokableattribute"
+          },
+          {
+            "label": "PluginServiceFilterAttribute",
+            "link": "/preview/api/plugins-abstractions/pluginservicefilterattribute"
           }
         ]
       },

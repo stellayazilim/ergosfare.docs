@@ -1,91 +1,55 @@
 ---
 title: Execution context
-description: ErgosfareContext is a pooled, explicitly-passed parameter — not ambient state. What it carries, and the lifetime rules that come with pooling.
+description: The ErgosfareContext every participant receives — cancellation, per-dispatch state, aborting, and why it is pooled.
 ---
 
-`ErgosfareContext` travels with a dispatch. It carries the cancellation token, a key/value
-bag for that dispatch, and the controls that let a handler or interceptor stop the pipeline.
-
-Two properties define everything else about it:
-
-1. **It is a parameter, never ambient.** Every handler and interceptor receives it
-   explicitly. There is no `AsyncLocal`, no thread-local, and no static accessor.
-2. **It is pooled.** A dispatch rents a context and returns it on completion. The context is
-   valid **only for the duration of that dispatch**.
-
-{% aside type="danger" %}
-`AmbientExecutionContext` was **removed in v2**. If you are porting v1 code that reached for
-it, see [Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2). The context parameter is now
-the only access path.
-{% /aside %}
-
-## What it carries
-
-```csharp
-public sealed class ErgosfareContext
-{
-    public ErgosfareContext(
-        IDictionary<object, object?>? items = null,
-        CancellationToken cancellationToken = default);
-
-    public CancellationToken CancellationToken { get; }
-    public IDictionary<object, object?> Items { get; }
-
-    public void Set(string key, object item);
-    public bool Has(string key);
-    public TType Get<TType>(string key) where TType : notnull;
-    public bool TryGet<TType>(string key, out TType item);
-
-    public void Abort();
-    public void Abort(string? reason);
-    public void Abort(string? reason, object? value);
-
-    public ErgosfareContextScope CreateScope();
-}
-```
-
-It is a **sealed class**, not an interface. Handler and interceptor contracts take the
-concrete type, so every member access is a direct call with no interface dispatch — the
-interface it replaced had exactly one implementation, and it was internal.
-
-{% aside type="tip" %}
-The public constructor is new in v2.3. Both parameters are optional, so `new ErgosfareContext()`
-is enough to build one — for a test, or to own the items dictionary across an engine-level
-dispatch. A context you construct yourself is never pooled, and it costs exactly what an
-unpooled context always did.
-{% /aside %}
-
-### Cancellation
+Every handler and interceptor receives an `ErgosfareContext`. It carries the cancellation token,
+a bag of per-dispatch state, and the way to stop a pipeline.
 
 ```csharp
 public ValueTask<Guid> HandleAsync(CreateProduct command, ErgosfareContext context)
-    => _store.AddAsync(command.Name, command.Price, context.CancellationToken);
+{
+    context.CancellationToken.ThrowIfCancellationRequested();
+    …
+}
 ```
 
-The token comes from the mediator call — either the `CancellationToken` argument or, for the
-context-taking overloads, inherited from the parent context. Because it arrives on the
-context rather than as a separate handler parameter, forgetting to thread it is not possible.
+## Cancellation
 
-### The item bag
+`context.CancellationToken` is the token the dispatch was started with. Pass it down rather
+than reaching for `CancellationToken.None`:
 
-`Set`/`Get`/`Has`/`TryGet` share data along one dispatch. A pre-interceptor can stash
-something the handler and post-interceptors read back:
+```csharp
+await repository.AddAsync(product, context.CancellationToken);
+```
+
+Every mediator call takes a token, and the ones that do not take one explicitly default it:
+
+```csharp
+await mediator.SendAsync(command, cancellationToken);
+```
+
+## Per-dispatch state
+
+`Items` is a dictionary shared by every participant in one dispatch. It is how a pre-interceptor
+tells a later stage something without changing the message:
 
 ```csharp
 public sealed class StartTimer : ICommandPreInterceptor
 {
     public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
-        context.Set("started", Stopwatch.GetTimestamp());
+        context.Set("startedAt", Stopwatch.GetTimestamp());
         return ValueTask.FromResult<object>(command);
     }
 }
 
-public sealed class StopTimer : ICommandFinalInterceptor
+public sealed class RecordDuration : ICommandFinalInterceptor
 {
-    public ValueTask HandleAsync(ICommand command, object? result, Exception? ex, ErgosfareContext context)
+    public ValueTask HandleAsync(
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
     {
-        if (context.TryGet<long>("started", out var started))
+        if (context.TryGet<long>("startedAt", out var started))
             _metrics.Record(Stopwatch.GetElapsedTime(started));
 
         return ValueTask.CompletedTask;
@@ -93,113 +57,99 @@ public sealed class StopTimer : ICommandFinalInterceptor
 }
 ```
 
-`Get<T>` throws `KeyNotFoundException` if the key is absent and `InvalidCastException` if the
-stored value is the wrong type. Use `TryGet<T>` when absence is expected.
+The accessors:
 
-You can seed the bag for a dispatch from the mediation settings:
+| Member | What it does |
+|---|---|
+| `Set(key, value)` | Stores a value. |
+| `Has(key)` | Whether a key is present. |
+| `Get<T>(key)` | Reads it, throwing when absent or the wrong type. |
+| `TryGet<T>(key, out value)` | Reads it without throwing. |
+| `Items` | The underlying dictionary, for anything the above does not cover. |
+
+{% aside type="caution" %}
+`Items` is per dispatch, not per request. A nested dispatch gets its own context unless you
+pass yours explicitly, so it is the wrong place for something an HTTP request scope should own.
+Put that in a scoped service and inject it.
+{% /aside %}
+
+## Stopping the pipeline
+
+`Abort()` ends the dispatch immediately:
 
 ```csharp
-var settings = new CommandMediationSettings { Items = { ["tenant"] = tenantId } };
-await commands.SendAsync(command, settings);
-```
-
-### Aborting
-
-`Abort()` cuts the pipeline where it stands and tells the **caller**, by throwing
-`ExecutionAbortedException`. Nothing downstream runs: not the rest of the current stage, not
-the exception stage, not the final stage.
-
-```csharp
-public sealed class RejectUnauthorized : ICommandPreInterceptor<CreateProduct>
+public sealed class RequireTenant : ICommandPreInterceptor
 {
-    public ValueTask<CreateProduct> HandleAsync(CreateProduct command, ErgosfareContext context)
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
-        if (!_user.CanCreateProducts)
-            context.Abort("not permitted to create products", _user.Id);
+        if (_tenant.Current is null)
+            context.Abort("no tenant on this request");
 
-        return ValueTask.FromResult(command);
+        return ValueTask.FromResult<object>(command);
     }
 }
 ```
 
-The call site is who asked for the work, so the call site is who hears that it did not happen:
+It throws `ExecutionAbortedException`, and the pipeline treats that as a stop rather than a
+failure: **the exception stage does not run, and neither does the final stage.** The signal
+travels to the caller unchanged.
+
+That distinction is the whole point of having a separate signal. A failure is something that
+went wrong and that a final interceptor should still observe; an abort is a decision that this
+dispatch should not continue.
+
+Overloads carry a reason and a value:
 
 ```csharp
-try
+context.Abort("not authorized");
+context.Abort("quota exceeded", remainingQuota);
+```
+
+## Passing a context along
+
+Every dispatch surface takes an optional context. Passing yours makes the nested dispatch share
+your `Items` and your cancellation:
+
+```csharp
+public async ValueTask HandleAsync(PlaceOrder command, ErgosfareContext context)
 {
-    var id = await commands.SendAsync<Guid>(new CreateProduct("Laptop", 999m));
-}
-catch (ExecutionAbortedException aborted)
-{
-    logger.LogInformation("refused: {Reason}", aborted.Reason);
-    if (aborted.Value is Guid userId) { … }
+    await _events.PublishAsync(new OrderPlaced(command.Id), context);
 }
 ```
 
-Three overloads: `Abort()`, `Abort(reason)` and `Abort(reason, value)`. `Reason` is for a
-human and doubles as the exception message; `Value` is for a program to act on.
+Omitting it gives the nested dispatch a fresh context instead. Which you want depends on whether
+the inner work is part of the same logical operation — see
+[Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
 
-{% aside type="caution" %}
-**`Value` is not the pipeline's result.** A cut pipeline produced none — that is the point of
-the signal, and it is why aborting a `ICommand<Guid>` does not ask you for a `Guid`. Returning
-the result type's default instead would be indistinguishable from a handler that legitimately
-produced nothing.
+## Scopes
 
-This changed in v2.3: `Abort(object? messageResult)` used to seed a result and let the
-pipeline end quietly. See
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
-{% /aside %}
+`CreateScope()` gives a nested lifetime within one dispatch, for state that should not outlive
+a section of the pipeline:
 
-An abort is not a failure, which is why exception interceptors do not see it. If you want
-outcomes carried as values rather than exceptions, that is what the
-[result-adapter surface](/ergosfare.docs/preview/getting-started/configuring#result-adapters) is for;
-abort is deliberately the loud channel.
+```csharp
+using var scope = context.CreateScope();
+```
 
-## Pooling and the lifetime rule
+## Why it is pooled
 
-Contexts are rented from a `[ThreadStatic]`-first pool — a plain load and store on the common
-same-thread cycle — and returned when the dispatch completes. There is a synchronous fast
-path that skips the async state machine entirely when the whole pipeline completes
-synchronously.
-
-This is the single largest contributor to the per-dispatch allocation numbers. It also
-imposes one rule:
+Contexts are pooled and returned when the dispatch completes. That is what keeps a dispatch from
+allocating one per call on the hot path, and it has one consequence worth knowing:
 
 {% aside type="danger" %}
-**Never hold onto a context after its dispatch returns.** Once the dispatch completes the
-context goes back to the pool and will be handed to an unrelated dispatch. Capturing it in a
-field, a closure that outlives the call, or a fire-and-forget task will read another
-message's state.
+**Do not keep a context after your participant returns.** Storing it in a field, closing over it
+in a background task, or handing it to something that outlives the dispatch means you are
+holding an object that has already been returned to the pool and may now belong to an unrelated
+dispatch. Copy the values you need instead.
 {% /aside %}
 
 ```csharp
-// Wrong — the context is recycled the moment HandleAsync returns.
-public ValueTask HandleAsync(CreateProduct command, ErgosfareContext context)
-{
-    _ = Task.Run(async () =>
-    {
-        await Task.Delay(1000);
-        context.Set("late", true);      // this context now belongs to someone else
-    });
-    return ValueTask.CompletedTask;
-}
+// wrong — the context is gone by the time this runs
+_ = Task.Run(() => Audit(context.Get<string>("user")));
+
+// right — read it first
+var user = context.Get<string>("user");
+_ = Task.Run(() => Audit(user));
 ```
 
-If you need something after the dispatch, copy the values out before returning — or construct
-your own context with `new ErgosfareContext(...)`, which is never pooled and therefore never
-recycled underneath you.
-
-## No service provider, on purpose
-
-`ErgosfareContext` exposes no `IServiceProvider`. Handler resolution belongs to the
-dispatcher, which resolves instances from the calling DI scope. If a handler needs a service,
-take it in the constructor — that keeps the dependency visible to the container and to
-whoever reads the class.
-
-## Nested dispatch
-
-`CreateScope()` opens a child context for calling the mediator from inside a handler. It gets
-its own clean item bag and inherits the parent's cancellation token. That has enough detail
-to deserve its own page: [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
-
-Next: [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+The pooling is also why there is no `AsyncLocal` anywhere in the dispatch path: the context is a
+parameter, so it flows exactly as far as you pass it and no further.

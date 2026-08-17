@@ -1,21 +1,21 @@
 ---
-title: "IVoidPlanRootVisitor<TReturn, TState>"
-description: "Generic re-entry point for consumers of VoidPlanRoot."
+title: "IVoidHandlerPlanVisitor<TReturn, TState>"
+description: "Generic re-entry point for consumers of VoidHandlerPlan."
 sidebar:
-  label: "IVoidPlanRootVisitor<TReturn, TState>"
+  label: "IVoidHandlerPlanVisitor<TReturn, TState>"
   order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchRoots`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Generic re-entry point for consumers of [`VoidPlanRoot`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/voidplanroot).
+Generic re-entry point for consumers of [`VoidHandlerPlan`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/voidhandlerplan).
 
 ```csharp
-public interface IVoidPlanRootVisitor<out TReturn, in TState>
+public interface IVoidHandlerPlanVisitor<out TReturn, in TState>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/DispatchRoots/IVoidPlanRootVisitor.cs#L4)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/DispatchRoots/IVoidHandlerPlanVisitor.cs#L4)
 
 **Type parameters**
 

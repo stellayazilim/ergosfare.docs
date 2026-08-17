@@ -3,7 +3,7 @@ title: "ICommandHandler<TCommand>"
 description: "Represents a handler for commands implementing ICommand."
 sidebar:
   label: "ICommandHandler<TCommand>"
-  order: 16
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

@@ -1,120 +1,148 @@
 ---
 title: Discovery keys
-description: Gate handlers behind named keys so registration can cherry-pick which discovered types actually register.
+description: Keeping a construct out of bulk registration, and selecting it deliberately by key or pattern.
 ---
 
-Compile-time discovery finds everything. Discovery keys decide what actually **registers**.
+By default `RegisterGenerated()` registers everything the generator found. A discovery key
+takes a construct out of that default and puts it behind a name you ask for explicitly.
 
-A type tagged with `[DiscoveryKey]` is *excluded from default discovery* and registers only
-when a registration call names one of its keys. That turns "which handlers exist" (a compile
-time question) and "which handlers are active" (a deployment question) into two separate
-decisions, without reflection and without conditional compilation.
-
-## The default key
-
-Every untagged type carries the implicit **default key**, the empty string. That is exactly
-what a pattern-less registration call selects:
-
-```csharp
-.AddCommandModule(c => c.RegisterGenerated())      // selects the default key only
-```
-
-So adding `[DiscoveryKey("reporting.daily")]` to a handler removes it from that call.
-
-## Gating a handler
+## Declaring a key
 
 ```csharp
 using Stella.Ergosfare.Core.Abstractions.Attributes;
 
-[DiscoveryKey("reporting.daily")]
-public sealed class DailyReportHandler : ICommandHandler<BuildDailyReport>
+[DiscoveryKey("reporting")]
+public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports>
 {
-    public ValueTask HandleAsync(BuildDailyReport command, ErgosfareContext context)
-        => _reports.BuildAsync(context.CancellationToken);
+    public ValueTask HandleAsync(RebuildReports command, ErgosfareContext context) { … }
 }
 ```
 
-```csharp
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c
-        .RegisterGenerated()                    // default discovery: untagged types
-        .RegisterGenerated("reporting.*")));    // plus everything keyed under reporting
-```
-
-Calls compose. Overlapping patterns are safe — registration is idempotent.
-
-## Patterns
-
-A registration call accepts either an exact key or a trailing-`*` prefix glob:
-
-| Pattern | Selects |
-|---|---|
-| `""` (or no argument) | Untagged types only |
-| `"reporting.daily"` | Exactly that key |
-| `"reporting.*"` | `reporting.daily`, `reporting.monthly`, `reporting.anything` |
-| `"*"` | Every keyed type |
-
-## Staying in default discovery *and* being selectable
-
-List the empty string alongside your keys:
+That handler is now invisible to a plain `RegisterGenerated()`. It registers only when
+something asks for `reporting`:
 
 ```csharp
-[DiscoveryKey("", "debug")]
-public sealed class VerboseLoggingInterceptor : ICommandPreInterceptor { … }
+.AddCommandModule(module => module
+    .RegisterGenerated()             // everything with no key
+    .RegisterGenerated("reporting")) // and this one too
 ```
 
-This registers under a plain `RegisterGenerated()` **and** under `RegisterGenerated("debug")`.
-
-## Tagging a whole assembly
-
-Applied at assembly level, the attribute sets the default keys for every registrable type in
-that assembly that does not declare its own:
+A type can carry several keys, and it registers when a selection matches any of them:
 
 ```csharp
-[assembly: DiscoveryKey("payments")]
+[DiscoveryKey("reporting", "nightly")]
+public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports> { … }
 ```
 
-This is the modular-monolith case: a slice tags its entire surface in one place, and the host
-opts the slice in with a single `RegisterGenerated("payments")`.
+## Assembly-level keys
 
-A type that declares its own `[DiscoveryKey]` overrides the assembly-level one — it does not
-merge with it.
+Put the attribute on an assembly and every construct in it inherits the key:
 
-## Removing a type entirely
+```csharp
+[assembly: DiscoveryKey("reporting")]
+```
 
-`[ExcludeFromDiscovery]` takes a type (or an assembly) out of discovery altogether. No key
-pattern will select it:
+A type's own keys **replace** its assembly's rather than adding to them, so one type can opt
+out of the assembly-wide grouping by naming its own.
+
+## Selecting by pattern
+
+A selection is an exact key, or a prefix glob ending in `*`:
+
+```csharp
+.RegisterGenerated("reporting.nightly")   // exactly this key
+.RegisterGenerated("reporting.*")         // every key starting with "reporting."
+.RegisterGenerated("*")                   // every keyed construct
+```
+
+Selections are a union, so chaining overlapping patterns is safe — a construct matched twice is
+registered once.
+
+```csharp
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .RegisterGenerated("reporting.*")
+    .RegisterGenerated("import.*"))
+```
+
+## What this is for
+
+**A host that runs one job.** Several entry points share an assembly, and each registers the
+slice it needs:
+
+```csharp
+// the API
+.AddCommandModule(module => module.RegisterGenerated())
+
+// the nightly worker
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .RegisterGenerated("nightly.*"))
+```
+
+**A library shipping optional handlers.** Give them a key, and a consumer opts in by naming it
+rather than by getting them whether they wanted them or not.
+
+**An expensive interceptor you enable per environment.** A key keeps it out of the default
+pipeline while leaving it one line away.
+
+## Keys and groups are different questions
+
+They are easy to confuse, and they answer opposite questions.
+
+A **discovery key** decides whether a construct is *registered at all*. It is read at start-up,
+by the composition root, and once the container is built the answer never changes.
+
+A **group** decides whether a registered interceptor *runs on this dispatch*. It is named at
+the call site, and can differ from one dispatch to the next.
+
+```csharp
+// registration time: is this thing in the container?
+.RegisterGenerated("reporting.*")
+
+// dispatch time: which of the registered interceptors run now?
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+```
+
+Use a key when the answer belongs to the deployment. Use a group when it belongs to the call.
+See [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## What a key costs you
+
+A keyed construct is deliberately conditional, and the compile-time judgments respect that:
+
+- It is left out of `ERGO010`, the contested-handler check. Whether two keyed handlers are ever
+  registered together is a container's choice that nothing here can prove.
+- It is exempt from `ERGO007`, the unreachable-handler warning, and from the handler trim.
+- It does not take part in a compiled plan. Plans are built for the default pipeline, and a
+  keyed participant may or may not be in the container that runs it.
+
+None of this changes behaviour — a keyed handler dispatches exactly like any other. It means
+the compiler has less to say about it, which is the trade you are making when you reach for a
+key.
+
+{% aside type="tip" %}
+Because of that, keys are worth using sparingly. If a handler is always registered, leave it in
+the default set where the diagnostics can see it.
+{% /aside %}
+
+## Hiding a type completely
+
+`[DiscoveryKey]` keeps a type out of the *default* selection. `[ExcludeFromDiscovery]` keeps it
+out of every selection, so the only way it reaches a container is a hand-written `Register`:
 
 ```csharp
 [ExcludeFromDiscovery]
-public sealed class ExperimentalHandler : ICommandHandler<Probe> { … }
+public sealed class ProbeHandler : ICommandHandler<Probe> { … }
 ```
 
-Explicit registration still works — `Register<ExperimentalHandler>()` selects it — which is
-the intended escape hatch for something you want available but never automatic.
+An excluded type produces no registration and no diagnostics — the exclusion is what the author
+asked for. It is still rooted for dispatch, because hiding a type from bulk collection says
+nothing about whether it is dispatched, and a dispatch that has to close its generics
+reflectively is a shape that works in development and fails under NativeAOT.
 
-The reason it works is that `[ExcludeFromDiscovery]` shapes *discovery*, not the table. The
-generator still emits the type's composition row; it is simply left out of every bulk
-`RegisterGenerated()` call, so only a container that names the type runs it.
+Put the attribute on an assembly and nothing in it is scanned at all:
 
-## Keys are the plugin story
-
-Since v2.3 there is no runtime assembly scan, so discovery keys carry the whole "compile
-everything, run some of it" pattern. The keyed slice is compiled into the closure like any
-other code, and the host decides at registration time — from configuration, a feature flag,
-an environment name — which patterns to select.
-
-## When to reach for this
-
-- **Feature flags at deployment time** — key the handlers, select by key from configuration.
-- **Environment-specific interceptors** — a `[DiscoveryKey("debug")]` interceptor that only
-  a development host registers.
-- **Modular monoliths** — one assembly-level key per slice, one registration call per slice
-  the host wants to run.
-
-What discovery keys are *not* for: filtering which handlers run for a particular dispatch.
-That is a runtime concern and belongs to
-[groups](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights). Discovery keys are
-decided once, at registration.
-
-Next: [Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism).
+```csharp
+[assembly: ExcludeFromDiscovery]
+```

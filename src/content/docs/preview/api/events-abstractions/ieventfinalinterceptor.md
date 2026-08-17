@@ -1,30 +1,46 @@
 ---
 title: "IEventFinalInterceptor"
-description: "Represents a non-generic final interceptor for events, allowing custom logic to execute after all event handlers and other interceptors have completed."
+description: "Final interceptor for every event: the untyped counterpart of IEventFinalInterceptor<TEvent>."
 sidebar:
   label: "IEventFinalInterceptor"
-  order: 9
+  order: 6
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents a non-generic final interceptor for events, allowing custom logic
-to execute after all event handlers and other interceptors have completed.
+Final interceptor for every event: the untyped counterpart of
+[`IEventFinalInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventfinalinterceptor-1).
 
 ```csharp
 public interface IEventFinalInterceptor : IEvent, IMessage, IAsyncFinalInterceptor<IEvent, Unit>, IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor.cs#L25)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor.cs#L15)
 
 ## Remarks
 
-This interface is a non-generic version of [`IEventFinalInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventfinalinterceptor-1),
-applying to all events implementing [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent).
+Carries its own member rather than inheriting the stage contract's; see the typed
+counterpart for why a publish's final stage takes no result.
 
-It inherits from [`IAsyncFinalInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-1),
-enabling asynchronous final processing of events after they are dispatched to their handlers.
+## Methods
 
-Event handlers and messages that implement [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) will recognize
-this interceptor automatically in the event mediation pipeline.
+### `HandleAsync(IEvent, Exception?, ErgosfareContext)`
+
+```csharp
+ValueTask HandleAsync(IEvent @event, Exception? exception, ErgosfareContext context)
+```
+
+Runs after the publish has settled.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event that was published. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure the publish ended with, or `null` when it succeeded. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous operation.

@@ -3,7 +3,7 @@ title: "IEvent"
 description: "Represents a message or handler that is recognized by the event module."
 sidebar:
   label: "IEvent"
-  order: 4
+  order: 1
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  

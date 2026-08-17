@@ -1,103 +1,119 @@
 ---
 title: Modules and extensions
-description: The three shipped modules, the packages each one spans, and how the core, abstractions and DI layers divide the work.
+description: The registration surface — AddErgosfare, the module builders, and what each call actually registers.
 ---
 
-Ergosfare ships three modules — Commands, Queries and Events — over a shared core. Each is
-independent: you register the ones you use and pay for nothing else.
-
-| Module | Message | Handler | Mediator | Dispatch |
-|---|---|---|---|---|
-| Commands | `ICommand`, `ICommand<TResult>` | `ICommandHandler<…>` | `ICommandMediator` | `SendAsync` |
-| Queries | `IQuery<TResult>`, `IStreamQuery<TResult>` | `IQueryHandler<…>`, `IStreamQueryHandler<…>` | `IQueryMediator` | `QueryAsync`, `StreamAsync` |
-| Events | `IEvent`, and any `notnull` type | `IEventHandler<TEvent>` | `IEventMediator` | `PublishAsync` |
-
-They differ only in cardinality and result shape. All three run through the same frozen
-composition table, the same pipeline plan and the same four
-[interceptor stages](/ergosfare.docs/preview/core-concepts/interceptors).
-
-The event module is also the open lane for plain messages: `IEventHandler<TEvent>` constrains
-`TEvent` to `notnull` and nothing else, so a POCO publishes without implementing `IEvent`.
-
-## The three layers
-
-Every module spans the same three packages, and the split is worth understanding because it
-decides what a given project has to reference.
-
-**`*.Abstractions`** — the contracts. `ICommand`, `ICommandHandler<…>`, the interceptor
-interfaces, the mediation settings. No runtime, no DI container. This is all a library needs
-to declare messages and handlers.
-
-**`Stella.Ergosfare.*`** — the runtime for that module: the mediator implementation and the
-invoker caches that close generics over each message's runtime type.
-
-**`*.Extensions.MicrosoftDependencyInjection`** — the registration surface: the module
-builder, `AddCommandModule` and friends. This is the only layer that knows about
-`IServiceCollection`, which is what keeps the rest container-agnostic.
-
-`Stella.Ergosfare.Core.Abstractions` sits under all of them and holds what is not
-module-specific: `ErgosfareContext`, the `[DiscoveryKey]`/`[Group]`/`[Weight]` attributes,
-the handler and interceptor base contracts, and the frozen composition table with its
-dispatch roots.
-
-The umbrella package `Stella.Ergosfare` is a convenience bundle over all three modules. See
-[Installation](/ergosfare.docs/preview/getting-started/installation) for choosing deliberately.
-
-## Registering modules
+Registration is one call at the composition root, with a module per message family you use:
 
 ```csharp
-services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
 ```
 
-Each `AddXModule` constructs a module, hands it your registration lambda, and registers the
-module's mediator with `TryAddTransient` — so calling it twice is harmless. The facades are
-transient because they are stateless and a transient still resolves against the calling
-scope; see [Performance](/ergosfare.docs/preview/advanced/performance#mediator-lifetime).
+## `AddErgosfare`
 
-Only add what you use. An application that never publishes events should not register the
-event module; `IEventMediator` then simply is not resolvable, which is a better failure than
-a silent no-op.
+Registers the dispatch machinery — the mediators, the pipeline executors, the dependencies
+factory — along with this container's view of the compiled composition table.
 
-## Extension points
+Modules are configured first and the registry finalized afterwards, so everything registered
+during configuration is in place before the container is built.
 
-**`ForceMemoizedHandlers()`** on the registry resolves every handler graph once and memoizes
-it process-wide, for dispatch-heavy loops with transient handlers. It is the fastest dispatch
-mode and it does **not** honour scoped or transient handler dependencies — the first resolved
-instance serves every later dispatch:
+## The module builders
+
+Each module builder offers three ways to select what it registers.
+
+### `RegisterGenerated()`
+
+The bulk path, written by the generator. It names every construct that takes part in default
+discovery — everything without a `[DiscoveryKey]`.
+
+### `RegisterGenerated(pattern)`
+
+Selects by discovery key: an exact key, or a prefix glob ending in `*`.
 
 ```csharp
-services.AddErgosfare(o => o
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .RegisterGenerated("reporting.*"))
+```
+
+Selections are a union, so overlapping patterns are safe.
+
+### `Register<T>()` and `Register(typeof(T))`
+
+Names one construct:
+
+```csharp
+.AddCommandModule(module => module
+    .RegisterGenerated()
+    .Register<AuditEverything>())
+```
+
+The type has to be named outright. A `Type` computed at run time is `ERGO018` — an error,
+because a construct whose type is only known at run time gets no compiled pipeline, no frozen
+composition and no plan.
+
+{% aside type="note" %}
+`EventModuleBuilder.Register<TEvent>()` accepts any `notnull` type, because an event message
+does not have to implement a marker. The module check on the `Type` overload applies to
+participants: registering a subscriber in the wrong module is still reported, while a message
+belongs to no module and has nothing to check against.
+{% /aside %}
+
+## What each module registers
+
+| Call | Adds |
+|---|---|
+| `AddCommandModule` | `ICommandMediator`, and the command participants selected |
+| `AddQueryModule` | `IQueryMediator`, and the query participants selected |
+| `AddEventModule` | `IEventMediator`, and the event participants selected |
+
+`IMessageMediator` — the unified surface — comes from `AddErgosfare` itself.
+
+Register only what you use. An application with no events adds no event module.
+
+## Registry-level options
+
+```csharp
+services.AddErgosfare(registry => registry
+    .UseDefaultResultAdapter(typeof(ResultAdapter<>))
     .ForceMemoizedHandlers()
-    .AddCommandModule(c => c.RegisterGenerated()));
+    .AddCommandModule(module => module.RegisterGenerated()));
 ```
 
-Without the switch, registered lifetimes are honoured, and messages whose participants are
-all singletons take the memoized path automatically.
+**`UseDefaultResultAdapter`** makes failures travel as values for every result slot the adapter
+serves. An open generic is closed per slot it fits. Experimental — `ERGOEXP001`.
 
-**`UseDefaultResultAdapter(...)`** sets the fallback `IResultAdapter` for result slots that
-bind nothing more specific:
+**`ForceMemoizedHandlers`** keeps resolved participants instead of resolving one per dispatch.
+For applications whose handlers are stateless and whose dependencies are singletons; wrong
+anywhere a handler depends on something scoped.
+
+**`Register(IModule)`** adds a module of your own, or one a package ships:
 
 ```csharp
-services.AddErgosfare(o => o
-    .UseDefaultResultAdapter(typeof(MyResultAdapter<>))
-    .AddQueryModule(q => q.RegisterGenerated()));
+.Register(new ReportingModule())
 ```
 
-This surface is `[Experimental]` under `ERGOEXP001`; see
-[Configuring](/ergosfare.docs/preview/getting-started/configuring#result-adapters).
+See [Modules](/ergosfare.docs/preview/core-concepts/modules).
 
-**Your own `IModule`** — the modules above are not privileged. Implementing `IModule` gives
-you a new message shape on the same machinery, selected from the same compiled table; see
-[Modules and plugins](/ergosfare.docs/preview/core-concepts/plugins).
+## Injecting a mediator
 
-## Mediators are per-module on purpose
+```csharp
+public sealed class OrdersController(ICommandMediator commands, IQueryMediator queries)
+{
+    public Task<IResult> Post(PlaceOrder command) => …
+}
+```
 
-There is no single `IMediator`. A component takes the narrow interface it needs, and the
-type system does the rest: something holding only `IQueryMediator` cannot send a command or
-publish an event. That is the cheapest CQRS boundary available, and it costs one extra
-constructor parameter when a class genuinely needs two.
+Use the specific mediator where the code knows what it dispatches. `IMessageMediator` is for
+code that genuinely does not — a queue consumer, a replay tool — and it costs you the
+compile-time reachability judgments, because the static type at the call proves nothing about
+which message arrives.
 
-Next: [Defining a command](/ergosfare.docs/preview/core-components/command/command-definition).
+## Where to put this
+
+At the composition root, once. That is where the generator judges reachability, and splitting
+registration across several places is the usual way people lose those diagnostics. See
+[Composition root and testing](/ergosfare.docs/preview/best-practices/composition-root).

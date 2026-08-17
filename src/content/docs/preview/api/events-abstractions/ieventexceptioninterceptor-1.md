@@ -3,7 +3,7 @@ title: "IEventExceptionInterceptor<TEvent>"
 description: "Represents an asynchronous exception interceptor for events, allowing custom logic to execute when an exception occurs during event handling."
 sidebar:
   label: "IEventExceptionInterceptor<TEvent>"
-  order: 6
+  order: 3
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
@@ -16,7 +16,7 @@ to execute when an exception occurs during event handling.
 public interface IEventExceptionInterceptor<in TEvent> : IEvent, IMessage, IAsyncExceptionInterceptor<TEvent, Unit>, IExceptionInterceptor where TEvent : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor%5BTEvent%5D.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor%5BTEvent%5D.cs#L23)
 
 **Type parameters**
 
@@ -29,17 +29,16 @@ public interface IEventExceptionInterceptor<in TEvent> : IEvent, IMessage, IAsyn
 Implementing this interface allows the interceptor to participate in the event mediation
 pipeline when an exception is thrown during the handling of `TEvent`.
 
-This interface inherits from [`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-1), enabling
-asynchronous exception handling logic.
-
-The `TEvent` type must be non-nullable and implement [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent).
+A publish produces no result, so this member takes none. The pipeline's resultless slot
+is an implementation detail of the stage machinery and never carried anything an
+interceptor could read — it only ever held a completed task.
 
 ## Methods
 
-### `HandleAsync(TEvent, ValueTask, Exception, ErgosfareContext)`
+### `HandleAsync(TEvent, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(TEvent @event, ValueTask result, Exception exception, ErgosfareContext context)
+ValueTask HandleAsync(TEvent @event, Exception exception, ErgosfareContext context)
 ```
 
 Handles an exception asynchronously that occurred during the processing of the event.
@@ -49,7 +48,6 @@ Handles an exception asynchronously that occurred during the processing of the e
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | `TEvent` | The event being processed. |
-| `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | The result returned by the main handlers, or `null` if the event does not produce a result. |
 | `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during event handling. |
 | `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
 

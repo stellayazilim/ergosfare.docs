@@ -1,0 +1,136 @@
+---
+title: Modules
+description: What a module is, why commands, queries and events are separate ones, and how to write your own.
+---
+
+A module is a unit of registration. It owns a message family — its mediator, its participants,
+and its half of the composition table — and you add the ones your application uses:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+An application with no events adds no event module, and pays for nothing it did not add.
+
+## Why three
+
+The three modules differ in **delivery**, not in machinery:
+
+| Module | Handlers per message | Answers the caller |
+|---|---|---|
+| Commands | exactly one | with a result, or nothing |
+| Queries | exactly one | with a result, or a stream of them |
+| Events | every match | never |
+
+Everything else — the four interceptor stages, the ordering rules, discovery, the compiled
+plans — is shared. Splitting them keeps the delivery difference in the type system instead of
+in a runtime flag: a `SendAsync` cannot accidentally fan out, and a `PublishAsync` cannot
+accidentally return an answer.
+
+It also keeps the boundary useful in your own code. `ICommandMediator` in a constructor says
+this class issues instructions; `IQueryMediator` says it only asks questions. That is a
+readable statement about the class, and it is enforced.
+
+## What a module registers
+
+Adding a module registers three things:
+
+**Its mediator** — `ICommandMediator`, `IQueryMediator`, `IEventMediator` — so you can inject
+it.
+
+**Its participants**, from whatever the builder selected. `RegisterGenerated()` names them in
+bulk; `Register<T>()` names one; a discovery-key pattern names a subset.
+
+**Its view of the composition table.** The table itself is compiled into the assembly and
+process-wide; what a module registers is which of its rows *this container* has selected.
+
+That separation is why two applications sharing a handler library get the same compiled table
+and different behaviour from it.
+
+## The unified mediator
+
+`IMessageMediator` dispatches any message, without knowing which module it belongs to:
+
+```csharp
+public sealed class QueueConsumer(IMessageMediator mediator)
+{
+    public ValueTask ProcessAsync(IMessage message, CancellationToken ct)
+        => mediator.DispatchAsync(message, ct);
+}
+```
+
+It is for code that genuinely does not know — a queue consumer, a replay tool — and it costs
+you the compile-time judgments in return, because the static type at the call site proves
+nothing about which message arrives. Prefer the specific mediator wherever the code does know.
+
+When the result type is known at the call site, name it and the dispatch avoids constructing
+its executor reflectively:
+
+```csharp
+var result = await mediator.DispatchAsync<PlaceOrder, Guid>(command, ct);
+```
+
+## Registering a module by hand
+
+`AddCommandModule` and its siblings are extension methods over a small contract:
+
+```csharp
+public interface IModule
+{
+    void Build(IModuleConfiguration configuration);
+}
+```
+
+`IModuleConfiguration` gives you the `IServiceCollection` and the container's composition
+catalog. Implementing it directly is how a package ships its own registration:
+
+```csharp
+public sealed class ReportingModule : IModule
+{
+    public void Build(IModuleConfiguration configuration)
+    {
+        configuration.Services.AddSingleton<IReportRenderer, PdfRenderer>();
+    }
+}
+```
+
+```csharp
+services.AddErgosfare(registry => registry
+    .Register(new ReportingModule())
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+{% aside type="note" %}
+`Register(IModule)` takes a module, not a construct. It is a different method from the
+`Register<T>()` on a module builder, which names a handler or interceptor. The calls a module
+makes inside `Build` are the real registrations.
+{% /aside %}
+
+A plugin package generates this for you, along with the `Add<Name>` extension its consumers
+call. See [Plugins](/ergosfare.docs/preview/advanced/plugins).
+
+## Registering across assemblies
+
+A handler in a referenced library is found by the reference scan and registered through the
+consuming application's `RegisterGenerated()`. Nothing extra is needed, and the library ships
+no registration code of its own.
+
+Two things are worth knowing:
+
+**The library needs the generator too.** It records what it dispatches so the composition root
+can reason about the whole closure.
+
+**Internal handlers need a grant.** A library's `internal` handler is invisible to the
+consumer's generated code unless the library grants `InternalsVisibleTo`, and that is reported
+as `ERGO002` rather than silently skipped.
+
+## Where to register
+
+At the composition root, once. The compile-time judgments run there — it is the only place that
+sees the whole application — and splitting registration across several places makes the picture
+harder for both the compiler and the reader.
+
+See [Composition root and testing](/ergosfare.docs/preview/best-practices/composition-root).

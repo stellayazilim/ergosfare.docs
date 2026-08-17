@@ -13,7 +13,7 @@ Assembly-level marker stamped by the source generator whenever it ran with dispa
 manifest support — including when the assembly contains no dispatch site at all. Its
 presence is what lets an aggregating composition root distinguish "this assembly truly
 dispatches nothing" from "this assembly predates manifests (or was built without the
-generator), so its dispatch sites are unknown". Unreachable-handler judgment (ERGOSG007)
+generator), so its dispatch sites are unknown". Unreachable-handler judgment (ERGO007)
 and compile-time handler trimming stay silent while any Ergosfare-referencing assembly
 in the closure lacks the marker.
 
@@ -42,7 +42,7 @@ Assembly-level marker stamped by the source generator whenever it ran with dispa
 manifest support — including when the assembly contains no dispatch site at all. Its
 presence is what lets an aggregating composition root distinguish "this assembly truly
 dispatches nothing" from "this assembly predates manifests (or was built without the
-generator), so its dispatch sites are unknown". Unreachable-handler judgment (ERGOSG007)
+generator), so its dispatch sites are unknown". Unreachable-handler judgment (ERGO007)
 and compile-time handler trimming stay silent while any Ergosfare-referencing assembly
 in the closure lacks the marker.
 
@@ -65,7 +65,7 @@ public bool HasOpaqueRegistrations { get; set; }
 Whether the assembly performs registrations whose types cannot be statically known
 (a non-`typeof` `Type` argument, descriptor batches, or the legacy
 assembly scan of older packages). Coverage evidence is then incomplete by
-construction, so composition roots suspend dead-dispatch judgment (ERGOSG005/006)
+construction, so composition roots suspend dead-dispatch judgment (ERGO005/006)
 closure-wide.
 
 **Returns**

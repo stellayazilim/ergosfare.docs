@@ -3,7 +3,7 @@ title: "ICommandPostInterceptor<TCommand, TResult>"
 description: "Represents a type-safe post-interceptor for commands with a strongly-typed result."
 sidebar:
   label: "ICommandPostInterceptor<TCommand, TResult>"
-  order: 19
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

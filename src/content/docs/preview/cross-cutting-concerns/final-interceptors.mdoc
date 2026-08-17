@@ -1,152 +1,131 @@
 ---
 title: Final interceptors
-description: The stage that runs whether the pipeline succeeded or threw — for cleanup, metrics and audit trails.
+description: The stage that always runs — on success, on failure, and the one case where it does not.
 ---
 
-Final interceptors are new in v2. They run at the very end of a dispatch that ran to its
-end — whether the handler succeeded or something threw. That makes them the stage to reach
-for when cleanup has to survive a failure.
+A final interceptor runs last, whether the dispatch succeeded or failed. It returns nothing,
+because by the time it runs the dispatch's answer is already settled.
 
-{% aside type="caution" %}
-**An abort is the exception.** `context.Abort(...)` cuts the pipeline where it stands, and
-the final stage is downstream of that point, so it does not run. Before v2.3 it did. Cleanup
-that must survive an abort belongs in the caller's own `try`/`finally` — see
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
-{% /aside %}
+## The contracts
 
 ```csharp
-public sealed class RecordDuration : ICommandFinalInterceptor
+ICommandFinalInterceptor                        // every command
+ICommandFinalInterceptor<TCommand>              // one command
+ICommandFinalInterceptor<TCommand, TResult>     // typed result
+```
+
+Queries have the same three; events have the ones without a result.
+
+## The shape
+
+```csharp
+public sealed class RecordOutcome(IMetrics metrics) : ICommandFinalInterceptor
 {
-    private readonly IMetrics _metrics;
-
-    public RecordDuration(IMetrics metrics) => _metrics = metrics;
-
     public ValueTask HandleAsync(
-        ICommand command, object? result, Exception? exception, ErgosfareContext context)
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
     {
-        if (context.TryGet<long>("started", out var started))
-            _metrics.Record(
-                command.GetType().Name,
-                Stopwatch.GetElapsedTime(started),
-                failed: exception is not null);
+        metrics.Record(message.GetType().Name, succeeded: exception is null);
+        return ValueTask.CompletedTask;
+    }
+}
+```
+
+Both the result and the exception are nullable, and both can be `null` at once — a void
+pipeline that succeeded has neither a meaningful result nor a failure. Read them as a pair:
+
+| `exception` | `result` | What happened |
+|---|---|---|
+| `null` | a value | the handler succeeded |
+| `null` | `null` | a void pipeline succeeded |
+| set | `null` | it failed and nothing answered |
+| set | a value | it failed and the exception stage answered |
+
+## The one case where it does not run
+
+`context.Abort()`.
+
+An abort is a deliberate stop rather than a failure, so it skips the exception stage **and this
+one**, and travels to the caller unchanged.
+
+{% aside type="caution" %}
+This matters when a pre-interceptor opened something that the final stage was going to close.
+If any interceptor can abort after that point, the resource leaks.
+
+Two ways out: put the aborting check ahead of whatever opens the resource, with a higher
+`[Weight]` — or open it in the handler where a `try`/`finally` covers every exit.
+{% /aside %}
+
+## Pairing with a pre-interceptor
+
+The common shape is a pre-interceptor that records something and a final one that reads it:
+
+```csharp
+public sealed class StartTimer : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        context.Set("startedAt", Stopwatch.GetTimestamp());
+        return ValueTask.FromResult<object>(command);
+    }
+}
+
+public sealed class StopTimer(IMetrics metrics) : ICommandFinalInterceptor
+{
+    public ValueTask HandleAsync(
+        IMessage message, object? result, Exception? exception, ErgosfareContext context)
+    {
+        if (context.TryGet<long>("startedAt", out var started))
+            metrics.Record(message.GetType().Name, Stopwatch.GetElapsedTime(started));
 
         return ValueTask.CompletedTask;
     }
 }
 ```
 
-## The signature
-
-```csharp
-ValueTask HandleAsync(TMessage message, TResult? result, Exception? exception, ErgosfareContext context);
-```
-
-Both `result` and `exception` are nullable because **exactly one of them is meaningful** on
-any given run:
-
-| Outcome | `result` | `exception` |
-|---|---|---|
-| Handler succeeded | the result | `null` |
-| Handler or interceptor threw | `null` | the exception |
-| Exception interceptor supplied a fallback | that fallback | `null` |
-
-An abort has no row: the stage does not run.
-
-{% aside type="tip" %}
-**A resultless pipeline still fills the slot.** A command with no result — and every event —
-hands the stage `Unit.Value`, the single shared instance of `Stella.Ergosfare.Core.Abstractions.Unit`.
-So `result is null` means "no result was produced", and it stays distinct from "this pipeline
-has no result type". You can compare against `Unit.Value` by reference; a resultless pipeline
-never hands out anything else.
-{% /aside %}
-
-Note the return type: plain `ValueTask`, not `ValueTask<T>`. A final interceptor **cannot
-change anything**. By the time it runs, the caller's result is decided.
-
-## Where it sits
-
-```
-pre*  →  main handler  →  post*        →  final*
-                       ↘  exception*  ↗
-```
-
-Compare with the other stages:
-
-| Stage | Runs on success | Runs on failure | Runs on abort | Can change the result |
-|---|---|---|---|---|
-| Pre | before the handler | — | — | rewrites the message |
-| Post | yes | no | no | yes |
-| Exception | no | yes | no | yes |
-| **Final** | **yes** | **yes** | **no** | **no** |
-
-Nothing runs after an abort. That is one rule, not four: the signal cuts the pipeline and
-travels to the caller untouched.
-
-## The pairing pattern
-
-A final interceptor is usually the other half of a pre-interceptor. The pre one opens
-something, the final one closes it — and the final one closes it even when the pipeline
-blew up in between:
-
-```csharp
-[Weight(1000)]
-public sealed class StartTimer : ICommandPreInterceptor
-{
-    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
-    {
-        context.Set("started", Stopwatch.GetTimestamp());
-        return ValueTask.FromResult<object>(command);
-    }
-}
-```
-
-Use the context bag rather than a field on the interceptor. Interceptors resolve from the
-calling DI scope, so a scoped or singleton instance may be shared across concurrent
-dispatches; the context is the only per-dispatch storage.
-
-{% aside type="danger" %}
-Do not capture the context past the end of the dispatch. It is pooled and will be handed to
-an unrelated dispatch — see
-[Execution context](/ergosfare.docs/preview/core-concepts/execution-context#pooling-and-the-lifetime-rule).
-Copy out what you need before returning.
-{% /aside %}
-
-## Audit trails
-
-Because a final interceptor sees both outcomes, one registration covers the whole audit:
-
-```csharp
-public sealed class AuditEverything : ICommandFinalInterceptor
-{
-    public async ValueTask HandleAsync(
-        ICommand command, object? result, Exception? exception, ErgosfareContext context)
-    {
-        await _audit.WriteAsync(new AuditEntry(
-            Operation: command.GetType().Name,
-            Succeeded: exception is null,
-            Error:     exception?.Message,
-            Tenant:    context.TryGet<string>("tenant", out var t) ? t : null));
-    }
-}
-```
+Use `TryGet` rather than `Get`. The final interceptor may run for a dispatch where the pre one
+never did — a different group, or an interceptor added later — and it should not throw while
+cleaning up.
 
 ## Ordering
 
-Direct registrations first, then covariant ones, each by `[Weight]` descending — the same rule
-as every stage. Unlike the exception stage, **every** final interceptor runs; none of them can
-end the stage early.
+`[Weight]` descending, direct before covariant. When a final interceptor closes something,
+give it a weight that puts it after anything that reads what it closes.
 
-An exception thrown from a final interceptor propagates to the caller and will mask the
-original failure. Keep them defensive.
+## Do not throw from here
 
-## Coverage
+An exception from a final interceptor escapes into whatever the pipeline was already doing. If
+the dispatch was failing, you have replaced a meaningful failure with a bookkeeping one.
 
-| Interface | `HandleAsync` |
-|---|---|
-| `ICommandFinalInterceptor` | `ValueTask(ICommand, object?, Exception?, ErgosfareContext)` |
-| `ICommandFinalInterceptor<TCommand>` | `ValueTask(TCommand, object?, Exception?, ErgosfareContext)` |
-| `ICommandFinalInterceptor<TCommand, TResult>` | `ValueTask(TCommand, TResult?, Exception?, ErgosfareContext)` |
-| `IQueryFinalInterceptor` / `<TQuery, TResult>` | as above |
-| `IEventFinalInterceptor` / `<TEvent>` | `ValueTask(TEvent, object?, Exception?, ErgosfareContext)` |
+Wrap anything that can fail:
 
-Next: [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+```csharp
+try
+{
+    await _audit.WriteAsync(row, context.CancellationToken);
+}
+catch (Exception ex)
+{
+    _logger.LogWarning(ex, "audit write failed");
+}
+```
+
+Also be careful with the cancellation token here: if the dispatch failed *because* it was
+cancelled, the token is already cancelled and any work you start with it fails immediately.
+
+## Typical uses
+
+**Timing and metrics** for every outcome.
+
+**Audit rows** recording that an operation was attempted, with its result.
+
+**Releasing something** a pre-interceptor took — subject to the abort caveat above.
+
+**Committing or rolling back a transaction**, which is exactly the both-paths shape this stage
+exists for. See the [Unit of work recipe](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## What does not belong here
+
+**Changing the answer.** It returns `void`; the answer is settled. Use post or exception.
+
+**Work the caller waits on that is not part of the operation.** A final interceptor is awaited
+inside the dispatch, so slow work here slows every call. Queue it instead.

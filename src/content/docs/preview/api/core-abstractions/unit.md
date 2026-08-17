@@ -3,7 +3,7 @@ title: "Unit"
 description: "The single value a pipeline without a result carries in its result slot."
 sidebar:
   label: "Unit"
-  order: 16
+  order: 14
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  

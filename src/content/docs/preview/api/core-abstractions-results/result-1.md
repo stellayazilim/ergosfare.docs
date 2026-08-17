@@ -3,15 +3,15 @@ title: "Result<TValue>"
 description: "The framework's default value-carried outcome: a successful TValue, or a failure wrapping the Result<TValue>.Exception that describes it — without throwing."
 sidebar:
   label: "Result<TValue>"
-  order: 15
+  order: 3
 ---
 
-**Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
+**Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
 The framework's default value-carried outcome: a successful `TValue`,
-or a failure wrapping the [`Result<TValue>.Exception`](/ergosfare.docs/preview/api/core-abstractions/result-1#exception) that describes it — without throwing.
-See [`Result`](/ergosfare.docs/preview/api/core-abstractions/result) for the zero-allocation rationale.
+or a failure wrapping the [`Result<TValue>.Exception`](/ergosfare.docs/preview/api/core-abstractions-results/result-1#exception) that describes it — without throwing.
+See [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) for the zero-allocation rationale.
 
 ```csharp
 public readonly record struct Result<TValue> : IEquatable<Result<TValue>>
@@ -60,8 +60,8 @@ public TValue Value { get; }
 ```
 
 The successful payload. Throws [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) when the
-outcome is a failure — read [`Result<TValue>.Exception`](/ergosfare.docs/preview/api/core-abstractions/result-1#exception) or use
-[`Result<TValue>.TryGetValue(out TValue)`](/ergosfare.docs/preview/api/core-abstractions/result-1#trygetvalueout-tvalue)/[`Result<TValue>.GetValueOrDefault()`](/ergosfare.docs/preview/api/core-abstractions/result-1#getvalueordefault) on paths where failure is
+outcome is a failure — read [`Result<TValue>.Exception`](/ergosfare.docs/preview/api/core-abstractions-results/result-1#exception) or use
+[`Result<TValue>.TryGetValue(out TValue)`](/ergosfare.docs/preview/api/core-abstractions-results/result-1#trygetvalueout-tvalue)/[`Result<TValue>.GetValueOrDefault()`](/ergosfare.docs/preview/api/core-abstractions-results/result-1#getvalueordefault) on paths where failure is
 possible.
 
 **Returns**
@@ -87,7 +87,7 @@ stack trace is captured and no unwind runs.
 
 **Returns**
 
-[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1)
+[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1)
 
 ### `GetValueOrDefault()`
 
@@ -117,7 +117,7 @@ A successful outcome carrying `value`. Allocation-free.
 
 **Returns**
 
-[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1)
+[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1)
 
 ### `ToString()`
 
@@ -167,4 +167,4 @@ Success values convert implicitly, keeping handler returns terse.
 
 **Returns**
 
-[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions/result-1)
+[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1)

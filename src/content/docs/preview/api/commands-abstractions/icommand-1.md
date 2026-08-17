@@ -3,7 +3,7 @@ title: "ICommand<TResult>"
 description: "Represents a command that produces a result of type TResult when handled."
 sidebar:
   label: "ICommand<TResult>"
-  order: 5
+  order: 2
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  

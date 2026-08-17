@@ -1,81 +1,104 @@
 ---
 title: Defining a query
-description: IQuery<TResult> for a single result, IStreamQuery<TResult> for a stream — and why queries always return something.
+description: Declaring a query that returns one result, or one that streams a sequence.
 ---
 
-A query asks the system for data. Unlike a command, it **always** produces a result — there
-is no result-less query interface, because a query that returns nothing has nothing to say.
+A query asks a question and changes nothing. It has exactly one handler, and it always produces
+a result — a single value, or a stream of them.
+
+## A single result
 
 ```csharp
 using Stella.Ergosfare.Queries.Abstractions;
 
-public sealed record GetProduct(Guid Id) : IQuery<Product?>;
+public sealed record GetProduct(Guid Id) : IQuery<ProductDto>;
 ```
 
-## Two shapes
+There is no result-less query. A query with nothing to return is a command.
 
-| Interface | Handler contract | Mediator call | Returns |
-|---|---|---|---|
-| `IQuery<TResult>` | `IQueryHandler<TQuery, TResult>` | `QueryAsync` | `ValueTask<TResult>` |
-| `IStreamQuery<TResult>` | `IStreamQueryHandler<TQuery, TResult>` | `StreamAsync` | `IAsyncEnumerable<TResult>` |
+## A stream
 
 ```csharp
-public sealed record GetProduct(Guid Id) : IQuery<Product?>;
-public sealed record StreamProducts(int PageSize) : IStreamQuery<Product>;
+public sealed record SearchProducts(string Term) : IStreamQuery<ProductDto>;
 ```
 
-Use `IStreamQuery<TResult>` when the result set is large enough that materialising it costs
-more than you want to pay, or when the consumer can start work before the last row arrives.
+The handler returns `IAsyncEnumerable<ProductDto>` and the caller reads it with `await foreach`.
+Use it when the sequence is large enough that materialising it is the problem — a report, an
+export, a paged scan feeding a consumer that processes as it goes.
 
-## Nullability is part of the contract
+For a bounded result set, `IQuery<IReadOnlyList<ProductDto>>` is simpler and usually right.
 
-`IQuery<Product?>` and `IQuery<Product>` say different things. The first admits "not found"
-as a normal outcome; the second promises a result and should throw when it cannot deliver
-one. Pick deliberately — the handler signature follows from it, and so does what callers have
-to write.
+## Return a shape you own
 
-## Records, sealed, and marker interfaces
-
-The same guidance as for [commands](/ergosfare.docs/preview/core-components/command/command-definition)
-applies:
-
-- `record` for value equality and `with` expressions, which
-  [pre-interceptors](/ergosfare.docs/preview/cross-cutting-concerns/pre-interceptors) use to rewrite.
-- `sealed` unless you intend the query to be a covariant base.
-- A shared interface when you want one interceptor to cover a family:
+A result is a contract. Returning your entity ties every caller to your persistence model:
 
 ```csharp
-public interface ICacheableQuery : IQuery;
+// leaks the aggregate
+public sealed record GetOrder(Guid Id) : IQuery<Order>;
 
-public sealed record GetProduct(Guid Id) : ICacheableQuery, IQuery<Product?>;
+// a shape you control
+public sealed record GetOrder(Guid Id) : IQuery<OrderDto>;
 ```
 
-One `IQueryPreInterceptor<ICacheableQuery>` can then serve every cacheable query.
-
-## Queries should not mutate
-
-Nothing in the framework enforces this — the separation is yours to keep. What the framework
-does give you is a mediator per module: a component that takes `IQueryMediator` and not
-`ICommandMediator` *cannot* send commands. Injecting the narrow interface is the enforcement
-mechanism.
-
-## Controlling registration
-
-`[DiscoveryKey]`, `[ExcludeFromDiscovery]` and `[ExcludeFromPipeline]` work on queries
-exactly as on commands. See [Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys)
-and [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
-
-## Dispatching one
+## Records, sealed, immutable
 
 ```csharp
-var product  = await _queries.QueryAsync(new GetProduct(id));
-
-await foreach (var p in _queries.StreamAsync(new StreamProducts(100)))
-    Console.WriteLine(p.Name);
+public sealed record SearchProducts(string Term, int Page = 1) : IQuery<PagedResult<ProductDto>>;
 ```
 
-Both take an optional `QueryMediationSettings` and a `CancellationToken`, and `QueryAsync`
-has an `ErgosfareContext` overload for
-[nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+Same reasoning as commands: `with` for interceptor rewrites, `sealed` so a subtype cannot
+quietly change which handler serves it.
 
-Next: [Defining a query handler](/ergosfare.docs/preview/core-components/query/query-handler).
+## Inheritance
+
+```csharp
+public abstract record TenantQuery<TResult> : IQuery<TResult>
+{
+    public required Guid TenantId { get; init; }
+}
+
+public sealed record GetProduct : TenantQuery<ProductDto>
+{
+    public required Guid Id { get; init; }
+}
+```
+
+An interceptor written against the base covers the family — a tenant filter, for instance.
+
+## Nullable results
+
+A query that may find nothing should say so in the result type:
+
+```csharp
+public sealed record FindProduct(Guid Id) : IQuery<ProductDto?>;
+```
+
+That is better than throwing for the ordinary "not found" case, and it keeps the exception stage
+for genuine failures. Note that a nullable reference result is what the `TResult?` in the
+interceptor contracts refers to — see
+[Exception interceptors](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors).
+
+## One result type
+
+A query declaring several result contracts cannot be given a compiled plan, because the result
+is named at the call site rather than by the message. It still works; it takes the general path.
+
+## Excluding it from the cross-cutting pipeline
+
+```csharp
+[ExcludeFromPipeline("audit")]
+public sealed record GetHealth : IQuery<HealthDto>;
+```
+
+Useful for high-frequency queries where auditing every call would be noise.
+
+## Streams do not get compiled plans
+
+The streaming lane has no plan family, so a stream query always takes the general path. It is
+correct and it works; it just does not get the straight-line body a single-result query gets.
+The streaming surface is also the one part still under revision, which is why it has no typed
+dispatch overloads yet.
+
+## Next
+
+[Defining a query handler](/ergosfare.docs/preview/core-components/query/query-handler).
