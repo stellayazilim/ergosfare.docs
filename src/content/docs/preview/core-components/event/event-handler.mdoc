@@ -1,110 +1,141 @@
 ---
 title: Defining an event handler
-description: IEventHandler — many handlers per event, what happens when one throws, and why handlers must not depend on each other.
+description: Writing subscribers, how many run, what happens when one throws, and how publishing differs from sending.
 ---
 
-An event handler implements `IEventHandler<TEvent>`. There is no result to return:
+An event handler — a subscriber — reacts to something that already happened. Every matching one
+runs, and none of them answers the publisher.
+
+## Writing one
 
 ```csharp
 using Stella.Ergosfare.Events.Abstractions;
 using Stella.Ergosfare.Core.Abstractions;
 
-public sealed class SendWelcomeEmail : IEventHandler<ProductCreated>
+public sealed class SendShipmentEmail(IEmailSender sender) : IEventHandler<OrderShipped>
 {
-    private readonly IMailer _mailer;
-
-    public SendWelcomeEmail(IMailer mailer) => _mailer = mailer;
-
-    public ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
-        => _mailer.SendAsync(@event.Name, context.CancellationToken);
+    public ValueTask HandleAsync(OrderShipped @event, ErgosfareContext context)
+        => sender.SendAsync(@event.CustomerEmail, "Your order shipped", context.CancellationToken);
 }
 ```
 
-Any number of handlers can exist for one event — that is the point of the module. Adding a
-second one is not a configuration error, unlike with commands and queries.
+`IEventHandler<TEvent>` returns `ValueTask` and nothing else — a broadcast has no result to
+produce.
 
-## Handlers must be independent
-
-Handlers for the same event run in a defined order (direct before covariant, then `[Weight]`
-descending), but you should not build on that order. Two rules follow:
-
-- **Do not pass data between handlers.** If handler B needs what handler A produced, they are
-  one operation and belong in one handler — or A should be a command that publishes the event
-  B reacts to.
-- **Do not assume the others succeeded.** A handler that must run only after another
-  succeeded is describing a workflow, not a broadcast.
-
-The item bag on the context does let handlers share data within one dispatch, which makes
-this easy to violate. Reserve it for
-[interceptors](/ergosfare.docs/preview/core-concepts/interceptors) passing data to the pipeline, not
-for handler-to-handler communication.
-
-## When a handler throws
-
-The exception propagates out of `PublishAsync`, and the
-[exception stage](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors) runs. That
-means one failing subscriber can fail the whole publish — and, if the publish is inside a
-command handler, the command with it.
-
-When a subscriber's failure genuinely should not fail the publisher, contain it in the
-handler:
+## Many subscribers, one event
 
 ```csharp
-public async ValueTask HandleAsync(ProductCreated @event, ErgosfareContext context)
+public sealed class SendShipmentEmail  : IEventHandler<OrderShipped> { … }
+public sealed class UpdateReadModel    : IEventHandler<OrderShipped> { … }
+public sealed class AuditOrderEvents   : IEventHandler<OrderEvent>   { … }
+```
+
+Publishing an `OrderShipped` runs all three. Unlike commands, this is not a contest — `ERGO010`
+does not apply to events, because delivering to everyone is the point.
+
+They run in `[Weight]` order, direct registrations before covariant ones. Ordering exists, but
+relying on it between subscribers is a smell: if B must run after A, they are probably one
+operation.
+
+## When one throws
+
+The exception propagates out of the publish. Subscribers that had already run stay run;
+subscribers after it do not.
+
+That is rarely what you want, so a subscriber that can fail should contain its own failure:
+
+```csharp
+public sealed class SendShipmentEmail(IEmailSender sender, ILogger<SendShipmentEmail> logger)
+    : IEventHandler<OrderShipped>
 {
-    try
+    public async ValueTask HandleAsync(OrderShipped @event, ErgosfareContext context)
     {
-        await _searchIndex.AddAsync(@event.Id, @event.Name, context.CancellationToken);
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-        _logger.LogError(ex, "Indexing {Product} failed; continuing", @event.Id);
+        try
+        {
+            await sender.SendAsync(@event.CustomerEmail, "Your order shipped", context.CancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "shipment email failed for {Order}", @event.OrderId);
+        }
     }
 }
 ```
 
-Letting cancellation through is deliberate — a cancelled dispatch should stay cancelled.
+An exception interceptor on the event pipeline can do this centrally instead. Either way, decide
+deliberately — the default is that one failing subscriber stops the rest.
 
-For work that must survive process failure, do not do it in the handler at all: write to an
-outbox in the handler and let a separate worker do the delivery.
-
-## Covariant handlers
-
-A handler registered against a base type or interface receives every assignable event:
+## Publishing
 
 ```csharp
-public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
-{
-    public ValueTask HandleAsync(IDomainEvent @event, ErgosfareContext context)
-        => _outbox.AppendAsync(@event, context.CancellationToken);
-}
+await mediator.PublishAsync(new OrderShipped(id, email, at));
+await mediator.PublishAsync(@event, ct);
+await mediator.PublishAsync(@event, GroupSet.Of("audit"), ct);
+await mediator.PublishAsync(@event, context);          // share the dispatching context
 ```
 
-Handlers registered for the concrete event type run first, then covariant ones. This is what
-lets an outbox, an audit sink or a metrics collector subscribe to a whole family of events
-with a single class.
+A publish returns when every subscriber has completed. It is not fire-and-forget: if you want
+that, put the work on a queue and let a consumer dispatch it.
 
-## Lifetimes
-
-Event handlers resolve from the calling DI scope on each dispatch, like every other handler.
-A handler holding a `DbContext` should be **scoped**. See
-[Configuring Ergosfare](/ergosfare.docs/preview/getting-started/configuring#handler-lifetimes).
-
-Because a publish may fan out to many handlers, this is the module where transient handlers
-allocate most visibly — one instance per handler per dispatch. Register them as singletons
-when they are stateless.
+{% aside type="note" %}
+Reaching nobody is legal and returns. There is no flag to make it throw — that condition is
+`ERGO005` at build time instead, so the case a flag protected you from is caught earlier.
+{% /aside %}
 
 ## Publishing from a handler
 
-Use a [nested scope](/ergosfare.docs/preview/core-concepts/nested-dispatch) so the inner dispatch gets
-a clean item bag and the parent's cancellation token:
+Common, and the shape worth getting right:
 
 ```csharp
-public async ValueTask HandleAsync(OrderPlaced @event, ErgosfareContext context)
+public sealed class PlaceOrderHandler(IOrderRepository repository, IEventMediator events)
+    : ICommandHandler<PlaceOrder, Guid>
 {
-    using var scope = context.CreateScope();
-    await _events.PublishAsync(new InvoiceRequested(@event.OrderId), scope.Context);
+    public async ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        var order = Order.Create(command.CustomerId, command.Lines);
+        await repository.AddAsync(order, context.CancellationToken);
+
+        await events.PublishAsync(new OrderPlaced(order.Id), context);
+        return order.Id;
+    }
 }
 ```
 
-Next: [Modules and extensions](/ergosfare.docs/preview/core-components/modules-extensions).
+Passing `context` keeps the publish in the same logical operation — same items, same
+cancellation.
+
+**Watch the transaction boundary.** Publishing before a commit lets a subscriber act on state
+that later rolls back. Collect the events and publish after committing — see the
+[Unit of work recipe](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## Subscribers get the full pipeline
+
+Interceptors apply to events like anything else: `IEventPreInterceptor`,
+`IEventPostInterceptor`, `IEventExceptionInterceptor`, `IEventFinalInterceptor`.
+
+The pre and post seams name the boundary around a *delivery*, so in a broadcast they run once
+per subscriber rather than once per publish.
+
+## Registering
+
+Nothing to write — `RegisterGenerated()` finds subscribers like any other participant:
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+## Testing
+
+```csharp
+var sender = new RecordingEmailSender();
+var handler = new SendShipmentEmail(sender);
+
+await handler.HandleAsync(new OrderShipped(id, "a@b.c", DateTimeOffset.UtcNow),
+                          new ErgosfareContext());
+
+Assert.Single(sender.Sent);
+```
+
+To test that *all* the subscribers you expect run, build a container and publish — that is the
+part a unit test cannot tell you.

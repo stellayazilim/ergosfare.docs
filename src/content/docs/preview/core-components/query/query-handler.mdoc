@@ -1,111 +1,112 @@
 ---
 title: Defining a query handler
-description: IQueryHandler and IStreamQueryHandler — returning a value, or streaming one row at a time.
+description: Writing the handler that answers a query, streaming a sequence, and dispatching both.
 ---
 
-A query handler implements `IQueryHandler<TQuery, TResult>`:
+A query has exactly one handler, found through the contract it implements.
+
+## A single result
 
 ```csharp
 using Stella.Ergosfare.Queries.Abstractions;
 using Stella.Ergosfare.Core.Abstractions;
 
-public sealed class GetProductHandler : IQueryHandler<GetProduct, Product?>
+public sealed class GetProductHandler(IProductRepository repository)
+    : IQueryHandler<GetProduct, ProductDto>
 {
-    private readonly IProductStore _store;
-
-    public GetProductHandler(IProductStore store) => _store = store;
-
-    public ValueTask<Product?> HandleAsync(GetProduct query, ErgosfareContext context)
-        => _store.FindAsync(query.Id, context.CancellationToken);
-}
-```
-
-As everywhere else: `ValueTask` return, cancellation on the context, dependencies through the
-constructor, and no registration call — the source generator finds it.
-
-## One handler per query
-
-Like commands, a query has exactly one main handler. Two registrations for the same query
-type raise `MultipleHandlerFoundException` at dispatch.
-
-## Streaming
-
-`IStreamQueryHandler<TQuery, TResult>` returns `IAsyncEnumerable<TResult>` instead:
-
-Note the method name: streaming handlers implement **`StreamAsync`**, not `HandleAsync`, and
-there is no separate cancellation-token parameter.
-
-```csharp
-public sealed class StreamProductsHandler : IStreamQueryHandler<StreamProducts, Product>
-{
-    private readonly IProductStore _store;
-
-    public StreamProductsHandler(IProductStore store) => _store = store;
-
-    public async IAsyncEnumerable<Product> StreamAsync(
-        StreamProducts query, ErgosfareContext context)
+    public async ValueTask<ProductDto> HandleAsync(GetProduct query, ErgosfareContext context)
     {
-        // Read what you need off the context before the first yield: from here on the
-        // method body runs during the consumer's enumeration, not during the dispatch call.
-        var cancellationToken = context.CancellationToken;
-
-        await foreach (var page in _store.PagesAsync(query.PageSize, cancellationToken))
-            foreach (var product in page)
-                yield return product;
+        var product = await repository.FindAsync(query.Id, context.CancellationToken);
+        return ProductDto.From(product);
     }
 }
 ```
 
-{% aside type="caution" %}
-An iterator method body does not start running until the consumer enumerates it. Capture
-anything you need from `ErgosfareContext` into locals before the first `yield return` rather
-than touching `context` inside the loop — see
-[Execution context](/ergosfare.docs/preview/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+## A stream
+
+The method is `StreamAsync`, and it takes the query and the context:
+
+```csharp
+public sealed class SearchProductsHandler(IProductRepository repository)
+    : IStreamQueryHandler<SearchProducts, ProductDto>
+{
+    public async IAsyncEnumerable<ProductDto> StreamAsync(
+        SearchProducts query, ErgosfareContext context)
+    {
+        await foreach (var product in repository.SearchAsync(query.Term, context.CancellationToken))
+            yield return ProductDto.From(product);
+    }
+}
+```
+
+Cancellation comes from `context.CancellationToken`, so there is no separate token parameter to
+forget — pass it into whatever you enumerate.
+
+{% aside type="note" %}
+A `null` element is a legitimate element. If your sequence is `IAsyncEnumerable<ProductDto?>`
+and you yield `null`, the caller receives it — the pipeline does not filter nulls out.
 {% /aside %}
 
-Consume it with `await foreach`:
+## Dispatching
 
 ```csharp
-await foreach (var product in _queries.StreamAsync(new StreamProducts(100), ct))
-    await WriteAsync(product);
+var product = await mediator.QueryAsync(new GetProduct(id));
+var product = await mediator.QueryAsync(new GetProduct(id), ct);
+var product = await mediator.QueryAsync(new GetProduct(id), GroupSet.Of("cached"), ct);
 ```
 
-## Returning "not found"
-
-If the query is declared `IQuery<Product?>`, returning `null` is the contract and callers must
-handle it. If it is declared `IQuery<Product>`, throw — and let an
-[exception interceptor](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors)
-translate that into whatever the edge of your application returns:
+And a stream:
 
 ```csharp
-public ValueTask<Product> HandleAsync(GetProduct query, ErgosfareContext context)
-    => _store.FindAsync(query.Id, context.CancellationToken)
-        ?? throw new KeyNotFoundException($"Product {query.Id} not found");
+await foreach (var product in mediator.StreamAsync(new SearchProducts("bench"))
+                                      .WithCancellation(ct))
+{
+    …
+}
 ```
 
-Pick one and be consistent across the codebase; mixing the two is what makes callers write
-both a null check and a try/catch.
+When both types are known at the call site, naming them keeps the dispatch from constructing its
+executor reflectively — which matters for NativeAOT rather than throughput:
 
-## Caching
+```csharp
+var product = await mediator.QueryAsync<GetProduct, ProductDto>(new GetProduct(id), ct);
+```
 
-The pipeline is a better place for caching than the handler, because it keeps the handler
-about the data:
+The streaming members stay untyped for now: their shape is under revision, and adding a surface
+to something scheduled to change is work that has to be undone.
 
-- The handler checks the cache first and returns the hit — nothing before the handler can
-  supply the pipeline's result, so the read side belongs here or in a handler that decorates
-  the real one.
-- A [post-interceptor](/ergosfare.docs/preview/cross-cutting-concerns/post-interceptors) populates
-  the cache on the way out.
+## Keep queries read-only
 
-Scope both to a marker interface such as `ICacheableQuery` so only the queries you opted in
-pay for it.
+Nothing enforces it, and that is the point of having two modules — a query that writes is a
+command that lied about itself. It also breaks reasonable assumptions: a caching interceptor on
+the query pipeline is safe precisely because queries do not have effects.
 
-## Lifetimes
+## Dependencies
 
-Handlers resolve from the calling DI scope on every dispatch. A query handler that holds a
-`DbContext` should be **scoped**, matching the context's own lifetime — a singleton handler
-capturing a scoped dependency is the usual source of "cannot access a disposed object" at
-runtime. See
-[Configuring Ergosfare](/ergosfare.docs/preview/getting-started/configuring#handler-lifetimes).
+Constructor parameters come from the dispatching scope, like any other service. A read-only
+`DbContext`, a Dapper connection factory, a cache — all ordinary registrations.
 
-Next: [Defining an event](/ergosfare.docs/preview/core-components/event/event-definition).
+## Covariant handlers
+
+A handler on a base query type serves the family, and a direct handler wins outright:
+
+```csharp
+public sealed class TenantQueryHandler<TResult> : IQueryHandler<TenantQuery<TResult>, TResult> { … }
+```
+
+Two handlers at the same level is `ERGO010`.
+
+## Testing
+
+```csharp
+var handler = new GetProductHandler(new InMemoryProductRepository(seed));
+var dto = await handler.HandleAsync(new GetProduct(id), new ErgosfareContext());
+```
+
+For a stream, drain it:
+
+```csharp
+var results = new List<ProductDto>();
+await foreach (var item in handler.StreamAsync(query, new ErgosfareContext()))
+    results.Add(item);
+```

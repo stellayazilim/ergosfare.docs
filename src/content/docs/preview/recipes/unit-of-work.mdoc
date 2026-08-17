@@ -1,0 +1,187 @@
+---
+title: Unit of work
+description: Committing a transaction around a command, and publishing the events it produced only after the commit succeeded.
+---
+
+A handler saves changes; something has to commit them. Doing that in every handler is the work
+an interceptor exists to remove — and doing it *correctly* means being careful about when the
+events go out.
+
+## The shape
+
+One transaction per command, opened before the handler and committed after it. A query gets
+none, because it changes nothing.
+
+```csharp
+public interface IUnitOfWork
+{
+    ValueTask<IAsyncDisposable> BeginAsync(CancellationToken ct);
+    ValueTask CommitAsync(CancellationToken ct);
+}
+```
+
+## Marking the commands that want one
+
+Not every command needs a transaction. A marker interface makes the choice explicit and lets
+the interceptor narrow to it:
+
+```csharp
+public interface ITransactionalCommand : ICommand;
+
+public sealed record PlaceOrder(Guid CustomerId, IReadOnlyList<Line> Lines)
+    : ITransactionalCommand;
+```
+
+## The interceptors
+
+A pre-interceptor opens, a final interceptor closes. Two stages, because the final stage runs
+whether the handler succeeded or threw:
+
+```csharp
+public sealed class BeginTransaction(IUnitOfWork unitOfWork)
+    : ICommandPreInterceptor<ITransactionalCommand>
+{
+    public async ValueTask<ITransactionalCommand> HandleAsync(
+        ITransactionalCommand command, ErgosfareContext context)
+    {
+        var transaction = await unitOfWork.BeginAsync(context.CancellationToken);
+        context.Set("uow.transaction", transaction);
+        return command;
+    }
+}
+```
+
+```csharp
+public sealed class CompleteTransaction(IUnitOfWork unitOfWork, IEventMediator events)
+    : ICommandFinalInterceptor<ITransactionalCommand>
+{
+    public async ValueTask HandleAsync(
+        ITransactionalCommand command, object? result, Exception? exception, ErgosfareContext context)
+    {
+        if (!context.TryGet<IAsyncDisposable>("uow.transaction", out var transaction))
+            return;
+
+        await using (transaction)
+        {
+            if (exception is not null)
+                return;                                   // dispose rolls back
+
+            await unitOfWork.CommitAsync(context.CancellationToken);
+        }
+
+        await PublishPendingAsync(context);
+    }
+}
+```
+
+The final stage is the right place for the close because it runs on both paths. Disposing
+without committing is the rollback, so there is no separate failure branch to keep in sync.
+
+{% aside type="caution" %}
+A final interceptor does **not** run after `context.Abort()`. An abort is a deliberate stop, not
+a failure, and it skips the exception and final stages — so a transaction opened in the pre
+stage would leak.
+
+Either abort *before* opening one (put authorization ahead of `BeginTransaction` with a higher
+`[Weight]`), or open the transaction in the handler where a `try`/`finally` covers every exit.
+{% /aside %}
+
+## Publishing events after the commit
+
+This is the part that is easy to get wrong. Publishing inside the transaction lets a subscriber
+act on state that later rolls back:
+
+```csharp
+// the email goes out for an order that never existed
+await repository.SaveAsync(order, context.CancellationToken);
+await events.PublishAsync(new OrderPlaced(order.Id), context);
+await unitOfWork.CommitAsync(context.CancellationToken);
+```
+
+Collect them instead, and let the final interceptor publish once the commit has succeeded:
+
+```csharp
+public static class PendingEvents
+{
+    private const string Key = "uow.events";
+
+    public static void Enqueue(this ErgosfareContext context, object @event)
+    {
+        if (!context.TryGet<List<object>>(Key, out var pending))
+            context.Set(Key, pending = []);
+
+        pending.Add(@event);
+    }
+
+    public static IReadOnlyList<object> Drain(this ErgosfareContext context)
+        => context.TryGet<List<object>>(Key, out var pending) ? pending : [];
+}
+```
+
+The handler announces without dispatching:
+
+```csharp
+public sealed class PlaceOrderHandler(IOrderRepository repository)
+    : ICommandHandler<PlaceOrder, Guid>
+{
+    public async ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        var order = Order.Create(command.CustomerId, command.Lines);
+        await repository.AddAsync(order, context.CancellationToken);
+
+        context.Enqueue(new OrderPlaced(order.Id));
+        return order.Id;
+    }
+}
+```
+
+And the final interceptor drains the queue after committing:
+
+```csharp
+private async ValueTask PublishPendingAsync(ErgosfareContext context)
+{
+    foreach (var @event in context.Drain())
+        await events.PublishAsync(@event, context);
+}
+```
+
+Passing `context` keeps the publish inside the same logical operation — same items, same
+cancellation. See [Nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch).
+
+## Registering it
+
+Nothing extra. Both interceptors are discovered like any other participant:
+
+```csharp
+services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
+```
+
+Order the pre stage explicitly if anything else must run before the transaction opens:
+
+```csharp
+[Weight(100)] public sealed class Authorize         : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class BeginTransaction  : ICommandPreInterceptor<ITransactionalCommand> { … }
+```
+
+## When to reach for an outbox instead
+
+Publishing after the commit closes the "subscriber saw a rolled-back order" hole. It does not
+close the one where the process dies between the commit and the publish — the order exists and
+nobody was told.
+
+If that matters, write the events into the same transaction as an outbox table and let a
+separate reader publish them. The interceptor above becomes the thing that *writes* the outbox
+rows rather than the thing that publishes, and the shape stays the same.
+
+## What this does not do
+
+**It does not nest.** An inner dispatch shares the scope, so it shares the transaction. Nothing
+here opens a second one, and nothing commits early.
+
+**It does not decide isolation.** That belongs to your `IUnitOfWork`.
+
+**It does not apply to queries.** They carry no marker, so the interceptor never matches them.

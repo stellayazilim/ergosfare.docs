@@ -1,0 +1,211 @@
+---
+title: Plugins
+description: Shipping cross-cutting behaviour as a package — the four hooks, plugin options, and what a plugin deliberately cannot do.
+---
+
+A plugin is a NuGet package that observes pipelines. Install it, and its code runs at named
+points inside every dispatch the consuming application makes — with no registration to write
+and no interceptor to wire up.
+
+{% aside type="caution" %}
+The plugin surface is experimental and marked `ERGOEXP002`. Installing a plugin is the one line
+of it you write yourself, and it is where the suppression goes. See
+[Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).
+{% /aside %}
+
+## Installing one
+
+```csharp
+services.AddErgosfare(registry => registry
+    .AddTiming()
+    .AddCommandModule(module => module.RegisterGenerated()));
+```
+
+`AddTiming()` is generated into the plugin's own assembly, so the consumer calls an ordinary
+extension method. If the plugin declares options, the call takes them:
+
+```csharp
+.AddTiming(new TimingOptions { Threshold = TimeSpan.FromMilliseconds(200) })
+```
+
+That is the whole consumer surface.
+
+## Writing one
+
+Two things make an assembly a plugin: an assembly attribute naming it, and at least one method
+marked with a hook.
+
+```csharp
+using Stella.Ergosfare.Plugins.Abstractions;
+
+[assembly: ErgosfarePlugin("Timing")]
+```
+
+The name becomes the generated `TimingModule` and the `AddTiming()` extension, so pick
+something that reads well at a call site.
+
+```csharp
+public sealed class TimingService(ILogger<TimingService> logger)
+{
+    [PipelineInvokable(Hook.PreMain)]
+    public void BeforeHandler<TMessage>(TMessage message, ErgosfareContext context)
+        => context.Set("startedAt", Stopwatch.GetTimestamp());
+
+    [PipelineInvokable(Hook.PostMain)]
+    public void AfterHandler<TMessage>(TMessage message, ErgosfareContext context)
+    {
+        if (context.TryGet<long>("startedAt", out var started))
+            logger.LogInformation("{Message} took {Elapsed}",
+                typeof(TMessage).Name, Stopwatch.GetElapsedTime(started));
+    }
+}
+```
+
+The class is registered as a singleton by the generated module. Its constructor dependencies
+are resolved from the container, so a plugin service takes ordinary dependencies.
+
+## The four hooks
+
+```
+Start → pre* → PreMain → handler → PostMain → post* → Finish
+```
+
+| Hook | Where it runs |
+|---|---|
+| `Hook.Start` | at the very beginning of the dispatch |
+| `Hook.PreMain` | after the pre-interceptors, before the handler |
+| `Hook.PostMain` | after the handler, before the post-interceptors |
+| `Hook.Finish` | at the end of a successful dispatch |
+
+Every one of them is a **straight-line position that exists in every pipeline**. That is the
+design constraint the whole surface is built around: no plan grows a `try`, a `catch` or a
+`finally` because a plugin was installed. An interceptorless pipeline carrying calls at all four
+hooks is still the straight line it is without them.
+
+Points coincide rather than disappear. With no pre-interceptors, `Start` and `PreMain` name the
+same instant and both calls run. In a broadcast, `PreMain` and `PostMain` name the seam around
+a *delivery*, so they run once per subscriber.
+
+## What a plugin cannot do
+
+**It cannot see the failure path.** There is no hook on the exception or final stages, and this
+is deliberate: those stages are what force a pipeline to carry a `try`/`finally`, and a
+third-party package should not be able to change the shape of a consumer's pipeline by being
+installed.
+
+A plugin that genuinely needs the failure path ships an interceptor instead — a plugin package
+can contain one like any other assembly, and the consumer's composition already knows how to
+place it.
+
+**It cannot change the message or the result.** A hook method returns `void` or `ValueTask`.
+Hooks observe; interceptors participate.
+
+## One signature, whatever the pipeline produces
+
+A hook method takes one type parameter — its message — and nothing else varies:
+
+```csharp
+[PipelineInvokable(Hook.Start)]
+public ValueTask OnStart<TMessage>(TMessage message, ErgosfareContext context) { … }
+```
+
+No hook carries a result, so a void command, a result-producing query and an event broadcast
+all call the same method the same way. A `void` method is called plainly and never enters the
+state machine; a `ValueTask` one is awaited.
+
+Parameters are filled positionally: the message from the dispatch, the `ErgosfareContext` from
+the pipeline, and anything else resolved from the container.
+
+## Narrowing where a hook runs
+
+A generic constraint is how a plugin says which messages it applies to:
+
+```csharp
+[PipelineInvokable(Hook.PreMain)]
+public void OnOrder<TMessage>(TMessage message, ErgosfareContext context)
+    where TMessage : IOrderMessage { … }
+```
+
+The call is closed over each plan's concrete types when it is written, so a constraint is both a
+selection rule and something the emitted code has to satisfy. A constraint that cannot be
+reproduced from type names — a constructed generic, `new()`, `unmanaged` — makes the whole
+method unmodelable and it is passed over rather than guessed at.
+
+`[PluginServiceFilter]` narrows by module family or discovery key:
+
+```csharp
+[PluginServiceFilter(Module.Command | Module.Query)]
+public sealed class TimingService { … }
+```
+
+A method-level filter narrows the type's rather than replacing it: families intersect, and keys
+add together.
+
+## Plugin options
+
+Name an options type in the assembly attribute:
+
+```csharp
+[assembly: ErgosfarePlugin("Timing", typeof(TimingOptions))]
+
+public sealed class TimingOptions
+{
+    public TimeSpan Threshold { get; init; } = TimeSpan.FromMilliseconds(100);
+}
+```
+
+`AddTiming()` now takes an instance, and the module hands it to the service it constructs.
+
+**The options never enter the container.** Nothing registers them, no resolution looks them up,
+and the consumer constructs what they pass — so there is no builder in between and nothing
+configurable the call site cannot see.
+
+There are two ways for a service to receive them, chosen by what you write.
+
+**Write a constructor.** It is left alone, and its other parameters are still resolved from the
+container:
+
+```csharp
+public sealed class TimingService(TimingOptions options, ILogger<TimingService> logger) { … }
+```
+
+**Or make the class `partial` and write none.** The generator writes the field and the line that
+assigns it:
+
+```csharp
+public sealed partial class TimingService
+{
+    [PipelineInvokable(Hook.Finish)]
+    public void OnFinish<TMessage>(TMessage message, ErgosfareContext context)
+        => _logger.LogInformation("threshold {T}", _options.Threshold);
+}
+```
+
+A service that is neither — no constructor and not `partial`, or several public constructors —
+is `ERGO017`, rather than silently ignoring settings its own plugin declared.
+
+## Packaging
+
+A plugin is an ordinary library that references `Stella.Ergosfare.Plugins.Abstractions` and the
+source generator. The generator emits the module and the registry extension into the plugin's
+own compilation, so nothing about this depends on one generator seeing another's output.
+
+{% aside type="danger" %}
+**Do not name a plugin assembly `Stella.Ergosfare.*`.** That prefix is reserved, and reference
+scanning skips it — Ergosfare's own contract interfaces inherit the module markers and would
+otherwise all register as user types. A plugin under the prefix would silently reach no
+pipeline at all, so it is reported as `ERGO015`.
+
+If you genuinely must live under the prefix, opt back in per assembly:
+
+```csharp
+[assembly: AssemblyMetadata("ErgosfareSourceGeneratorForceScanReferences", "true")]
+```
+{% /aside %}
+
+## What it costs
+
+Nothing while nothing is installed, and nothing structural when something is. A hook call is a
+call at a point the pipeline already had. The plugin service is a singleton resolved once per
+container, not per dispatch, and its per-dispatch dependencies arrive as method parameters —
+which is why the lifetime is fixed rather than left to the author.

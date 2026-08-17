@@ -1,128 +1,107 @@
 ---
 title: Nested dispatch
-description: Calling the mediator from inside a handler with CreateScope() — isolated items, inherited cancellation, no ambient state to restore.
+description: Dispatching from inside a handler — when to share the context, what the interceptors do, and how to keep it from becoming a hidden call graph.
 ---
 
-A handler often needs to mediate further messages: reserve stock while placing an order,
-publish an event after a command succeeds. Ergosfare handles this with an explicit child
-scope rather than ambient state.
+A handler can dispatch. Injecting a mediator into a handler works exactly as it does anywhere
+else, and the inner dispatch runs its own full pipeline:
 
 ```csharp
-public async ValueTask HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
+public sealed class PlaceOrderHandler(IEventMediator events, IOrderRepository repository)
+    : ICommandHandler<PlaceOrder, Guid>
 {
-    using var scope = ctx.CreateScope();   // struct scope — allocates nothing
-
-    var reserved = await _commands.SendAsync(new ReserveStock(msg.OrderId), scope.Context);
-    await _events.PublishAsync(new OrderPlaced(msg.OrderId), scope.Context);
+    public async ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        var id = await repository.SaveAsync(command, context.CancellationToken);
+        await events.PublishAsync(new OrderPlaced(id), context);
+        return id;
+    }
 }
 ```
 
-## What the child gets
+## Share the context, or do not
 
-**Clean items.** The child starts with an empty item bag. Anything an inner interceptor
-stashes stays inner — it cannot leak into the outer dispatch and confuse an outer
-post-interceptor.
+This is the one decision nested dispatch actually asks of you.
 
-**The parent's cancellation token.** Inherited, not re-derived. Nested work cannot escape the
-outer cancellation chain, and there is no token parameter to forget.
-
-**Its own pipeline.** The inner message runs its own plan: its own interceptors, its own
-handlers, its own abort semantics.
-
-## Passing the child
-
-Every mediator facade has an overload taking an `ErgosfareContext`:
+**Passing your context** makes the inner dispatch part of the same logical operation. It shares
+your `Items`, so a correlation id set by an outer interceptor is visible to the inner one, and
+it shares your cancellation token, so cancelling the outer work cancels the inner too.
 
 ```csharp
-ValueTask        SendAsync(ICommand command, ErgosfareContext context, CommandMediationSettings? settings = null);
-ValueTask<T>     SendAsync<T>(ICommand<T> command, ErgosfareContext context, CommandMediationSettings? settings = null);
-ValueTask<T>     QueryAsync<T>(IQuery<T> query, ErgosfareContext context, QueryMediationSettings? settings = null);
-ValueTask        PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? settings = null);
+await events.PublishAsync(new OrderPlaced(id), context);
 ```
 
-Pass `scope.Context`, not `ctx`. Passing the parent would run the inner dispatch on the
-outer context and defeat the isolation.
-
-## Abort crosses the boundary — unless you catch it
-
-An `Abort()` inside the child cuts the **inner** pipeline and surfaces at the inner call site
-as `ExecutionAbortedException`. The inner call site is your outer handler, so the outer
-handler decides: catch it and carry on, or let it end the outer pipeline too.
+**Omitting it** gives the inner dispatch a fresh context. Use that when the inner work is
+genuinely separate — its own state, its own cancellation:
 
 ```csharp
-public async ValueTask<bool> HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
-{
-    using var reserve = ctx.CreateScope();
-
-    try
-    {
-        await _commands.SendAsync(new ReserveStock(msg.OrderId), reserve.Context);
-    }
-    catch (ExecutionAbortedException aborted)
-    {
-        _log.LogInformation("stock refused: {Reason}", aborted.Reason);
-        return false;                 // the outer pipeline continues, by our choice
-    }
-
-    using var notify = ctx.CreateScope();
-    await _events.PublishAsync(new OrderPlaced(msg.OrderId), notify.Context);
-    return true;
-}
+await events.PublishAsync(new OrderPlaced(id), cancellationToken);
 ```
 
-Leave the `try` out and the abort keeps travelling: out of the outer handler, out of the outer
-pipeline, to whoever called *that*. Nothing in between swallows it, so an inner abort ending
-the whole chain is the default, and containing it is the deliberate act.
+The default is to pass it. An inner dispatch that is part of handling the outer message
+normally belongs to the same operation, and losing the cancellation token by accident is a bug
+that only shows up under load.
 
-{% aside type="note" %}
-Before v2.3 an inner abort ended the inner pipeline quietly and the outer handler resumed on
-the next line. Nested code written against that behaviour needs the `try` added — see
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+## Interceptors run every time
+
+There is no "inner dispatch" mode. The nested call is a dispatch like any other, and every
+interceptor matching the inner message runs:
+
+```
+PlaceOrder     pre → handler ─┐
+                              │
+OrderPlaced                   └→ pre → subscriber(s) → post → final
+               post ← ────────┘
+               final
+```
+
+That is usually what you want — the audit interceptor should see the inner event too. It is
+also how a cross-cutting interceptor written against `ICommand` ends up running twice for one
+request, which is worth knowing before you put something expensive in one.
+
+## Watch for cycles
+
+Nothing prevents a handler from dispatching a message whose handler dispatches back. There is
+no cycle detection, and the compile-time judgments do not look for one — a cycle is a legal
+shape that a state machine or a retry policy might genuinely want. Keeping the graph shallow is
+on you.
+
+{% aside type="tip" %}
+If you find yourself two or three dispatches deep, that is usually a sign the work wants to be a
+method call rather than a message. A message is for decoupling something that genuinely belongs
+to another part of the application; using one to call code you own, in the same layer, buys the
+indirection without the decoupling.
 {% /aside %}
 
-This is the part ambient-state mediators cannot offer safely. With an `AsyncLocal` context,
-an inner dispatch either overwrites the ambient value — requiring a restore step that a
-`finally` block has to get exactly right — or shares state with the outer pipeline. Here
-there is nothing ambient to overwrite, so there is nothing to restore.
+## Transactions do not nest for you
 
-## Parallel inner dispatches
+An inner dispatch runs in the same DI scope as the outer one, so a scoped `DbContext` is shared
+and a transaction opened outside is still open inside. What does *not* happen is anything
+automatic: nothing commits when the inner dispatch succeeds, and nothing rolls back when it
+throws.
 
-Separate scopes are independent, so fanning out is safe:
+If you want a unit of work spanning a dispatch, own it explicitly — see the
+[Unit of work recipe](/ergosfare.docs/preview/recipes/unit-of-work).
 
-```csharp
-public async ValueTask HandleAsync(RebuildAll msg, ErgosfareContext ctx)
-{
-    await Task.WhenAll(msg.TenantIds.Select(async id =>
-    {
-        using var scope = ctx.CreateScope();
-        await _commands.SendAsync(new RebuildTenant(id), scope.Context);
-    }));
-}
-```
+## Publishing events after the work, not during
 
-Each iteration rents its own child context. They share the parent's cancellation token and
-nothing else.
-
-{% aside type="caution" %}
-Do not share one scope across concurrent inner dispatches. One scope means one context, and
-a context is single-dispatch state.
-{% /aside %}
-
-## Lifetime
-
-`ErgosfareContextScope` is a `readonly struct` implementing `IDisposable`, and `using`
-returns the pooled child. Its constructor is internal, so `CreateScope()` is the only way to
-get one — a scope always has a parent. As with any pooled context, the child **must not be
-used after the scope is disposed** — see
-[Execution context](/ergosfare.docs/preview/core-concepts/execution-context#pooling-and-the-lifetime-rule).
+A common shape is a handler that does its work and then announces it. Publishing *inside* the
+transaction means a subscriber can observe a state that later rolls back:
 
 ```csharp
-// Wrong — the child is back in the pool by the time this runs.
-ErgosfareContext leaked;
-using (var scope = ctx.CreateScope())
-    leaked = scope.Context;
-
-leaked.Set("oops", true);
+// the subscriber may act on an order that never existed
+await repository.SaveAsync(order);
+await events.PublishAsync(new OrderPlaced(order.Id), context);
+await unitOfWork.CommitAsync();
 ```
 
-Next: [Interceptors](/ergosfare.docs/preview/core-concepts/interceptors).
+Collect the events and publish after the commit instead, or hand them to an outbox. The
+mediator has no opinion here — it dispatches when you tell it to — so the ordering is a design
+decision you make rather than one the framework makes for you.
+
+## What it costs
+
+An inner dispatch is a dispatch: it looks up its plan, resolves its participants from the
+current scope, and runs. It does not re-enter discovery or rebuild anything, and the context it
+shares is the one already allocated. The cost is the pipeline you asked for and nothing on top
+of it.

@@ -1,54 +1,30 @@
 ---
 title: Native AOT and trimming
-description: What makes Ergosfare AOT-complete, which APIs forfeit that, and how to check your own application.
+description: Why compile-time dispatch makes NativeAOT viable, what still needs care, and how to check before you publish.
 ---
 
-Ergosfare is built to work under Native AOT and aggressive trimming — provided every
-registration goes through the source generator. The libraries are marked
-`IsAotCompatible`, and the reflective registration paths are annotated honestly so the
-compiler warns you when you step off the safe path.
+Ergosfare treats a published NativeAOT application as a first-class case. The reason is the same
+compile-time work everything else rests on: if the shape of a dispatch is decided while you
+compile, there is nothing left for it to construct reflectively.
 
 ## What makes it work
 
-**Every construct is referenced statically.** Generated registration names each handler,
-interceptor and message via `typeof`, so the trimmer can see them and keeps them.
+**No assembly scan.** Discovery happens at compile time, and `RegisterGenerated()` names every
+construct through `typeof` — which is exactly what the trimming analyzers want to see.
 
-**Dispatch roots anchor generic instantiations.** For every dispatchable message the
-generator emits:
+**Generic instantiations are closed in generated code.** A dispatch would otherwise have to
+close its executor generic with `MakeGenericType`, which only a JIT can answer. The generated
+dispatch roots close them ahead of time, so the type the runtime needs already exists in the
+published binary.
 
-```csharp
-GeneratedDispatchRoots.AddMessage<CreateProduct>();
-GeneratedDispatchRoots.AddResult<CreateProduct, Guid>();
-```
+**Native result carriers name their own adapter.** Binding a result slot used to close an
+adapter generic reflectively; the carrier now answers for itself, which removed the majority of
+the adapter layer's reflective bindings along with their `IL2055` and `IL3050` suppressions.
 
-These give the AOT compiler a static instantiation of every closed generic the runtime will
-need. Without them, the runtime would reach for `MakeGenericType`, which cannot work when
-there is no JIT.
+**Nothing depends on a type's name.** No convention scanning, so the linker renaming or removing
+things cannot break resolution.
 
-**Value-type messages are covered.** This is the part shared generic code cannot do. Reference
-types share a single canonical instantiation, so a runtime can often get away with
-constructing them dynamically; `record struct` and `struct` messages each need their own
-compiled instantiation. Dispatch roots provide them:
-
-```csharp
-public readonly record struct Ping(long Sequence) : ICommand;   // works under AOT
-```
-
-**The composition table is compiled, not discovered.** Registration does not reflect over
-handler types to work out what they implement — the generator already did, and registration
-only names which of the compiled rows this container runs.
-
-**Participant constructors survive trimming.** Generated participant types keep the
-constructor metadata Microsoft DI needs, so activation works in a trimmed publish. The
-NativeAOT smoke covers command, query and event activation in a published native binary —
-multi-subscriber broadcast and value-type messages included.
-
-## Setting it up
-
-```bash
-dotnet add package Stella.Ergosfare --prerelease
-dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
-```
+## Publishing
 
 ```xml
 <PropertyGroup>
@@ -57,90 +33,111 @@ dotnet add package Stella.Ergosfare.SourceGenerator --prerelease
 </PropertyGroup>
 ```
 
-```csharp
-using Stella.Ergosfare.Generated;
-
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
-```
-
-Then publish and read the warnings:
-
 ```bash
-dotnet publish -c Release -r win-x64
+dotnet publish -c Release -r linux-x64
 ```
 
-A clean publish is the check. Ergosfare's own surface should contribute nothing.
+## What still needs care
 
-## What forfeits it
-
-**Runtime assembly scanning** used to, and no longer can. `RegisterFromAssembly(...)` was
-removed in v2.3, so the reflective registration path that the trimmer could not follow is
-gone from the surface entirely. Nothing to forfeit and nothing to suppress.
-
-**Open generic handlers and interceptors.** A type like
-`ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` cannot be closed at compile
-time by the generator, so its instantiations go through the reflective `MakeGenericType`
-path. If you need one in an AOT build, select the closed forms explicitly:
+### Dispatching through a base type
 
 ```csharp
-.AddCommandModule(c => c
-    .RegisterGenerated()
-    .Register<ValidateCommands<CreateProduct>>()
-    .Register<ValidateCommands<DeleteProduct>>())
+IMessage message = await queue.ReadAsync();
+await mediator.DispatchAsync(message, ct);
 ```
 
-**Genuine runtime plugins.** Assemblies loaded with `Assembly.LoadFrom` at runtime are outside
-AOT's model entirely — there is no compiled code for types the publish step never saw. They
-are outside Ergosfare's model too: the composition table is frozen at compile time, so a
-late-loaded assembly cannot contribute a message shape in any build configuration.
+The pipeline that runs belongs to the runtime type, which is correct — but the compiler now
+cannot see which message arrives, so it cannot prove a root exists for it. If nothing in the
+compilation ever names that message concretely, the dispatch falls back to closing its generic
+at run time.
 
-## Generator diagnostics matter more here
+Turn on `ERGO009` to find these:
 
-Under AOT a handler that silently fails to register does not fall back to anything. Treat
-these as errors:
+```ini
+dotnet_diagnostic.ERGO009.severity = warning
+```
 
-| ID | Meaning |
-|---|---|
-| `ERGOSG001` | A registrable type in this compilation is not accessible from generated registration code. |
-| `ERGOSG002` | A registrable type in a referenced assembly is not visible to generated code — usually an internal type without `InternalsVisibleTo`. |
-| `ERGOSG006` | The dispatched static type has no covering handler; only subtypes are handled. |
-| `ERGOSG007` | A handler exists that no dispatch site in the closure can reach. |
+Where the types *are* known, name them:
+
+```csharp
+var id = await mediator.SendAsync<PlaceOrder, Guid>(command, ct);
+```
+
+That is what the typed overloads are for — not throughput, but keeping the construction path off
+reflection.
+
+### Generic messages
+
+A generic message's closed forms are not rooted, because an open definition is not a dispatchable
+message. `Wrap<int>` and `Wrap<string>` are separate closed types, and the generator has no list
+of which ones your application uses.
+
+If you dispatch generic messages under AOT, root them yourself by dispatching each closed form
+somewhere the compiler can see, or avoid generic messages on that path.
+
+### Types hidden from discovery
+
+`[ExcludeFromDiscovery]` keeps a type out of bulk registration. It does **not** stop it being
+dispatched — and every hidden message your compilation declares is rooted anyway, precisely so a
+hidden message does not become the shape that works in development and fails at publish.
+
+Assembly-level exclusion is different: `[assembly: ExcludeFromDiscovery]` says do not look here
+at all, and those types are neither registered nor rooted.
+
+### Registrations naming a runtime type
+
+`Register(someComputedType)` cannot be followed by any of this, which is why it is `ERGO018` —
+an error rather than a warning.
+
+### Your own code
+
+The framework's dispatch path is reflection-free; your handlers are your own. JSON
+serialization, `Activator.CreateInstance`, dynamic proxies and expression compilation all need
+the same care they need in any AOT application.
+
+## Checking before you ship
+
+**Publish in CI, and run the binary.** This is the only check that actually proves anything.
+Trimming warnings are useful, but the failure mode being avoided here — a generic that cannot be
+closed — shows up when the code path executes.
+
+**Exercise every dispatch shape in a smoke test.** A dispatch that is never executed is a
+dispatch whose root you never confirmed.
+
+**Read the trimming warnings.** `IL2026`, `IL2055`, `IL3050` from your own code are real; the
+framework should contribute none.
+
+## Trimming without AOT
+
+`PublishTrimmed` alone gets most of the size benefit with fewer constraints, and is a good first
+step if AOT is not a requirement:
 
 ```xml
-<PropertyGroup>
-  <WarningsAsErrors>$(WarningsAsErrors);ERGOSG001;ERGOSG002;ERGOSG006;ERGOSG007</WarningsAsErrors>
-</PropertyGroup>
+<PublishTrimmed>true</PublishTrimmed>
 ```
 
-The full list is on
-[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery#diagnostics).
-
-## Cross-assembly under AOT
-
-Reference scanning works under AOT — the generator resolves handlers in referenced assemblies
-at compile time and names them statically in the consuming application's generated code. A
-library ships handlers with no registration code and no AOT annotations of its own.
-
-If you disabled it:
+The handler trim pairs well with it:
 
 ```xml
-<ErgosfareSourceGeneratorScanReferences>false</ErgosfareSourceGeneratorScanReferences>
+<ErgosfareTrimUnusedHandlers>true</ErgosfareTrimUnusedHandlers>
 ```
 
-then those handlers are not registered at all, in any build configuration.
+A handler no dispatch in the closure reaches is then left out of the registration entirely —
+reported as `ERGO008` so the exclusion is visible — and the linker can drop it. It only applies
+to pure handler types; one that also carries interceptor contracts stays registered for those.
 
-## Verifying registration
+{% aside type="caution" %}
+The trim is driven by the same reachability judgment as `ERGO007`, so it is only as good as the
+compiler's view. A handler dispatched somewhere invisible — reflectively, or from an assembly
+without a manifest — would be trimmed too. Suppress `ERGO007` at those types before turning the
+trim on, and the exclusion respects the suppression.
+{% /aside %}
 
-Read the generated file. It is plain C#:
+## Known gaps
 
-```
-obj/gen/Stella.Ergosfare.SourceGenerator/…/ErgosfareRegistrations.g.cs
-```
+Two shapes still reach the reflective arm, and both are tracked:
 
-If a handler is not named in there, it will not be registered — under AOT or otherwise. That
-file is the ground truth for what your application dispatches.
+- **Generic messages**, whose closed forms are never rooted.
+- **A hidden message no registration names at all**, which nothing can enumerate.
 
-Next: [Experimental APIs](/ergosfare.docs/preview/advanced/experimental-apis).
+Neither is a failure in a JIT run. Both are worth knowing about before an AOT publish.

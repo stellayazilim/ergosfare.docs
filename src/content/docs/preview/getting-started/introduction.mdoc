@@ -1,28 +1,23 @@
 ---
 title: Introduction
-description: Ergosfare is a source-generated, high-performance mediator for CQRS-style messaging in .NET — commands, queries and events over one pipeline model.
+description: Ergosfare is a source-generated mediator for commands, queries and events in .NET, where the shape of a dispatch is decided at compile time rather than discovered at run time.
 ---
 
-Ergosfare is a mediator for CQRS-style messaging in .NET: commands, queries and events over
-one pipeline model. It is built around a single design premise — **all dispatch-shape work
-happens at compile time or once per message type, never per dispatch**.
+Ergosfare is a mediator for CQRS-style messaging in .NET. Commands, queries and events all
+travel one pipeline model, and the design premise is a single sentence: **the shape of a
+dispatch is decided while you compile, not while you run.**
 
-A Roslyn source generator compiles a **frozen composition table** — one immutable
-composition per message type, holding its handler rows and its four interceptor stages in
-execution order — and emits the registration that selects from it. Pipeline plans are
-computed once per `(message type, group set)` and cached process-wide. Dispatch generics are
-closed at compile time, and execution contexts are pooled. A dispatch resolves handler
-*instances* from the calling DI scope and walks a pre-built plan — no reflection, no
-`MakeGenericType`, no assembly scan, no `AsyncLocal`, and no per-dispatch context allocation
-on the hot path.
+A Roslyn source generator reads your assembly and the ones it references, works out which
+handlers and interceptors serve each message, and writes that answer into your build as a
+table. What a dispatch then does at run time is walk a list that was already assembled — no
+assembly scan, no reflection over handler types, no `MakeGenericType`, and no per-dispatch
+allocation to carry the context.
 
 {% aside type="caution" %}
-You are reading the docs for the **preview line**, built from the
+You are reading the **preview line**, built from the
 [`preview` branch](https://github.com/stellayazilim/Ergosfare/tree/preview). Packages ship as
-`-preview` pre-releases and APIs may change between them. The stable line is
-[v2 at the site root](/ergosfare.docs/getting-started/introduction). Upgrading from v2.2? v2.3
-removed the runtime registry — see
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
+`-preview` pre-releases and the surface can change between them. The stable line is
+[v2 at the site root](/ergosfare.docs/getting-started/introduction).
 {% /aside %}
 
 ## What it looks like
@@ -40,87 +35,91 @@ public sealed class CreateProductHandler : ICommandHandler<CreateProduct, Guid>
 }
 ```
 
-Nothing registers this handler by hand. The source generator finds it at compile time and
-emits the registration call you wire up once at startup:
+Register once, at your composition root:
 
 ```csharp
-using Stella.Ergosfare.Generated;
-
-builder.Services.AddErgosfare(o => o
-    .AddCommandModule(c => c.RegisterGenerated())
-    .AddQueryModule(q => q.RegisterGenerated())
-    .AddEventModule(e => e.RegisterGenerated()));
+services.AddErgosfare(registry => registry
+    .AddCommandModule(module => module.RegisterGenerated())
+    .AddQueryModule(module => module.RegisterGenerated())
+    .AddEventModule(module => module.RegisterGenerated()));
 ```
 
-## Why Ergosfare
+And dispatch:
 
-**Compile-time registration.** The generator discovers handlers in your compilation *and in
-referenced assemblies*, compiles their relationships into the frozen composition table, and
-emits `RegisterGenerated()`. A library's handlers register through the consuming app's
-generated code with no registration code in the library at all.
-
-**Registration is selection, not discovery.** `RegisterGenerated()` and `Register<T>()` pick
-which rows of the compiled table one container runs. Repeated and overlapping selections are
-harmless unions, and nothing can append a message shape after compilation — so there is no
-registration window whose timing changes a running application.
-
-**Reflection-free dispatch.** Generated dispatch roots close executor generics at compile
-time, and pipeline plans pre-close generic handler types. `MakeGenericType` survives only as
-a fallback for message types the generator could not root, chiefly open generics.
-
-**Allocation you can account for.** Pooled execution contexts, a `ValueTask`-first surface
-and generated plans put a no-result command at 19.9 ns / 24 B and a result query at
-24.0 ns / 24 B per dispatch. See [Performance](/ergosfare.docs/preview/advanced/performance) for the
-measured shapes and how to read them.
-
-**Nested dispatch, safely.** `context.CreateScope()` gives a handler an isolated child
-context with inherited cancellation for mediator calls inside handlers — the pattern
-ambient-state mediators cannot offer safely.
-
-**No ambient state.** The execution context is a parameter, never an `AsyncLocal`. Nothing
-about a dispatch is discoverable from thread-local storage, which is what makes nested and
-parallel dispatch predictable.
-
-**Native AOT and trimming.** Every construct is referenced statically via `typeof`, and
-dispatch roots anchor every generic instantiation — including `record struct` messages,
-which shared generic code cannot cover.
-
-**Modular.** Commands, Queries and Events are independent packages over a shared core.
-A library that only declares messages needs just the relevant `.Abstractions` package.
-
-## How a dispatch fits together
-
-```
-compile time                    once per (message type, groups)         every dispatch
-────────────                    ───────────────────────────────         ──────────────
-source generator         ──►    composition ─► selection ─► plan     ──►  pooled context rented
-  frozen composition table        │                                          │
-  dispatch roots emitted          │  six fixed stages, pre-ordered           │  executor closed over runtime type
-  RegisterGenerated()             │  (direct-first, weight-ordered)          │  handler resolved from calling scope
-                                  └─ closed generic types pre-computed       └─ pre → main → post/exception → final
+```csharp
+var id = await mediator.SendAsync(new CreateProduct("Bench"));
 ```
 
-- **Composition and selection.** The generator compiles one `FrozenComposition` per message
-  type into a process-wide table. Registration selects which of its participant rows this
-  container runs — `RegisterGenerated()` in bulk, `Register<T>()` one at a time. Selection is
-  a union, so the two are safe to combine and repeat.
-- **Pipeline plan.** Six fixed stages per message: main handlers (split direct/indirect) and
-  four interceptor stages, each a pre-ordered array. Direct entries come first, then
-  covariant matches ordered by weight. Group filters and `[ExcludeFromPipeline]` are applied
-  here, once.
-- **Dispatch.** The mediator rents a pooled context, looks up the cached executor for the
-  message's runtime type, and walks the plan. Handler resolution belongs to the dispatcher —
-  the execution context deliberately exposes **no** service provider.
+`RegisterGenerated()` is written by the generator. It names every construct it found, so
+nothing here scans an assembly at start-up and nothing depends on a naming convention.
+
+## What the compiler already knows
+
+Most of what a mediator usually decides per dispatch is knowable earlier, and Ergosfare moves
+it there:
+
+**Which handler serves this message** is a property of the types, not of the call. The
+generator resolves it once and bakes the answer.
+
+**Which interceptors run, and in what order** is the same question. Each message gets a
+*composition* — its handler rows and its four interceptor stages, already sorted — and for the
+pipelines it can prove exactly, the generator writes the body as a straight line of calls.
+
+**Whether a dispatch can work at all** is answerable too, and this is the part that changes how
+the framework feels. A `SendAsync` for a command nothing in your compilation handles is not a
+runtime surprise; it is a build error:
+
+```
+error ERGO005: This dispatch of 'ArchiveOrder' can never reach a handler: neither
+'ArchiveOrder' nor any of its subtypes in the compiled closure has a covering handler
+registration, so the call is guaranteed to throw NoHandlerFoundException at runtime.
+```
+
+The same judgment runs the other way: a handler no dispatch can reach is reported, and can be
+trimmed from the registration entirely. See
+[Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery).
+
+## What you still decide at run time
+
+The compiler decides the *shape*. Your container decides the *selection*: which of the rows in
+that table your application actually registered, and which instances they resolve to. A
+handler is resolved from the dispatching scope like any other service, so scoped dependencies
+behave the way they do everywhere else in your application.
+
+A dispatch can also narrow the pipeline per call with **groups**, which select a subset of the
+interceptors — the audit pipeline, the import pipeline — without changing the handler. See
+[Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+
+## Three modules, one pipeline
+
+| Module | Message | Handlers | Result |
+|---|---|---|---|
+| Commands | `ICommand`, `ICommand<TResult>` | exactly one | none, or `TResult` |
+| Queries | `IQuery<TResult>`, `IStreamQuery<TResult>` | exactly one | `TResult`, or a stream of them |
+| Events | `IEvent`, or any type a subscriber names | every match | none |
+
+They differ in delivery, not in machinery: all three build the same four interceptor stages
+around the handler, and all three are compiled the same way.
+
+An event message does not have to implement anything. Writing an `IEventHandler<OrderShipped>`
+is what makes `OrderShipped` an event, so a domain type in a project with no Ergosfare
+reference can be published as-is. See
+[Defining an event](/ergosfare.docs/preview/core-components/event/event-definition).
+
+## Native AOT
+
+The framework targets a published NativeAOT application as a first-class case rather than a
+best effort. What makes that possible is the same compile-time work: generic instantiations
+are closed in generated code, so the dispatch path has nothing left to construct reflectively.
+See [Native AOT and trimming](/ergosfare.docs/preview/advanced/aot-and-trimming).
 
 ## Where to go next
 
-- [Installation](/ergosfare.docs/preview/getting-started/installation) — which packages you actually need.
-- [Quick start](/ergosfare.docs/preview/getting-started/quick-start) — a command, a query and an event, end to end.
-- [Compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery) — where `RegisterGenerated()` comes from.
-- [Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3) — what v2.3 removed, and the replacement for each.
-- [Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2) — if you are still on the v1 line.
-
-{% aside type="note" %}
-Stuck on something? Open an issue on
-[GitHub](https://github.com/stellayazilim/ergosfare/issues).
-{% /aside %}
+- [Installation](/ergosfare.docs/preview/getting-started/installation) — packages and the
+  target frameworks they support.
+- [Quick start](/ergosfare.docs/preview/getting-started/quick-start) — a command, a query, an
+  event and an interceptor, end to end.
+- [Core concepts](/ergosfare.docs/preview/core-concepts/compile-time-discovery) — what the
+  generator does, and what it refuses to guess at.
+- [Best practices](/ergosfare.docs/preview/best-practices/messages-and-handlers) — how to shape
+  messages, and where cross-cutting work belongs.

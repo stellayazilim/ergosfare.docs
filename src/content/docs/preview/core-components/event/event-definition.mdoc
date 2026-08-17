@@ -1,95 +1,128 @@
 ---
 title: Defining an event
-description: IEvent — broadcast to any number of handlers, including handlers registered against a base type.
+description: An event is a fact that already happened — and it does not have to implement anything to be one.
 ---
 
-An event states that something happened. Unlike a command, it is **broadcast**: any number of
-handlers may react, including none.
+An event announces something that has already happened. Every matching subscriber runs, none of
+them answers the publisher, and — unlike commands and queries — the message itself needs no
+marker.
+
+## A plain type is enough
+
+```csharp
+public sealed record OrderShipped(Guid OrderId, DateTimeOffset At);
+```
+
+That is a complete event. Writing a subscriber for it is what makes it one:
+
+```csharp
+public sealed class NotifyCustomer : IEventHandler<OrderShipped> { … }
+```
+
+An `IEventHandler<T>` signature is not evidence pointing at a message the generator then goes
+looking for — it *is* the classification. So the project that declares your domain events needs
+no reference to Ergosfare at all, and this works across assembly boundaries: the subscriber can
+live anywhere.
+
+{% aside type="note" %}
+Nothing in the publish path ever needed the marker. `IEventHandler<TEvent>`,
+`PublishAsync<TEvent>` and the broadcast dispatch are all declared over `notnull`, because a
+broadcast carries no result and asks nothing of a message contract.
+{% /aside %}
+
+## Or declare `IEvent` deliberately
 
 ```csharp
 using Stella.Ergosfare.Events.Abstractions;
 
-public sealed record ProductCreated(Guid Id, string Name) : IEvent;
+public sealed record OrderShipped(Guid OrderId, DateTimeOffset At) : IEvent;
 ```
 
-There is one shape only — `IEvent`. An event has no result, because there is no single
-handler whose answer would count.
+Both work identically at run time. The choice is about where the reference lands:
 
-## Commands versus events
+**Plain type** when the event belongs to your domain. A domain event is a fact about your
+business, and the assembly declaring it should not need a mediator reference to say so. This is
+the better default for a domain or contracts project.
 
-| | Command | Event |
-|---|---|---|
-| Intent | do this | this happened |
-| Handlers | exactly one | zero or more |
-| Result | optional (`ICommand<TResult>`) | none |
-| Naming | imperative — `CreateProduct` | past tense — `ProductCreated` |
-| Adding a handler | a configuration error | the normal way to extend |
+**`IEvent`** when the type exists to be dispatched — an integration event, something shaped for
+a queue, a message with no meaning outside the pipeline. The marker documents that, and it makes
+the type discoverable on its own rather than only through a subscriber.
 
-The past-tense naming is not decoration. If you find yourself wanting a result back from an
-event, or wanting exactly one handler to own it, what you have is a command.
+The one practical difference: a plain type nobody subscribes to is simply a class. It is not
+registered, not rooted, and not reported — because from the outside it is not an event.
 
-## Covariant broadcast
+## Naming
 
-Event handlers match [covariantly](/ergosfare.docs/preview/core-concepts/polymorphism). A handler
-registered against a base type or interface receives every assignable event:
+Past tense, always. `OrderShipped`, not `ShipOrder`. An event names something that has already
+happened; if the name reads as an instruction, you have a command.
 
 ```csharp
-public interface IDomainEvent : IEvent;
+public sealed record OrderPlaced(Guid Id) ;      // event
+public sealed record PlaceOrder(Guid Id) : ICommand<Guid>;   // command
+```
 
-public sealed record ProductCreated(Guid Id, string Name) : IDomainEvent;
-public sealed record ProductDeleted(Guid Id)              : IDomainEvent;
+## Carry what subscribers need
 
-public sealed class AppendToOutbox : IEventHandler<IDomainEvent>
+A subscriber that has to go and look everything up is a subscriber coupled to your read model:
+
+```csharp
+// forces every subscriber to query
+public sealed record OrderShipped(Guid OrderId);
+
+// enough to act on
+public sealed record OrderShipped(Guid OrderId, string CustomerEmail, DateTimeOffset At);
+```
+
+The balance is against coupling every subscriber to a large payload. Carry the facts that were
+true at the moment the event happened, and let subscribers query for the rest.
+
+## Records, sealed, immutable
+
+Several subscribers see the same instance. An immutable record means one of them cannot change
+what the next one sees.
+
+## Inheritance
+
+```csharp
+public abstract record OrderEvent
 {
-    public ValueTask HandleAsync(IDomainEvent @event, ErgosfareContext context)
-        => _outbox.AppendAsync(@event, context.CancellationToken);
+    public required Guid OrderId { get; init; }
 }
+
+public sealed record OrderPlaced  : OrderEvent;
+public sealed record OrderShipped : OrderEvent;
 ```
 
-One registration, and every domain event added later is covered. Handlers registered for the
-event's own type run **before** covariantly matched ones.
-
-{% aside type="note" %}
-Covariant delivery to event *handlers* is new in v2. On the v1 line only interceptors matched
-covariantly — event handlers had to name the exact event type. See
-[Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2).
-{% /aside %}
-
-## Events carry data, not references
-
-An event is often consumed after the fact — by an outbox, an audit log, a projection. Put the
-values in it rather than an entity the handler has to reload against a `DbContext` that may
-already be gone:
+A subscriber for `OrderEvent` receives both — and unlike commands, that is not a contest. A
+broadcast delivers to every match, so a covariant subscriber is an ordinary participant:
 
 ```csharp
-public sealed record ProductCreated(Guid Id, string Name, decimal Price) : IEvent;   // good
-public sealed record ProductCreated(Product Entity) : IEvent;                        // fragile
+public sealed class AuditOrderEvents : IEventHandler<OrderEvent> { … }
 ```
 
-## Publishing
+## A publish nobody serves is a build error
 
 ```csharp
-await _events.PublishAsync(new ProductCreated(id, name));
+await mediator.PublishAsync(new OrderShipped(id, email, at));   // no subscriber anywhere
 ```
 
-The call completes when every matching handler has completed. `PublishAsync` takes an optional
-`EventMediationSettings` and a `CancellationToken`, and has an `ErgosfareContext` overload
-for [nested dispatch](/ergosfare.docs/preview/core-concepts/nested-dispatch) — which is how you
-publish from inside a command handler:
+```
+error ERGO005: This dispatch of 'OrderShipped' can never reach a handler … so the publish is
+guaranteed to reach nobody.
+```
+
+Reaching zero subscribers *at run time* is legal — that is the container's selection, and the
+publish returns. What is not legal is a publish nothing in the compilation could ever serve,
+because writing the event and forgetting the subscriber is the ordinary way to get there and it
+used to compile in silence.
+
+## Excluding it from the cross-cutting pipeline
 
 ```csharp
-public async ValueTask HandleAsync(PlaceOrder msg, ErgosfareContext ctx)
-{
-    using var scope = ctx.CreateScope();
-    await _events.PublishAsync(new OrderPlaced(msg.OrderId), scope.Context);
-}
+[ExcludeFromPipeline("audit")]
+public sealed record HeartbeatObserved(DateTimeOffset At) : IEvent;
 ```
 
-## Controlling registration
+## Next
 
-`[DiscoveryKey]`, `[ExcludeFromDiscovery]` and `[ExcludeFromPipeline]` apply to events as to
-any other message. `[ExcludeFromPipeline]` is particularly useful on high-frequency events
-that should not go through the blanket interceptors — it affects covariantly matched
-*interceptors*, never handlers.
-
-Next: [Defining an event handler](/ergosfare.docs/preview/core-components/event/event-handler).
+[Defining an event handler](/ergosfare.docs/preview/core-components/event/event-handler).

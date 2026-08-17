@@ -1,132 +1,41 @@
 ---
 title: Pre-interceptors
-description: Validation, authorization, enrichment and short-circuiting before the handler runs.
+description: The stage that runs before the handler — rejecting, enriching, and rewriting the message.
 ---
 
-A pre-interceptor runs before the main handler and returns the message the rest of the
-pipeline will see. That return value is the whole design: a pre-interceptor can pass the
-message through unchanged, replace it, or abort the pipeline outright.
+A pre-interceptor runs before the handler and returns the message the next stage will see. It
+is the stage for anything that decides whether the work should happen, or fixes up its input
+first.
+
+## The contracts
 
 ```csharp
-public sealed class LogCommands : ICommandPreInterceptor
+ICommandPreInterceptor                    // every command
+ICommandPreInterceptor<TCommand>          // one command, or one hierarchy
+```
+
+Queries and events have the same pair — `IQueryPreInterceptor`, `IEventPreInterceptor` — and
+they behave identically.
+
+## Observing
+
+The untyped form takes the base marker and returns it. Return the input unchanged when you are
+only watching:
+
+```csharp
+public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterceptor
 {
-    private readonly ILogger<LogCommands> _logger;
-
-    public LogCommands(ILogger<LogCommands> logger) => _logger = logger;
-
     public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
-        _logger.LogInformation("Dispatching {Command}", command.GetType().Name);
+        logger.LogInformation("Dispatching {Command}", command.GetType().Name);
         return ValueTask.FromResult<object>(command);
     }
 }
 ```
 
-Registered automatically by [compile-time discovery](/ergosfare.docs/preview/core-concepts/compile-time-discovery) —
-there is nothing to add at startup.
+## Rewriting
 
-## Validation
-
-Validation is the canonical pre-interceptor: it belongs before the handler, it applies to
-many messages, and it has nothing to do with the operation itself.
-
-```csharp
-public sealed class ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>
-    where TCommand : ICommand
-{
-    private readonly IEnumerable<IValidator<TCommand>> _validators;
-
-    public ValidateCommands(IEnumerable<IValidator<TCommand>> validators)
-        => _validators = validators;
-
-    public async ValueTask<TCommand> HandleAsync(TCommand command, ErgosfareContext context)
-    {
-        foreach (var validator in _validators)
-        {
-            var result = await validator.ValidateAsync(command, context.CancellationToken);
-            if (!result.IsValid)
-                throw new ValidationException(result.Errors);
-        }
-
-        return command;
-    }
-}
-```
-
-Throwing propagates to the [exception interceptors](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors),
-which is usually where you want a validation failure translated into a response shape.
-
-{% aside type="note" %}
-An open generic interceptor like `ValidateCommands<TCommand>` has no generated dispatch root —
-the generator cannot close it over a message type it has not seen — so its closed
-instantiations go through the reflective `MakeGenericType` path. Select it with an explicit
-`Register(typeof(ValidateCommands<>))` and expect trim warnings in an AOT build; a
-non-generic interceptor over `ICommand` avoids the whole question.
-{% /aside %}
-
-## Authorization and short-circuiting
-
-When the pipeline should stop, call `Abort`:
-
-```csharp
-public sealed class RequirePermission : ICommandPreInterceptor<DeleteProduct>
-{
-    private readonly ICurrentUser _user;
-
-    public RequirePermission(ICurrentUser user) => _user = user;
-
-    public ValueTask<DeleteProduct> HandleAsync(DeleteProduct command, ErgosfareContext context)
-    {
-        if (!_user.Can("products:delete"))
-            context.Abort("missing products:delete");
-
-        return ValueTask.FromResult(command);
-    }
-}
-```
-
-`Abort` throws `ExecutionAbortedException`, so the line after it never runs and the caller
-receives the signal. It takes no result, whatever the message's result type: a cut pipeline
-produced none, and handing back the type's default would be indistinguishable from a handler
-that legitimately produced nothing. Use the optional second argument when the caller needs
-something to act on:
-
-```csharp
-context.Abort("missing products:delete", _user.Id);   // aborted.Value at the call site
-```
-
-An abort skips everything downstream — the remaining pre-interceptors, the handler, the post
-stage, the exception stage and **the final stage too**. Cleanup that must survive an abort
-belongs in the caller's own `try`/`finally`, not in a final interceptor.
-
-{% aside type="caution" %}
-This changed in v2.3. `Abort(object? messageResult)` used to seed a result and end the
-pipeline quietly, and final interceptors used to run afterwards. See
-[Migrating from v2.2 to v2.3](/ergosfare.docs/preview/migration/v2.2-to-v2.3).
-{% /aside %}
-
-## Enriching the context
-
-Anything a pre-interceptor puts in the context is visible to the handler and to every later
-stage of the same dispatch:
-
-```csharp
-public sealed class ResolveTenant : ICommandPreInterceptor
-{
-    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
-    {
-        context.Set("tenant", _tenants.Current);
-        return ValueTask.FromResult<object>(command);
-    }
-}
-```
-
-Read it back with `context.Get<Tenant>("tenant")`, or `TryGet` when absence is possible.
-
-## Rewriting the message
-
-A pre-interceptor has no result to carry, so the single-parameter form returns the command
-type directly — rewriting is just returning a new instance:
+The typed form returns the typed message, so a rewrite needs no cast:
 
 ```csharp
 public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
@@ -136,43 +45,110 @@ public sealed class NormalizeName : ICommandPreInterceptor<CreateProduct>
 }
 ```
 
-The handler receives the trimmed record. So does every pre-interceptor after this one — the
-stage is a chain, each link seeing the previous link's output.
+What the next stage receives is what you returned. Chain two of them and the second sees the
+first's output.
 
-Reach for the two-parameter form only when you return a *different*, derived command type;
-`TModified` must derive from `TCommand`.
+Returning a **derived** message is allowed, and is often the point — `TCommand` is the contract,
+and anything assignable to it satisfies it:
+
+```csharp
+public sealed class Enrich : ICommandPreInterceptor<PlaceOrder>
+{
+    public ValueTask<PlaceOrder> HandleAsync(PlaceOrder command, ErgosfareContext context)
+        => ValueTask.FromResult<PlaceOrder>(new ValidatedPlaceOrder(command, _clock.UtcNow));
+}
+```
+
+The handler still receives it as a `PlaceOrder`. A handler that wants the enriched shape should
+declare the enriched type as its message instead.
+
+{% aside type="note" %}
+Earlier previews had `ICommandPreInterceptor<TCommand, TModified>` for exactly this. It was
+removed once the one-parameter form started returning the typed message, because the second
+argument then bought nothing. Migration is a deletion: drop the second type argument.
+{% /aside %}
+
+## Rejecting
+
+To stop the dispatch, abort:
+
+```csharp
+public sealed class RequireTenant(ITenantAccessor tenant) : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        if (tenant.Current is null)
+            context.Abort("no tenant on this request");
+
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
+
+`Abort` throws `ExecutionAbortedException`, which the pipeline treats as a stop rather than a
+failure: **the exception stage does not run, and neither does the final stage.** The signal
+travels to the caller unchanged.
+
+Throwing your own exception instead is a different statement — that says the dispatch *failed*,
+and it runs the failure path. Use whichever you actually mean.
+
+{% aside type="caution" %}
+Because an abort skips the final stage, anything a pre-interceptor opened — a transaction, a
+lease — will not be closed there. Put the check ahead of whatever opens the resource with a
+higher `[Weight]`, or open it somewhere a `try`/`finally` covers.
+{% /aside %}
+
+## Passing information forward
+
+The message is not the only channel. When a later stage needs something that does not belong in
+the message, use the context:
+
+```csharp
+public sealed class Correlate : ICommandPreInterceptor
+{
+    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
+    {
+        context.Set("correlationId", Guid.NewGuid());
+        return ValueTask.FromResult<object>(command);
+    }
+}
+```
 
 ## Ordering
 
-Within the pre stage: direct registrations first, then covariant ones, each ordered by
-`[Weight]` descending.
+Within the stage: `[Weight]` descending, direct registrations before covariant ones. Be explicit
+whenever two interceptors genuinely depend on the order:
 
 ```csharp
-[Weight(200)] public sealed class Authorize  : ICommandPreInterceptor<DeleteProduct> { … }
-[Weight(100)] public sealed class Validate   : ICommandPreInterceptor<DeleteProduct> { … }
-[Weight(10)]  public sealed class LogCommand : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor { … }
 ```
 
-Authorize, then validate, then log — which is the order you want, since there is no reason to
-validate a request the caller is not allowed to make.
+## Typical uses
 
-See [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights) for the
-full ordering rules and for restricting interceptors to a subset of dispatches.
+**Validation.** Reject early, before the handler touches anything:
 
-## Coverage
+```csharp
+public sealed class ValidateOrders : ICommandPreInterceptor<PlaceOrder>
+{
+    public ValueTask<PlaceOrder> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        if (command.Lines.Count == 0)
+            context.Abort("an order needs at least one line");
 
-| Interface | `HandleAsync` |
-|---|---|
-| `ICommandPreInterceptor` | `ValueTask<object>(ICommand, ErgosfareContext)` |
-| `ICommandPreInterceptor<TCommand>` | `ValueTask<TCommand>(TCommand, ErgosfareContext)` |
-| `ICommandPreInterceptor<TCommand, TModified>` | `ValueTask<TModified>(TCommand, ErgosfareContext)` |
+        return ValueTask.FromResult(command);
+    }
+}
+```
 
-The non-generic form intercepts any command, so it returns `object`. The single-parameter
-form knows the command type and returns it — a pre-interceptor carries no result, so the
-message is the only thing there is to return. The two-parameter form returns a different,
-derived type.
+**Authorization**, at a high weight so it runs first.
 
-Queries and events offer the same three shapes as `IQueryPreInterceptor…` and
-`IEventPreInterceptor…`.
+**Normalisation** — trimming, casing, defaulting — so every handler downstream sees clean input.
 
-Next: [Post-interceptors](/ergosfare.docs/preview/cross-cutting-concerns/post-interceptors).
+**Correlation and timing**, paired with a final interceptor that reads what this one set.
+
+## Scope it narrowly
+
+An interceptor written against `ICommand` runs for every command in the application, including
+nested dispatches. Narrow it to a base type you own when the work is not genuinely universal —
+you get the typed message as well, which is worth having on its own.

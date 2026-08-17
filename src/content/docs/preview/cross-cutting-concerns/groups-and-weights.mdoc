@@ -1,149 +1,160 @@
 ---
 title: Groups and weights
-description: Ordering pipeline members with [Weight], scoping them with [Group], and excluding messages with [ExcludeFromPipeline].
+description: Ordering interceptors within a stage, and selecting which of them run on a given dispatch.
 ---
 
-Three attributes decide which pipeline members run for a dispatch and in what order. All
-three are evaluated when the **pipeline plan** is built — once per `(message type, group
-set)` — so none of them costs anything per dispatch.
+Two attributes shape a pipeline. `[Weight]` decides **order** within a stage; `[Group]` decides
+**membership** — which interceptors run on this particular dispatch.
 
-## `[Weight]` — ordering within a stage
+## Weights
+
+Within a stage, participants run by weight descending. Equal weights fall back to direct
+registrations before covariant ones, then to type name:
 
 ```csharp
-[Weight(200)] public sealed class Authorize : ICommandPreInterceptor<DeleteProduct> { … }
-[Weight(100)] public sealed class Validate  : ICommandPreInterceptor<DeleteProduct> { … }
-[Weight(10)]  public sealed class Log       : ICommandPreInterceptor<DeleteProduct> { … }
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor { … }
+[Weight(10)]  public sealed class Log       : ICommandPreInterceptor { … }
 ```
 
-Higher weight runs **earlier**. The weight is a `uint`, so it cannot be negative; the default
-for an unmarked type is 0, which puts it last.
+Undeclared means `0`. Weight is a `uint`, so it does not go negative — leave room by starting
+your important ones high rather than trying to go below the default.
 
-Weight only orders *within a group of equal directness*. The full rule for every stage is:
+Ordering is settled when the composition is compiled, so it costs nothing per dispatch and
+cannot be rearranged at a call site.
 
-1. **Direct** entries — registered against the message's own type — ordered by weight descending.
-2. **Indirect** entries — matched covariantly through a base type or interface — ordered by weight descending.
+{% aside type="tip" %}
+Declare weights whenever two interceptors genuinely depend on running in an order. Leaving both
+at the default and relying on the type-name tiebreaker means renaming a class can reorder your
+pipeline.
+{% /aside %}
 
-A `[Weight(999)]` interceptor registered against `ICommand` still runs after an unweighted one
-registered against `DeleteProduct`. Directness wins over weight; see
-[Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism#direct-before-indirect).
+## Groups
 
-## `[Group]` — scoping to a subset of dispatches
-
-A group tags a handler or interceptor so that a dispatch can ask for it by name:
+A group puts an interceptor in a named set. A dispatch names the sets it wants, and only those
+interceptors run:
 
 ```csharp
-using Stella.Ergosfare.Core.Abstractions.Attributes;
-
 [Group("audit")]
-public sealed class AuditTrail : ICommandPreInterceptor
-{
-    public ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
-    {
-        _audit.Log(command);
-        return ValueTask.FromResult<object>(command);
-    }
-}
+public sealed class WriteAuditRow : ICommandFinalInterceptor { … }
 ```
-
-The dispatch selects groups through the mediation settings:
 
 ```csharp
-var settings = new CommandMediationSettings();
-settings.Filters.Groups = ["audit"];
-
-await commands.SendAsync(new DeleteProduct(id), settings);
+await mediator.SendAsync(command, GroupSet.Of("audit"));
 ```
 
-With a non-empty filter, **only** pipeline members carrying a matching group participate. An
-empty filter — the default — means every registered member participates.
+An interceptor with no `[Group]` belongs to the **default** group. A dispatch that names no
+group asks for the default one — so the ordinary case, no attribute and no argument, is just
+the default group talking to itself.
 
-### `GroupSet` — the reusable filter
-
-A settings object per dispatch is an allocation per dispatch, and a fresh string array makes
-the grouped executor cache compare group names element-wise every time. `GroupSet` is the
-canonical form: `GroupSet.Of(...)` interns equal sequences — same names, same order, ordinal —
-so a reused filter matches on a single reference check.
-
-```csharp
-static readonly GroupSet Audit = GroupSet.Of("audit");
-
-await commands.SendAsync(new DeleteProduct(id), Audit);
-```
-
-Define it once as a static and pass it directly; every mediator facade takes a `GroupSet`
-overload. It is also an `IReadOnlyList<string>`, so it drops into the settings form —
-`settings.Filters.Groups = Audit;` — and the caches recognise it there too. `GroupSet.Empty`
-is the no-filtering default.
-
-A type can belong to several groups:
+A type can be in several groups, and it runs when any of them is requested:
 
 ```csharp
 [Group("audit", "compliance")]
-public sealed class AuditTrail : ICommandPreInterceptor { … }
+public sealed class WriteAuditRow : ICommandFinalInterceptor { … }
 ```
 
-The default group name for an unmarked type is `"default"`
-(`GroupAttribute.DefaultGroupName`).
+## Naming a set at the call
 
-{% aside type="caution" %}
-Group filters apply to **handlers as well as interceptors**. A filter that matches no handler
-for the message means nothing handles it. Use groups to select cross-cutting behaviour, not
-to route between handlers.
-{% /aside %}
+Three shapes, all equivalent:
 
-Because the group set is part of the plan cache key, the filtering is resolved once per
-`(message type, group set)` and never re-walked per dispatch.
+```csharp
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+await mediator.SendAsync(command, GroupSet.Of("audit", "metrics"));
+await mediator.SendAsync(command, GroupSet.Empty);              // the default group
+```
+
+`GroupSet.Empty` and passing nothing mean the same thing. Passing an empty `string[]` does not
+— that is a set naming no groups, which selects nothing.
+
+## Groups do not touch handlers
+
+A group narrows the **interceptors**. The handler is chosen the same way regardless:
+
+```csharp
+// same handler either way; different interceptors around it
+await mediator.SendAsync(command);
+await mediator.SendAsync(command, GroupSet.Of("import"));
+```
+
+The one exception is when handlers themselves carry groups, which is how you express two
+handlers as alternatives rather than a contest:
+
+```csharp
+[Group("v1")] public sealed class PlaceOrderV1 : ICommandHandler<PlaceOrder, Guid> { … }
+[Group("v2")] public sealed class PlaceOrderV2 : ICommandHandler<PlaceOrder, Guid> { … }
+```
+
+Neither is selected by the default set, so an ungrouped dispatch of `PlaceOrder` finds no
+handler — and that is `ERGO005` at build time. Naming a group is then not optional, which is
+usually what you want when you did this deliberately.
+
+## What it costs
+
+Group sets are part of what keys a compiled plan, so a message dispatched under two different
+sets gets a plan for each — each one a straight line with exactly the participants that set
+selects. Filtering does not happen per dispatch.
+
+When a dispatch names a set the compiler cannot read — a variable, a computed array — the
+message gets one plan that carries every participant and evaluates each one's membership at
+run time. That is still a compiled plan; it just does the selection you deferred.
+
+```csharp
+// readable: each set gets its own straight-line plan
+await mediator.SendAsync(command, GroupSet.Of("audit"));
+
+// not readable: one plan, membership decided per call
+await mediator.SendAsync(command, _configuredGroups);
+```
+
+Both are correct. The first is faster, and it is worth preferring where the set really is a
+constant.
 
 {% aside type="note" %}
-**Filtering does cost the generated plan, though.** Every generated plan — staged or
-single-handler — is consulted only when the dispatch carries no groups at all, so a filtered
-dispatch always runs through the general executor. This holds whether the group names are
-constants at the call site or computed at runtime; the compiled plans have no group dimension.
-Keep group filters off your hottest messages, and use `[ExcludeFromPipeline]` instead when what
-you want is "this message skips the blanket interceptors".
+A `static readonly GroupSet` is readable too — the generator follows one hop through a named
+reference, which is exactly the recommended way to name a set once and reuse it.
 {% /aside %}
 
-## `[ExcludeFromPipeline]` — opting a message out
+## Typical uses
 
-The previous two attributes go on pipeline members. This one goes on a **message**, and
-removes it from *covariantly matched* interceptors:
+**An expensive pipeline you opt into.** Put full auditing in a group, and name it on the
+operations that need it.
 
-```csharp
-[ExcludeFromPipeline]
-public sealed record Heartbeat : ICommand;
-```
+**Environment-specific behaviour**, without a flag inside every interceptor.
 
-`Heartbeat` no longer picks up the blanket `ICommandPreInterceptor` or anything else matched
-through a base type. This is the escape hatch for a high-volume message that should not pay
-for the pipeline everything else wants.
-
-Scoped to particular groups:
+**Import and replay paths.** A bulk import wants validation but not notification; a replay
+wants neither. Groups let one handler serve all three.
 
 ```csharp
-[ExcludeFromPipeline("logging", "metrics")]
-public sealed record Tick : ICommand;
+[Group("import")] public sealed class SkipNotifications : ICommandPreInterceptor { … }
 ```
 
-`Tick` skips covariantly matched members in those two groups and keeps the rest.
+## Groups or discovery keys
 
-Two things are never affected:
+They answer different questions, and mixing them up is the usual source of confusion.
 
-- **Interceptors registered for the message type itself.** Someone wrote
-  `ICommandPreInterceptor<Heartbeat>` deliberately; it runs.
-- **Main handlers.** Excluding a message from the pipeline does not stop it being handled.
+A **discovery key** decides whether something is *registered at all*. Read once, at start-up, by
+the composition root.
 
-## Choosing between them
+A **group** decides whether a registered interceptor *runs on this dispatch*. Read at the call
+site, and it can differ per call.
 
-| You want to… | Use |
-|---|---|
-| Run authorization before validation | `[Weight]` |
-| Run audit interceptors only on the endpoints that need auditing | `[Group]` + a dispatch-time filter |
-| Keep one noisy message out of the blanket logger | `[ExcludeFromPipeline]` |
-| Decide at startup which handlers exist at all | [discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys) |
+Use a key when the answer belongs to the deployment; a group when it belongs to the call. See
+[Discovery keys](/ergosfare.docs/preview/core-concepts/discovery-keys).
 
-The last row is the one worth reading twice. Discovery keys are a **registration-time**
-decision — the container either selected the handler from the composition table or it did not.
-Groups are a **dispatch-time** decision — the handler is selected, and each call chooses
-whether it participates.
+## Excluding covariant interceptors from a message
 
-Next: [Modules and extensions](/ergosfare.docs/preview/core-components/modules-extensions).
+For a message that should not get the cross-cutting treatment at all, the exclusion goes on the
+message rather than on every interceptor:
+
+```csharp
+[ExcludeFromPipeline]                      // drops every covariantly matched interceptor
+public sealed record HealthProbe : ICommand;
+
+[ExcludeFromPipeline("audit", "logging")]  // drops only those groups
+public sealed record HealthProbe : ICommand;
+```
+
+Directly registered interceptors and the handler still run. The exclusion is resolved when the
+composition table is built, so it costs nothing per dispatch — but a message carrying it gets
+no compiled plan.

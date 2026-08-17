@@ -1,125 +1,117 @@
 ---
 title: Post-interceptors
-description: Shaping, caching and auditing the result after a handler succeeds.
+description: The stage that runs after a successful handler — observing and reshaping the result.
 ---
 
-A post-interceptor runs after the main handler and returns the result the caller will
-receive. Like the pre stage, the return value is the point: a post-interceptor can observe
-the result, replace it, or derive a new one.
+A post-interceptor runs after the handler returned successfully, and may replace the result. It
+does not run when the handler threw; that is the exception stage.
+
+## The contracts
 
 ```csharp
-public sealed class AuditCreation : ICommandPostInterceptor<CreateProduct, Guid>
-{
-    private readonly IAuditLog _audit;
-
-    public AuditCreation(IAuditLog audit) => _audit = audit;
-
-    public ValueTask<Guid> HandleAsync(
-        CreateProduct command, Guid result, ErgosfareContext context)
-    {
-        _audit.Record("product.created", result);
-        return ValueTask.FromResult(result);
-    }
-}
+ICommandPostInterceptor                          // every command, untyped result
+ICommandPostInterceptor<TCommand>                // one command, untyped result
+ICommandPostInterceptor<TCommand, TResult>       // one command, typed result
 ```
 
-{% aside type="caution" %}
-Post-interceptors run **only on success**. If the handler threw, the post stage is skipped and
-the [exception stage](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors) takes its
-place; anything that must run either way belongs in a
-[final interceptor](/ergosfare.docs/preview/cross-cutting-concerns/final-interceptors). After an
-`Abort()` nothing downstream runs at all — not the post stage, and not the final stage.
-{% /aside %}
+Queries have the same three. Events have the first two — a broadcast produces no result.
 
-## Shaping a result
-
-The typed two-parameter form is the one to reach for when you are transforming:
+## Observing
 
 ```csharp
-public sealed class MaskSecrets : IQueryPostInterceptor<GetUser, UserDto>
-{
-    public ValueTask<UserDto> HandleAsync(
-        GetUser query, UserDto result, ErgosfareContext context)
-        => ValueTask.FromResult(result with { Email = Mask(result.Email) });
-}
-```
-
-Each post-interceptor in the stage sees the previous one's output, so transformations
-compose in `[Weight]` order.
-
-## Caching
-
-Populate the cache after a successful query, and check it in the matching pre-interceptor:
-
-```csharp
-public sealed class CacheProduct : IQueryPostInterceptor<GetProduct, Product?>
-{
-    private readonly IMemoryCache _cache;
-
-    public CacheProduct(IMemoryCache cache) => _cache = cache;
-
-    public ValueTask<Product?> HandleAsync(
-        GetProduct query, Product? result, ErgosfareContext context)
-    {
-        if (result is not null)
-            _cache.Set(query.Id, result, TimeSpan.FromMinutes(5));
-
-        return ValueTask.FromResult(result);
-    }
-}
-```
-
-The read side has no interceptor to live in: since v2.3 nothing before the handler can supply
-the pipeline's result — `Abort` cuts the pipeline rather than completing it. Read the cache in
-the handler, or in a handler that decorates the real one.
-
-## Blanket auditing
-
-The non-generic form applies to every command in the module. It receives the result as
-`object`, since there is no single type it could be:
-
-```csharp
-public sealed class RecordOutcome : ICommandPostInterceptor
+public sealed class CountSuccesses(IMetrics metrics) : ICommandPostInterceptor
 {
     public ValueTask<object> HandleAsync(
         ICommand command, object result, ErgosfareContext context)
     {
-        _metrics.Increment($"command.{command.GetType().Name}.ok");
+        metrics.Increment(command.GetType().Name);
         return ValueTask.FromResult(result);
     }
 }
 ```
 
-Because this matches covariantly, a message can opt out with `[ExcludeFromPipeline]` — see
-[Polymorphism](/ergosfare.docs/preview/core-concepts/polymorphism#opting-out).
+Return the result you were given. Whatever you return is what the next stage — and eventually
+the caller — sees.
 
-## Events
+## Reshaping
 
-An event has no result, so the event post-interceptor receives the `ValueTask` representing
-the handler invocation rather than a value:
+The typed form is the one worth reaching for when you actually touch the result:
 
 ```csharp
-public sealed class LogPublished : IEventPostInterceptor<OrderPlaced>
+public sealed class CacheProduct(IMemoryCache cache)
+    : IQueryPostInterceptor<GetProduct, ProductDto>
 {
-    public ValueTask<object> HandleAsync(
-        OrderPlaced @event, ValueTask result, ErgosfareContext context)
+    public ValueTask<ProductDto> HandleAsync(
+        GetProduct query, ProductDto result, ErgosfareContext context)
     {
-        _logger.LogInformation("Published {Event}", @event.Id);
-        return ValueTask.FromResult<object>(result);
+        cache.Set(query.Id, result, TimeSpan.FromMinutes(5));
+        return ValueTask.FromResult(result);
     }
 }
 ```
 
-There is no two-parameter typed form for event post-interceptors, for the same reason.
+Replacing the result is the same shape — return something else:
 
-## Coverage
+```csharp
+public sealed class Redact : IQueryPostInterceptor<GetCustomer, CustomerDto>
+{
+    public ValueTask<CustomerDto> HandleAsync(
+        GetCustomer query, CustomerDto result, ErgosfareContext context)
+        => ValueTask.FromResult(result with { Email = "***" });
+}
+```
 
-| Interface | `HandleAsync` |
-|---|---|
-| `ICommandPostInterceptor` | `ValueTask<object>(ICommand, object, ErgosfareContext)` |
-| `ICommandPostInterceptor<TCommand>` | `ValueTask<object>(TCommand, object, ErgosfareContext)` |
-| `ICommandPostInterceptor<TCommand, TResult>` | `ValueTask<TResult>(TCommand, TResult, ErgosfareContext)` |
-| `IQueryPostInterceptor` / `<TQuery>` / `<TQuery, TResult>` | as above |
-| `IEventPostInterceptor` / `<TEvent>` | `ValueTask<object>(TEvent, ValueTask, ErgosfareContext)` |
+## Void pipelines
 
-Next: [Exception interceptors](/ergosfare.docs/preview/cross-cutting-concerns/exception-interceptors).
+A command with no result still has a result slot: it carries `Unit`. That is what lets a
+post-interceptor written against a void command receive something well-defined:
+
+```csharp
+public sealed class LogCompletion : ICommandPostInterceptor<ArchiveOrder>
+{
+    public ValueTask<object> HandleAsync(
+        ArchiveOrder command, object result, ErgosfareContext context)
+    {
+        _logger.LogInformation("Archived {Id}", command.Id);
+        return ValueTask.FromResult(result);
+    }
+}
+```
+
+`Unit` is a value, not `null`. Return what you were handed.
+
+## Ordering
+
+`[Weight]` descending, direct before covariant — the same rule as every stage. When results are
+being transformed, order matters more than usual, because each interceptor sees what the last
+one returned:
+
+```csharp
+[Weight(100)] public sealed class Redact  : IQueryPostInterceptor<GetCustomer, CustomerDto> { … }
+[Weight(50)]  public sealed class Envelope: IQueryPostInterceptor<GetCustomer, CustomerDto> { … }
+```
+
+## Typical uses
+
+**Caching**, populating on the way out while a pre-interceptor checks on the way in.
+
+**Enveloping** a result into a transport shape, when you would otherwise write it in every
+handler.
+
+**Metrics and audit** for successful operations specifically — the failure side belongs to the
+exception or final stage.
+
+**Appending to an outbox** — though be careful about ordering relative to a transaction commit;
+see the [Unit of work recipe](/ergosfare.docs/preview/recipes/unit-of-work).
+
+## What does not belong here
+
+**Cleanup.** A post-interceptor does not run when the handler threw. Anything that must happen
+either way goes in a final interceptor.
+
+**Failure translation.** That is the exception stage, which can answer the dispatch with a
+result.
+
+**Work that should be part of the result.** If the handler's result is incomplete without this
+interceptor, the handler is incomplete. An interceptor that every caller depends on is not
+cross-cutting — it is the operation.

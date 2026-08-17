@@ -1,0 +1,178 @@
+---
+title: Messages and handlers
+description: Shaping messages so the compiler can help you — command or query, IEvent or a plain type, what a result should carry, and where a handler stops.
+---
+
+Most of what makes an Ergosfare application pleasant to work in is decided when you write the
+message, not when you write the handler. These are the calls worth making deliberately.
+
+## Command or query
+
+The line is whether the caller is asking for something to happen or asking what is true.
+
+**A command is an instruction.** It changes state, it has exactly one handler, and its result —
+if it has one — is the *outcome of doing it*: the id that was created, the receipt.
+
+**A query changes nothing.** It has exactly one handler and its result is the answer.
+
+```csharp
+public sealed record PlaceOrder(Guid CustomerId, IReadOnlyList<Line> Lines) : ICommand<Guid>;
+public sealed record GetOrder(Guid Id) : IQuery<OrderDto>;
+```
+
+When a command's result starts looking like a projection — the whole entity, a page of rows —
+that is usually two operations wearing one name. Return the id and let the caller query.
+
+## `IEvent` or a plain type
+
+An event message does not have to implement anything. Writing an `IEventHandler<OrderShipped>`
+is what makes `OrderShipped` an event, so you have a real choice:
+
+```csharp
+// a plain domain type — no Ergosfare reference where it is declared
+public sealed record OrderShipped(Guid Id, DateTimeOffset At);
+
+// or one that declares itself
+public sealed record OrderShipped(Guid Id, DateTimeOffset At) : IEvent;
+```
+
+**Use a plain type when the event belongs to your domain.** A domain event is a fact about your
+business, and the project that declares it should not need a mediator reference to say so. This
+is the better default for anything in a domain or contracts assembly.
+
+**Use `IEvent` when the type exists to be dispatched.** An integration event, a message shaped
+for a queue, something with no meaning outside the pipeline — declaring the marker documents
+that, and it makes the type discoverable on its own rather than only through a subscriber.
+
+The mechanics are identical either way. What differs is which assembly ends up referencing
+Ergosfare, and that is an architecture question rather than a framework one.
+
+{% aside type="note" %}
+A plain type is classified through the subscriber that names it, so it works across assembly
+boundaries too — the subscriber can live anywhere. What it cannot do is be *found* without one:
+a plain type nobody subscribes to is simply a class.
+{% /aside %}
+
+## Make messages records, and keep them immutable
+
+```csharp
+public sealed record CreateProduct(string Name, decimal Price) : ICommand<Guid>;
+```
+
+A pre-interceptor may rewrite the message, and `with` makes that a one-liner that cannot
+accidentally mutate what an earlier stage already saw:
+
+```csharp
+=> ValueTask.FromResult(command with { Name = command.Name.Trim() });
+```
+
+`sealed` is worth the keystrokes: an unsealed message invites a subtype, and a subtype changes
+which handler serves it.
+
+## Avoid `struct` messages
+
+A value type has no contract variance, so a struct message reaches only registrations that name
+it exactly. Every cross-cutting interceptor you have written against `ICommand` silently skips
+it, and no warning is coming — that is how the runtime works, and the compile-time judgments
+apply the same rule.
+
+The allocation you save is one small object per dispatch. It is almost never worth the
+surprise.
+
+## Name the result type the caller actually needs
+
+A result is a contract. Returning your entity ties every caller to your persistence model:
+
+```csharp
+// leaks the aggregate
+public sealed record GetOrder(Guid Id) : IQuery<Order>;
+
+// a shape you own on purpose
+public sealed record GetOrder(Guid Id) : IQuery<OrderDto>;
+```
+
+For a command, prefer the narrowest thing that is genuinely useful. `ICommand<Guid>` is a
+better contract than `ICommand<Order>` when the caller only ever needed the id.
+
+## One result type per message
+
+A message declaring several result contracts cannot be given a compiled plan, because the
+result is then named at the call site rather than by the message. It still works — it just
+takes the general path.
+
+```csharp
+// works, but no plan
+public sealed record Ambiguous : ICommand<Guid>, ICommand<string>;
+```
+
+If you find yourself here, you have two messages.
+
+## Where a handler stops
+
+A handler orchestrates. It should read as a short description of the operation, and delegate
+the parts that are not orchestration:
+
+```csharp
+public sealed class PlaceOrderHandler(IOrderRepository repository, IPricing pricing)
+    : ICommandHandler<PlaceOrder, Guid>
+{
+    public async ValueTask<Guid> HandleAsync(PlaceOrder command, ErgosfareContext context)
+    {
+        var order = Order.Create(command.CustomerId, command.Lines, pricing);
+        await repository.AddAsync(order, context.CancellationToken);
+        return order.Id;
+    }
+}
+```
+
+Three things do not belong in it:
+
+**Cross-cutting work** — logging, validation, authorization, metrics. That is what interceptors
+are for, and putting it in the handler means writing it again in the next handler. See
+[Interceptor or handler](/ergosfare.docs/preview/best-practices/interceptor-or-handler).
+
+**Business rules that belong to the domain.** If the handler is deciding *what is allowed*
+rather than *what to call*, the rule probably wants to live on the aggregate.
+
+**Another dispatch you could have made a method call.** Nested dispatch is legitimate, but a
+handler that dispatches three messages you own, in the same layer, has bought indirection
+without decoupling.
+
+## Pass the cancellation token down
+
+```csharp
+await repository.AddAsync(order, context.CancellationToken);
+```
+
+Every async call in a handler should take it. This is the single most common omission, and it
+only shows up under load.
+
+## One handler per message, and let the compiler enforce it
+
+Two handlers claiming one message at the same level is `ERGO010` — a build error, because the
+priority ladder has no tiebreaker within a level and every dispatch would throw.
+
+The legitimate shapes are:
+
+**A default with an override.** A handler on the base type, a handler on the derived one. The
+direct registration wins outright, with no ambiguity.
+
+```csharp
+public sealed class OrderCommandHandler : ICommandHandler<OrderCommand> { … }  // fallback
+public sealed class PlaceOrderHandler   : ICommandHandler<PlaceOrder>   { … }  // wins
+```
+
+**Different groups**, when the two are alternatives selected per dispatch.
+
+**Different discovery keys**, when they belong to different deployments.
+
+What is not legitimate is two handlers you intended to be one. That is what the error is for.
+
+## Let unreachable code be reported
+
+`ERGO007` says a handler no dispatch can reach. It is worth treating as a real finding rather
+than noise: usually it means the dispatch was renamed, the feature was removed, or the message
+is dispatched somewhere the compiler cannot see.
+
+If the registration is deliberate — a handler dispatched reflectively by a test host, say —
+suppress it at the type with a reason, so the next reader knows it was a decision.

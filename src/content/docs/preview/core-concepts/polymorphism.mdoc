@@ -1,151 +1,165 @@
 ---
 title: Polymorphism
-description: Covariant handler and interceptor matching, direct-before-indirect ordering, and how event broadcast uses both.
+description: How a handler or interceptor registered against a base type reaches a derived message, and which one wins when several could.
 ---
 
-A handler or interceptor registered against a base type or interface applies to **every
-message assignable to it**. Ergosfare resolves this when it builds the pipeline plan — once
-per message type — so covariant matching costs nothing per dispatch.
+A participant registered against `ICommand` reaches every command. One registered against
+`OrderCommand` reaches every order command. This is what makes cross-cutting work possible
+without naming each message, and it follows one rule with one tiebreaker.
 
-## Why it matters
+## Direct and covariant
 
-Without covariance, a logging interceptor has to be registered once per command type, or take
-`object` and lose all type information. With it, one registration covers a hierarchy:
-
-```csharp
-public interface IAuditedCommand : ICommand;
-
-public sealed record CreateProduct(string Name) : IAuditedCommand;
-public sealed record DeleteProduct(Guid Id)    : IAuditedCommand;
-public sealed record Heartbeat()               : ICommand;      // not audited
-
-public sealed class AuditTrail : ICommandPreInterceptor<IAuditedCommand>
-{
-    public ValueTask<IAuditedCommand> HandleAsync(IAuditedCommand command, ErgosfareContext context)
-    {
-        _audit.Log(command);
-        return ValueTask.FromResult(command);
-    }
-}
-```
-
-`CreateProduct` and `DeleteProduct` go through `AuditTrail`. `Heartbeat` does not.
-
-## Direct before indirect
-
-Within a pipeline stage, entries fall into two groups:
-
-- **Direct** — registered against the message's own type.
-- **Indirect (covariant)** — registered against a base type or interface of the message.
-
-Direct entries always run first. Within each group, `[Weight]` orders descending. The
-ordering is computed when the plan is built, so it is stable and identical for every dispatch
-of that message type.
-
-```
-CreateProduct pre-interceptors, in order:
-  1. ICommandPreInterceptor<CreateProduct>        [Weight(50)]   ← direct
-  2. ICommandPreInterceptor<CreateProduct>        [Weight(10)]   ← direct
-  3. ICommandPreInterceptor<IAuditedCommand>      [Weight(99)]   ← indirect
-  4. ICommandPreInterceptor                       [Weight(0)]    ← indirect
-```
-
-Note that the high-weight indirect interceptor still runs after the low-weight direct one.
-Weight orders *within* a group, it does not promote across groups.
-
-## Main handlers use a ladder, not an order
-
-Interceptors and event handlers all run, so "direct first, then indirect" is enough. A command
-or a single-handler query has exactly one main handler, so the same two groups become a
-**priority ladder**:
-
-1. **A sole direct handler wins outright** — however many covariant candidates exist. A
-   supertype handler is a fallback, not a competitor.
-2. **With no direct handler, the covariant level serves** — a handler registered against a
-   base type or interface handles the assignable message.
-3. **More than one candidate at the same level is a contest.** The count is taken before
-   anything resolves, so a contested message runs *neither* claimant and the caller gets
-   `MultipleHandlerFoundException`.
-4. **Neither level populated** raises `NoHandlerFoundException`, which derives from
-   `InvalidOperationException` and carries the `MessageType`.
+A registration is **direct** when it names the exact type being dispatched, and **covariant**
+when it names something the message is assignable to — a base class, or an interface it
+implements.
 
 ```csharp
-public sealed class CreateProductHandler  : ICommandHandler<CreateProduct, Guid> { … }  // direct
-public sealed class AuditedFallback       : ICommandHandler<IAuditedCommand, Guid> { … } // covariant
+public abstract record OrderCommand : ICommand;
+public sealed record PlaceOrder(Guid Id) : OrderCommand;
 
-// CreateProduct → CreateProductHandler. No contest: different levels.
+// direct for PlaceOrder
+public sealed class PlaceOrderHandler : ICommandHandler<PlaceOrder> { … }
+
+// covariant for PlaceOrder
+public sealed class LogOrders : ICommandPreInterceptor<OrderCommand> { … }
+
+// covariant for every command
+public sealed class LogEverything : ICommandPreInterceptor { … }
 ```
 
-Two handlers for `CreateProduct` itself, or two covariant handlers with no direct one, is the
-contest case. The generator sees this at compile time and reports `ERGOSG010` rather than
-leaving it to the first dispatch.
+Dispatching a `PlaceOrder` runs all three: the two interceptors, then the handler.
 
-## Contravariance in handler contracts
+## The rule for handlers: direct wins outright
 
-The message type parameter on handler and interceptor contracts is declared `in`:
+A command or query has exactly one handler. When both a direct and a covariant candidate exist,
+the direct one takes it — with no ambiguity and no warning, because that is what the priority
+ladder says:
 
 ```csharp
-public interface ICommandHandler<in TCommand, TResult> : …
-public interface IAsyncPreInterceptor<in TMessage> : …
+public sealed class OrderCommandHandler : ICommandHandler<OrderCommand> { … }  // fallback
+public sealed class PlaceOrderHandler   : ICommandHandler<PlaceOrder>   { … }  // wins
 ```
 
-That is what makes a handler for a base type usable where a derived message is expected. The
-generic variance is enforced by the compiler; Ergosfare's plan builder just walks the type's
-assignability graph to find matches.
+Dispatching `PlaceOrder` runs `PlaceOrderHandler`. `OrderCommandHandler` still serves every
+*other* order command. This is the idiom for a default handler with specific overrides, and it
+is fully supported by the compiled plans — a message with one direct handler gets a plan
+regardless of what its base types carry.
 
-## Events broadcast covariantly too
+**A tie is an error.** Two direct handlers, or two covariant ones with no direct handler to
+settle it, means the ladder has nothing to choose between:
 
-Event publication delivers to every matching handler, not just the ones registered against
-the exact event type:
+```
+error ERGO010: Message 'PlaceOrder' is claimed by 2 main handlers at the same direct level
+(App.PlaceOrderHandler, App.PlaceOrderHandlerV2) — the priority ladder has no tiebreaker
+within a level, so every dispatch of this message throws MultipleHandlerFoundException at
+runtime. Keep exactly one claimant on that level; a direct handler always beats covariant ones.
+```
+
+Reported at build time because it is provable at build time. Resolve it by deleting one, making
+one direct, or putting them in different groups.
+
+## The rule for interceptors: everyone runs
+
+Interceptors are not exclusive. Every one that matches runs, ordered within its stage by
+`[Weight]` descending, with direct registrations before covariant ones:
 
 ```csharp
-public interface IDomainEvent : IEvent;
-
-public sealed record OrderPlaced(Guid Id) : IDomainEvent;
-
-public sealed class SendConfirmation : IEventHandler<OrderPlaced>  { … }  // direct
-public sealed class AppendToOutbox   : IEventHandler<IDomainEvent> { … }  // indirect
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor<OrderCommand> { … }
 ```
 
-Publishing an `OrderPlaced` runs `SendConfirmation` first, then `AppendToOutbox` — the same
-direct-before-indirect rule as interceptors.
+## The rule for events: everyone runs, and that is the point
 
-{% aside type="note" %}
-Covariant delivery to *handlers* is new in v2. On the v1 line, only interceptors matched
-covariantly; event handlers had to be registered against the exact event type. See
-[Migrating from v1](/ergosfare.docs/preview/migration/v1-to-v2).
+A publish delivers to every matching subscriber, so a covariant subscriber is an ordinary
+participant rather than a competing claim:
+
+```csharp
+public sealed record OrderShipped(Guid Id) : OrderEvent;
+
+public sealed class NotifyCustomer : IEventHandler<OrderShipped> { … }
+public sealed class AuditOrders    : IEventHandler<OrderEvent>   { … }
+```
+
+Publishing an `OrderShipped` runs both.
+
+## Value types have no variance
+
+Contract variance is a reference-type feature. A `struct` message reaches only registrations
+that name it exactly:
+
+```csharp
+public readonly record struct Ping : ICommand;
+
+public sealed class LogEverything : ICommandPreInterceptor { … }  // does NOT see Ping
+public sealed class PingHandler   : ICommandHandler<Ping>    { … }  // does
+```
+
+This is not an Ergosfare rule, it is how the runtime works — and the compile-time judgments
+apply it the same way, so a struct message with no direct handler is `ERGO005` even when a
+handler for `ICommand` exists.
+
+{% aside type="caution" %}
+Struct messages are worth avoiding for exactly this reason: every cross-cutting interceptor you
+write silently skips them.
 {% /aside %}
 
-An outbox or an audit sink registered against `IDomainEvent` therefore sees every domain
-event with one registration — which is usually what you want, and occasionally not.
+## Dispatching through a base type
 
-## Opting out
+The static type at the call site is what the compiler can see:
 
-When a message should skip covariantly matched interceptors, mark the message:
+```csharp
+OrderCommand command = GetNext();
+await mediator.SendAsync(command);   // the runtime type's pipeline runs
+```
+
+The pipeline that runs belongs to the *runtime* type, which is what you want. But the compiler
+now only knows it is an `OrderCommand`, so its reachability answers get correspondingly weaker.
+Dispatching through `ICommand` or `object` weakens them further, and `ERGO009` reports those
+sites when you turn it on.
+
+That is a reason to keep the static type as specific as the code naturally allows — not a
+reason to contort a call site that legitimately reads a message off a queue.
+
+## Excluding covariant interceptors from a message
+
+Sometimes a message should not get the cross-cutting treatment — a health probe that must not
+be audited, a message whose logging would be noise:
 
 ```csharp
 [ExcludeFromPipeline]
-public sealed record Heartbeat : ICommand;
+public sealed record HealthProbe : ICommand;
 ```
 
-`Heartbeat` no longer picks up the blanket `ICommandPreInterceptor`. Interceptors registered
-against `Heartbeat` itself still run — those were written for it deliberately — and main
-handlers are never affected.
-
-Scoping the exclusion to particular groups is also possible:
+That drops every covariantly matched interceptor. Directly registered ones still run, and so
+does the handler. Name groups to drop only some of them:
 
 ```csharp
-[ExcludeFromPipeline("logging", "metrics")]
-public sealed record Tick : ICommand;
+[ExcludeFromPipeline("audit", "logging")]
+public sealed record HealthProbe : ICommand;
 ```
 
-See [Groups and weights](/ergosfare.docs/preview/cross-cutting-concerns/groups-and-weights).
+The exclusion is resolved when the composition table is built, so it costs nothing per dispatch.
+A message carrying it does not get a compiled plan.
 
-## Cost
+## Generic messages
 
-None per dispatch. Assignability is walked once, when the plan for a `(message type, group
-set)` pair is first built; every later dispatch of that shape reads a pre-ordered array. The
-generic handler types involved are closed at that same moment, so invocation goes through
-typed members with no object-typed bridge.
+A generic message is keyed by its definition, so one table entry serves every instantiation:
 
-Next: [Plugins](/ergosfare.docs/preview/core-concepts/plugins).
+```csharp
+public sealed record Wrap<T>(T Value) : ICommand;
+
+public sealed class WrapHandler<T> : ICommandHandler<Wrap<T>> { … }
+```
+
+The dispatch closes the participant over the arguments the message carries. What does *not*
+work is a participant whose contract names a bare type parameter as its message:
+
+```csharp
+// ERGO016: closes over nothing, never runs
+public sealed class ValidateAnything<TCommand> : ICommandPreInterceptor<TCommand>
+    where TCommand : ICommand { … }
+```
+
+Participants are matched to messages by concrete type, and a concrete message carries no
+arguments to close this one over. If the constraint admits compiled messages, the generator
+closes the participant over each of them for you; if it admits none, `ERGO016` says so.
