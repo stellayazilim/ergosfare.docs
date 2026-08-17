@@ -31,17 +31,15 @@ Validation is the canonical pre-interceptor: it belongs before the handler, it a
 many messages, and it has nothing to do with the operation itself.
 
 ```csharp
-public sealed class ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>
-    where TCommand : ICommand
+public sealed class ValidateCommands : ICommandPreInterceptor
 {
-    private readonly IEnumerable<IValidator<TCommand>> _validators;
+    private readonly IValidatorRegistry _validators;
 
-    public ValidateCommands(IEnumerable<IValidator<TCommand>> validators)
-        => _validators = validators;
+    public ValidateCommands(IValidatorRegistry validators) => _validators = validators;
 
-    public async ValueTask<TCommand> HandleAsync(TCommand command, ErgosfareContext context)
+    public async ValueTask<object> HandleAsync(ICommand command, ErgosfareContext context)
     {
-        foreach (var validator in _validators)
+        foreach (var validator in _validators.For(command.GetType()))
         {
             var result = await validator.ValidateAsync(command, context.CancellationToken);
             if (!result.IsValid)
@@ -56,12 +54,21 @@ public sealed class ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand
 Throwing propagates to the [exception interceptors](/ergosfare.docs/cross-cutting-concerns/exception-interceptors),
 which is usually where you want a validation failure translated into a response shape.
 
-{% aside type="note" %}
-An open generic interceptor like `ValidateCommands<TCommand>` has no generated dispatch root —
-the generator cannot close it over a message type it has not seen — so its closed
-instantiations go through the reflective `MakeGenericType` path. Select it with an explicit
-`Register(typeof(ValidateCommands<>))` and expect trim warnings in an AOT build; a
-non-generic interceptor over `ICommand` avoids the whole question.
+{% aside type="caution" %}
+**Do not write this interceptor generically.** A participant whose contract names a bare type
+parameter — `ValidateCommands<TCommand> : ICommandPreInterceptor<TCommand>` — binds to no
+message at all. Participants are matched to messages by concrete type, and a concrete command
+carries no generic arguments to close such a participant over, so it registers, appears in no
+pipeline, and never runs. Registering a closed form explicitly does not rescue it either: the
+composition table holds the types the generator saw declared, and a constructed generic is not
+one of them. The generator reports the shape as `ERGOSG016`.
+
+Declare the interceptor over `ICommand` as above when it applies to every command, or over the
+message type when it applies to one.
+
+A generic participant for a *generic message* is a different shape and works normally:
+`WrapHandler<T> : ICommandHandler<Wrap<T>>` is closed over the dispatched message's own type
+arguments.
 {% /aside %}
 
 ## Authorization and short-circuiting
