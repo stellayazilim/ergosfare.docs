@@ -1,6 +1,6 @@
 ---
 title: "IQueryExceptionInterceptor"
-description: "Represents a query exception interceptor that can handle multiple query types in a non-generic, non-type-safe manner."
+description: "Handles failures raised while dispatching any query, whatever its type."
 sidebar:
   label: "IQueryExceptionInterceptor"
   order: 3
@@ -9,19 +9,18 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
-Represents a query exception interceptor that can handle multiple query types in a non-generic, non-type-safe manner.
+Handles failures raised while dispatching any query, whatever its type.
 
 ```csharp
 public interface IQueryExceptionInterceptor : IQuery, IMessage, IAsyncExceptionInterceptor<IQuery>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/ExceptionInterceptors/IQueryExceptionInterceptor.cs#L15)
 
 ## Remarks
 
-This interceptor is useful when you want a single exception interceptor to run for multiple query types
-without defining separate generic implementations.
-
-Implementations will receive queries as [`IQuery`](/ergosfare.docs/api/queries-abstractions/iquery) and results as [`object`](https://learn.microsoft.com/dotnet/api/system.object).
-For scenarios requiring type-safe handling of a specific query type and result type,
-consider using [`IQueryExceptionInterceptor<TQuery, TResult>`](/ergosfare.docs/api/queries-abstractions/iqueryexceptioninterceptor-2) instead.
+Because it accepts every query, this contract sees the query as [`IQuery`](/ergosfare.docs/api/queries-abstractions/iquery) and
+its result as [`object`](https://learn.microsoft.com/dotnet/api/system.object). Running is what marks the failure handled, so an
+interceptor this broad handles everything it is registered for — use
+[`IQueryExceptionInterceptorFor<TException>`](/ergosfare.docs/api/queries-abstractions/iqueryexceptioninterceptorfor-1) to narrow it by failure type, or
+[`IQueryExceptionInterceptor<TQuery, TResult>`](/ergosfare.docs/api/queries-abstractions/iqueryexceptioninterceptor-2) for a typed result.

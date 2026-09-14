@@ -1,6 +1,6 @@
 ---
 title: "DispatchKind"
-description: "The dispatch surface a recorded dispatch site went through; see DispatchSiteAttribute."
+description: "Which mediator surface a recorded dispatch site called; see DispatchSiteAttribute."
 sidebar:
   label: "DispatchKind"
   order: 1
@@ -9,7 +9,7 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.DispatchSites`](/ergosfare.docs/api/core-abstractions-dispatchsites)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The dispatch surface a recorded dispatch site went through; see
+Which mediator surface a recorded dispatch site called; see
 [`DispatchSiteAttribute`](/ergosfare.docs/api/core-abstractions-dispatchsites/dispatchsiteattribute).
 
 ```csharp
@@ -26,7 +26,7 @@ public enum DispatchKind : byte
 Command = 0
 ```
 
-An `ICommandMediator.SendAsync` dispatch.
+A call to `ICommandMediator.SendAsync`.
 
 **Returns**
 
@@ -38,19 +38,7 @@ An `ICommandMediator.SendAsync` dispatch.
 Event = 3
 ```
 
-An `IEventMediator.PublishAsync` dispatch.
-
-**Returns**
-
-[`DispatchKind`](/ergosfare.docs/api/core-abstractions-dispatchsites/dispatchkind)
-
-### `Message`
-
-```csharp
-Message = 4
-```
-
-A core `IMessageMediator` dispatch (module-agnostic).
+A call to `IEventMediator.PublishAsync`.
 
 **Returns**
 
@@ -62,7 +50,7 @@ A core `IMessageMediator` dispatch (module-agnostic).
 Query = 1
 ```
 
-An `IQueryMediator.QueryAsync` dispatch.
+A call to `IQueryMediator.QueryAsync`.
 
 **Returns**
 
@@ -74,7 +62,7 @@ An `IQueryMediator.QueryAsync` dispatch.
 Stream = 2
 ```
 
-An `IQueryMediator.StreamAsync` dispatch.
+A call to `IQueryMediator.StreamAsync`.
 
 **Returns**
 

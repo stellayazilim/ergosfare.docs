@@ -1,0 +1,224 @@
+---
+title: Streaming multipart upload
+description: Build a minimal multipart upload endpoint with a command, pre-validation and incremental disk writes.
+---
+
+Accept a single file without loading the whole request into memory. The endpoint pipes the
+raw HTTP body into a command. A pre interceptor validates the file section and shares its
+parser through context; the handler continues reading that same section into a file.
+
+## Create the application
+
+Use a .NET 10 SDK and a new ASP.NET Core empty application:
+
+```shell
+dotnet new web -n UploadRecipe -f net10.0
+cd UploadRecipe
+dotnet add package Stella.Ergosfare --version 2.4.0
+dotnet add package Stella.Ergosfare.SourceGenerator --version 2.4.0
+```
+
+Streaming is experimental (`ERGOEXP003`). The examples acknowledge that warning locally.
+Keep the source generator in this application: `AddGenerated()` selects the handler and
+interceptors below and the generator creates the command plan.
+
+## Replace Program.cs
+
+The endpoint accepts the raw request body, not `IFormFile`. The example uses Kestrel's
+2 GiB request limit; configure an equivalent limit in your reverse proxy when applicable.
+`UploadStorage` chooses a local directory outside the web root.
+
+```csharp
+#pragma warning disable ERGOEXP003
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection;
+using Stella.Ergosfare.Core.Abstractions.Streaming;
+using Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = UploadLimits.MaxRequestBytes);
+builder.Services.AddErgosfare(o => o.AddCommandModule(c => c.AddGenerated()));
+builder.Services.AddSingleton(new UploadStorage(
+    Path.Combine(builder.Environment.ContentRootPath, "uploads")));
+var app = builder.Build();
+
+app.MapPost("/upload", async (HttpContext http, ICommandMediator mediator) =>
+{
+    await using var input = new UploadFile(http.Request.ContentType, http.Request.ContentLength)
+        .Pipe(http.Request.Body, chunkSize: 65536, cancellationToken: http.RequestAborted);
+    try
+    {
+        var receipt = await mediator.SendAsync<UploadReceipt>(input, http.RequestAborted);
+        return Results.Ok(receipt);
+    }
+    catch (UploadRejectedException error)
+    {
+        return Results.Problem(error.Message, statusCode: error.StatusCode);
+    }
+    catch (InvalidDataException)
+    {
+        return Results.Problem("Invalid multipart body or file size limit exceeded.", statusCode: 400);
+    }
+});
+app.Run();
+```
+
+## Add Upload.cs
+
+Copy the following complete file next to `Program.cs`. No E2E application types or other
+project files are needed. Pre reads one payload chunk; the handler writes it once and
+continues from the same multipart section. Empty files are accepted; missing files and
+additional sections are rejected. Partial files are removed on handler failure or cancellation.
+
+```csharp
+#pragma warning disable ERGOEXP003
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Net.Http.Headers;
+using Stella.Ergosfare.Commands.Abstractions;
+using Stella.Ergosfare.Commands.Abstractions.Streaming;
+using Stella.Ergosfare.Core.Abstractions;
+using Stella.Ergosfare.Core.Abstractions.Streaming;
+
+public sealed class UploadFile(string? contentType, long? contentLength)
+    : CommandStream<ReadOnlyMemory<byte>, UploadFile>(capacity: 4), ICommand<UploadReceipt>
+{
+    public string? ContentType { get; } = contentType;
+    public long? ContentLength { get; } = contentLength;
+}
+
+public sealed record UploadReceipt(string FileName, string StoredName, string? ContentType, long Bytes);
+public sealed record UploadStorage(string DirectoryPath);
+
+public static class UploadLimits
+{
+    public const long MaxRequestBytes = 2L * 1024 * 1024 * 1024;
+}
+
+public sealed class UploadRejectedException(string message, int statusCode = 400) : Exception(message)
+{
+    public int StatusCode { get; } = statusCode;
+}
+
+// Dispatch-local parser state and the first payload chunk. The input is never re-enumerated.
+internal sealed record UploadSession(Stream Body, MultipartReader Reader, MultipartSection File,
+    string FileName, string? ContentType, byte[] Buffer, int FirstCount)
+{
+    public const string ContextKey = "Upload.Session";
+}
+
+public sealed class ValidateUploadInterceptor : ICommandPreInterceptor<UploadFile>
+{
+    public async ValueTask<UploadFile> HandleAsync(UploadFile message, ErgosfareContext context)
+    {
+        if (!MediaTypeHeaderValue.TryParse(message.ContentType, out var contentType)
+            || !string.Equals(contentType.MediaType.Value, "multipart/form-data", StringComparison.OrdinalIgnoreCase))
+            throw new UploadRejectedException("Expected multipart/form-data.", 415);
+        var boundary = HeaderUtilities.RemoveQuotes(contentType.Boundary).Value;
+        if (string.IsNullOrWhiteSpace(boundary) || boundary.Length > 128)
+            throw new UploadRejectedException("A valid multipart boundary is required.");
+        if (message.ContentLength > UploadLimits.MaxRequestBytes)
+            throw new UploadRejectedException("The request limit is 2 GiB.", 413);
+
+        var body = message.AsStream();
+        try
+        {
+            var reader = new MultipartReader(boundary, body, bufferSize: 65536)
+                { BodyLengthLimit = UploadLimits.MaxRequestBytes };
+            var section = await reader.ReadNextSectionAsync(context.CancellationToken);
+            if (section is null || !ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)
+                || disposition.DispositionType != "form-data"
+                || HeaderUtilities.RemoveQuotes(disposition.Name).Value != "file"
+                || (!disposition.FileName.HasValue && !disposition.FileNameStar.HasValue))
+                throw new UploadRejectedException("Send a single file in the 'file' field.");
+
+            var suppliedName = HeaderUtilities.RemoveQuotes(disposition.FileNameStar.HasValue
+                ? disposition.FileNameStar : disposition.FileName).Value ?? "upload";
+            var fileName = Path.GetFileName(suppliedName.Replace('\\', '/'));
+            var buffer = new byte[65536];
+            var firstCount = await section.Body.ReadAsync(buffer, context.CancellationToken);
+            // A zero-length file is valid. Missing file sections are rejected above.
+            context.Set(UploadSession.ContextKey, new UploadSession(body, reader, section, fileName,
+                section.ContentType, buffer, firstCount));
+            return message;
+        }
+        catch
+        {
+            try { await body.DisposeAsync(); } catch { /* Preserve the validation or parser failure. */ }
+            throw;
+        }
+    }
+}
+
+public sealed class DisposeUploadInterceptor : ICommandFinalInterceptor<UploadFile, UploadReceipt>
+{
+    public async ValueTask HandleAsync(UploadFile message, UploadReceipt? result, Exception? exception, ErgosfareContext context)
+    {
+        if (!context.TryGet<UploadSession>(UploadSession.ContextKey, out var session)) return;
+        context.Items.Remove(UploadSession.ContextKey);
+        try { await session.Body.DisposeAsync(); }
+        catch when (exception is not null) { /* Cleanup must not replace the primary failure. */ }
+    }
+}
+
+public sealed class UploadFileHandler(UploadStorage storage) : ICommandHandler<UploadFile, UploadReceipt>
+{
+    public async ValueTask<UploadReceipt> HandleAsync(UploadFile message, ErgosfareContext context)
+    {
+        var session = context.Get<UploadSession>(UploadSession.ContextKey);
+        Directory.CreateDirectory(storage.DirectoryPath);
+        var storedName = Guid.NewGuid().ToString("N") + ".upload";
+        var path = Path.Combine(storage.DirectoryPath, storedName);
+        try
+        {
+            await using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
+                FileShare.None, 65536, FileOptions.Asynchronous);
+            await file.WriteAsync(session.Buffer.AsMemory(0, session.FirstCount), context.CancellationToken);
+            await session.File.Body.CopyToAsync(file, context.CancellationToken);
+            if (await session.Reader.ReadNextSectionAsync(context.CancellationToken) is not null)
+                throw new UploadRejectedException("Send only one file per request.");
+            await session.Body.CopyToAsync(Stream.Null, context.CancellationToken);
+            await file.FlushAsync(context.CancellationToken);
+            return new UploadReceipt(session.FileName, storedName, session.ContentType, file.Length);
+        }
+        catch
+        {
+            try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            throw;
+        }
+    }
+}
+```
+
+## Send a file
+
+Start the application:
+
+```shell
+dotnet run --urls http://localhost:5099
+```
+
+In another terminal, send any local file (use `curl.exe` in Windows PowerShell):
+
+```shell
+curl -F "file=@./photo.jpg;type=image/jpeg" http://localhost:5099/upload
+```
+
+The JSON response contains `fileName`, `storedName`, `contentType` and `bytes`. Look for
+`uploads/<storedName>` in the application directory. File bytes are unchanged; `contentType`
+is the client's declared file MIME, returned as metadata rather than encoded into the file.
+It is not content validation. Persist the receipt separately if you need that metadata later.
+
+## How the stream stays bounded
+
+`Pipe` starts immediately and pauses when its queue is full. Capacity `4` means four
+items (here, up to 64 KiB each), not the total process memory budget. The producer,
+`MultipartReader` and file copy also use buffers. No step collects the whole file.
+
+`ReadNextSectionAsync` consumes framing and may read ahead. Keep the same parser and body
+adapter through the dispatch; a second enumeration would lose that state. The final
+interceptor disposes the adapter, while the endpoint's `await using` stops and awaits the
+input producer. Request cancellation reaches both the producer and file operations.
+
+This is one request per file, not a resumable upload protocol. Add application-specific
+authorization, content checks and durable storage as needed. For a larger example with a
+browser form and persisted receipts, see the [upload example](https://github.com/stellayazilim/Ergosfare/tree/main/examples/e2e).

@@ -1,6 +1,6 @@
 ---
 title: "NoHandlerFoundException"
-description: "Exception thrown when nothing will handle a message: either the message type has no descriptor at all, or it has one whose handlers are every one excluded fr…"
+description: "Thrown when nothing will handle a message: either no handler is registered for its type, or the handlers that are registered are all filtered out of this dis…"
 sidebar:
   label: "NoHandlerFoundException"
   order: 6
@@ -9,15 +9,14 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/api/core-abstractions-exceptions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Exception thrown when nothing will handle a message: either the message type has no
-descriptor at all, or it has one whose handlers are every one excluded from this
-dispatch. The [`Message`](https://learn.microsoft.com/dotnet/api/system.exception.message) says which.
+Thrown when nothing will handle a message: either no handler is registered for its
+type, or the handlers that are registered are all filtered out of this dispatch.
 
 ```csharp
 public class NoHandlerFoundException : InvalidOperationException, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/NoHandlerFoundException.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/NoHandlerFoundException.cs#L12)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception), [`SystemException`](https://learn.microsoft.com/dotnet/api/system.systemexception), [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception)
 
@@ -25,9 +24,8 @@ public class NoHandlerFoundException : InvalidOperationException, ISerializable
 
 ## Remarks
 
-Derives from [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) because the second case used to
-throw one of those directly, so callers catching it keep catching it. Callers wanting
-the specific failure now catch one type for both cases instead of two.
+The [`Message`](https://learn.microsoft.com/dotnet/api/system.exception.message) distinguishes the two cases. The exception derives
+from [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception), so one catch covers both.
 
 ## Constructors
 
@@ -37,15 +35,15 @@ the specific failure now catch one type for both cases instead of two.
 public NoHandlerFoundException(Type messageType, string message)
 ```
 
-Initializes the exception with a message describing why nothing will handle
-`messageType`.
+Initializes the exception with a message stating why
+`messageType` went unhandled.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type of the message for which no handler was found. |
-| `message` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The message that describes the error. |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The message type that went unhandled. |
+| `message` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The exception message. |
 
 ### `NoHandlerFoundException(Type)`
 
@@ -53,13 +51,13 @@ Initializes the exception with a message describing why nothing will handle
 public NoHandlerFoundException(Type messageType)
 ```
 
-Initializes the exception for a message type nothing is registered against.
+Initializes the exception for a message type with no registered handler.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type of the message for which no handler was found. |
+| `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The message type that went unhandled. |
 
 ## Properties
 
@@ -69,7 +67,7 @@ Initializes the exception for a message type nothing is registered against.
 public Type MessageType { get; }
 ```
 
-Gets the type of the message that caused the exception.
+The message type that went unhandled.
 
 **Returns**
 

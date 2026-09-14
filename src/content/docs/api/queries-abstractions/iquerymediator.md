@@ -1,6 +1,6 @@
 ---
 title: "IQueryMediator"
-description: "Interface Stella.Ergosfare.Queries.Abstractions.IQueryMediator in the Ergosfare API reference."
+description: "Executes queries against their handlers."
 sidebar:
   label: "IQueryMediator"
   order: 11
@@ -9,44 +9,170 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
+Executes queries against their handlers.
+
 ```csharp
 public interface IQueryMediator : IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQueryMediator.cs#L4)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQueryMediator.cs#L13)
+
+## Remarks
+
+Everything a dispatch needs is passed as an argument. Only the three overloads taking
+`IEnumerable<string>` groups or an [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) are
+abstract; the rest are conveniences implemented in terms of those, so an implementation
+writes those and inherits the others.
 
 ## Methods
 
-### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, ErgosfareContext, QueryMediationSettings?)`
+### `QueryAsync<TQuery, TQueryResult>(TQuery, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, ErgosfareContext context, QueryMediationSettings? queryMediationSettings = null)
+ValueTask<TQueryResult> QueryAsync<TQuery, TQueryResult>(TQuery query, CancellationToken cancellationToken = default) where TQuery : IQuery<TQueryResult>
 ```
 
-Executes a query under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context
-(`using var scope = context.CreateScope();`) and passes
-`scope.Context` here. The caller owns the context's lifetime;
-cancellation flows from the context.
+Executes `query` through its default pipeline, naming both types.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQueryResult` | The type of the result returned by the query. |
+| `TQuery` | The query's own type. |
+| `TQueryResult` | The result type the query declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `query` | `IQuery<TQueryResult>` | The query to be executed. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The externally owned execution context to dispatch under. |
-| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/api/queries-abstractions/querymediationsettings) | Optional mediation settings (groups etc.). |
+| `query` | `TQuery` | The query to execute. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TQueryResult>`
+`ValueTask<TQueryResult>` — The result the handler produced.
+
+### `QueryAsync<TQuery, TQueryResult>(TQuery, ErgosfareContext, GroupSet?)`
+
+```csharp
+ValueTask<TQueryResult> QueryAsync<TQuery, TQueryResult>(TQuery query, ErgosfareContext context, GroupSet? groups = null) where TQuery : IQuery<TQueryResult>
+```
+
+Executes `query` under a caller-owned context, naming both types.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQuery` | The query's own type. |
+| `TQueryResult` | The result type the query declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `TQuery` | The query to execute. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+
+**Returns**
+
+`ValueTask<TQueryResult>` — The result the handler produced.
+
+### `QueryAsync<TQuery, TQueryResult>(TQuery, GroupSet, CancellationToken)`
+
+```csharp
+ValueTask<TQueryResult> QueryAsync<TQuery, TQueryResult>(TQuery query, GroupSet groups, CancellationToken cancellationToken = default) where TQuery : IQuery<TQueryResult>
+```
+
+Executes `query` naming its own type alongside its result, so the
+pipeline is reached through a pair of compile-time constants instead of the query's
+type being read back at run time.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQuery` | The query's own type. |
+| `TQueryResult` | The result type the query declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `TQuery` | The query to execute. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
+
+**Returns**
+
+`ValueTask<TQueryResult>` — The result the handler produced.
+
+Both type arguments have to be named: `TQueryResult` must be a
+type parameter for the return type, and C# will not infer type arguments through a
+constraint. That is why these overloads are additions rather than replacements —
+`QueryAsync<TQueryResult>(IQuery<TQueryResult>)` stays the short
+form, and a query read off a queue genuinely does not know its type until run time.
+
+The default implementation simply forwards to the untyped call, so an existing
+implementation keeps working; the benefit comes from overriding it, as
+`QueryMediator` does.
+
+The streaming members have no typed counterpart on purpose: their shape is being
+reworked, and adding surface to something already scheduled to change would only have
+to be undone.
+
+### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, CancellationToken)`
+
+```csharp
+ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, CancellationToken cancellationToken = default)
+```
+
+Executes `query` through its default pipeline.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQueryResult` | The result type the query declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IQuery<TQueryResult>` | The query to execute. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
+
+**Returns**
+
+`ValueTask<TQueryResult>` — The result the handler produced.
+
+### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, ErgosfareContext, GroupSet?)`
+
+```csharp
+ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, ErgosfareContext context, GroupSet? groups = null)
+```
+
+Executes `query` under an execution context supplied by the caller —
+the shape a nested query uses.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQueryResult` | The result type the query declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IQuery<TQueryResult>` | The query to execute. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under, typically a child opened with `using var scope = context.CreateScope();` and passed as `scope.Context`. The caller owns its lifetime, and cancellation comes from it. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+
+**Returns**
+
+`ValueTask<TQueryResult>` — The result the handler produced.
 
 ### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, GroupSet, CancellationToken)`
 
@@ -54,121 +180,106 @@ cancellation flows from the context.
 ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Executes a query under a canonical group filter. With a reused
-[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) (define filters once, statically) the grouped dispatch
-caches match on a single reference check and the call allocates no settings
-object. The default implementation routes through the settings overload, so
-foreign mediator implementations keep working unchanged.
+Executes `query` and returns its result.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQueryResult` | The type of the result returned by the query. |
+| `TQueryResult` | The result type the query declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `query` | `IQuery<TQueryResult>` | The query to execute. |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The canonical group filter; [`GroupSet.Empty`](/ergosfare.docs/api/core-abstractions/groupset#empty) dispatches the default pipeline. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. Reusing a [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) lets the cached pipeline be matched by reference. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TQueryResult>`
+`ValueTask<TQueryResult>` — The result the handler produced.
 
-### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, QueryMediationSettings?, CancellationToken)`
+### `StreamAsync<TQueryResult>(IStreamQuery<TQueryResult>, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
+[Obsolete("Stream messaging is being revised and its shape will not survive the revision source-compatible. It keeps working as-is meanwhile; suppress this warning to opt in until the revision lands.")]
+IAsyncEnumerable<TQueryResult> StreamAsync<TQueryResult>(IStreamQuery<TQueryResult> query, CancellationToken cancellationToken = default)
 ```
 
-Asynchronously executes a query and returns the result.
+Streams the results of `query` through its default pipeline.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQueryResult` | The type of the result returned by the query. |
+| `TQueryResult` | The type of each streamed item. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `query` | `IQuery<TQueryResult>` | The query to be executed. |
-| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/api/queries-abstractions/querymediationsettings) | Optional settings for query mediation that control aspects such as handler filtering. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation that can be used to cancel the query processing. |
+| `query` | `IStreamQuery<TQueryResult>` | The query to stream. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token for the enumeration. |
 
 **Returns**
 
-`ValueTask<TQueryResult>` — A task representing the asynchronous operation with a result of type `TQueryResult`.
+`IAsyncEnumerable<TQueryResult>` — The streamed results.
 
-This method is used for queries that produce a single result of type `TQueryResult`.
-The query is routed to its appropriate handler based on its type, and the query handling pipeline
-is executed, including pre-handlers, the main handler, post-handlers, and error handlers if exceptions occur.
-The result produced by the handler is returned to the caller.
+### `StreamAsync<TQueryResult>(IStreamQuery<TQueryResult>, ErgosfareContext, GroupSet?)`
+
+```csharp
+[Obsolete("Stream messaging is being revised and its shape will not survive the revision source-compatible. It keeps working as-is meanwhile; suppress this warning to opt in until the revision lands.")]
+IAsyncEnumerable<TQueryResult> StreamAsync<TQueryResult>(IStreamQuery<TQueryResult> query, ErgosfareContext context, GroupSet? groups = null)
+```
+
+Streams the results of `query` under a caller-owned execution
+context.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TQueryResult` | The type of each streamed item. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `query` | `IStreamQuery<TQueryResult>` | The query to stream. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+
+**Returns**
+
+`IAsyncEnumerable<TQueryResult>` — The streamed results.
 
 ### `StreamAsync<TQueryResult>(IStreamQuery<TQueryResult>, GroupSet, CancellationToken)`
 
 ```csharp
+[Obsolete("Stream messaging is being revised and its shape will not survive the revision source-compatible. It keeps working as-is meanwhile; suppress this warning to opt in until the revision lands.")]
 IAsyncEnumerable<TQueryResult> StreamAsync<TQueryResult>(IStreamQuery<TQueryResult> query, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Streaming counterpart of
-[`IQueryMediator.QueryAsync<TQueryResult>(IQuery<TQueryResult>, GroupSet, CancellationToken)`](/ergosfare.docs/api/queries-abstractions/iquerymediator#queryasynctqueryresultiquerytqueryresult-groupset-cancellationtoken).
+Streams the results of `query`.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQueryResult` | The type of the results returned by the stream query. |
+| `TQueryResult` | The type of each streamed item. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `query` | `IStreamQuery<TQueryResult>` | The stream query to execute. |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The canonical group filter. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
+| `query` | `IStreamQuery<TQueryResult>` | The query to stream. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token for the enumeration. |
 
 **Returns**
 
-`IAsyncEnumerable<TQueryResult>`
+`IAsyncEnumerable<TQueryResult>` — The streamed results.
 
-### `StreamAsync<TQueryResult>(IStreamQuery<TQueryResult>, QueryMediationSettings?, CancellationToken)`
-
-```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-IAsyncEnumerable<TQueryResult> StreamAsync<TQueryResult>(IStreamQuery<TQueryResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
-```
-
-Asynchronously streams the results of a query.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TQueryResult` | The type of the results returned by the stream query. |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `query` | `IStreamQuery<TQueryResult>` | The stream query to be executed. |
-| `queryMediationSettings` | [`QueryMediationSettings`](/ergosfare.docs/api/queries-abstractions/querymediationsettings) | Optional settings for query mediation that control aspects such as handler filtering. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation that can be used to cancel the query processing. |
-
-**Returns**
-
-`IAsyncEnumerable<TQueryResult>` — An async enumerable of results of type `TQueryResult`.
-
-This method is used for stream queries that produce a sequence of results of type
-`TQueryResult`.
-Stream queries are particularly useful for retrieving large datasets, implementing pagination,
-or handling real-time data streams.
-The query is routed to its appropriate handler based on its type, and the query handling pipeline
-is executed, including pre-handlers, the main handler, post-handlers, and error handlers if exceptions occur.
-The sequence of results produced by the handler is returned to the caller as an [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1),
-allowing for asynchronous enumeration of the results.
+The handler produces items as the caller enumerates them, so the pipeline runs while
+the caller pulls rather than before this method returns.

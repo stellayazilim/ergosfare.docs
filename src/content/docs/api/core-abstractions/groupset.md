@@ -1,6 +1,6 @@
 ---
 title: "GroupSet"
-description: "An immutable, canonicalized group filter: [GroupSet.Of(params string[])](/ergosfare.docs/api/core-abstractions/groupset#ofparams-string) interns equal sequen…"
+description: "An immutable group filter whose equal instances are canonicalized, so dispatch caches can recognize a reused filter by reference instead of comparing names."
 sidebar:
   label: "GroupSet"
   order: 4
@@ -9,25 +9,14 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-An immutable, canonicalized group filter: [`GroupSet.Of(params string[])`](/ergosfare.docs/api/core-abstractions/groupset#ofparams-string) interns equal sequences
-(same names, same order — ordinal) to one instance, so the grouped dispatch caches can
-match a reused filter with a single reference check instead of comparing group names
-element-wise. Define filters once and reuse them:
-
-```csharp
-static readonly GroupSet Reporting = GroupSet.Of("reporting");
-await mediator.SendAsync(new BuildDailyReport(), Reporting);
-```
-
-A [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) is also an [`IReadOnlyList<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1) of its names, so it
-can be assigned anywhere a group sequence is accepted
-(`settings.Filters.Groups = Reporting;`) — the caches recognize it there too.
+An immutable group filter whose equal instances are canonicalized, so dispatch caches
+can recognize a reused filter by reference instead of comparing names.
 
 ```csharp
 public sealed class GroupSet : IReadOnlyList<string>, IReadOnlyCollection<string>, IEnumerable<string>, IEnumerable
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GroupSet.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/GroupSet.cs#L26)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -35,10 +24,19 @@ public sealed class GroupSet : IReadOnlyList<string>, IReadOnlyCollection<string
 
 ## Remarks
 
-Interning is bounded: beyond an internal cap, [`GroupSet.Of(params string[])`](/ergosfare.docs/api/core-abstractions/groupset#ofparams-string) returns un-interned
-instances, which still dispatch correctly — the caches fall back to comparing group
-names. Group names come from code in practice, so the cap exists only as a guard
-against pathological dynamic name generation.
+Build a filter once with [`GroupSet.Of(params string[])`](/ergosfare.docs/api/core-abstractions/groupset#ofparams-string) and reuse the instance:
+
+```csharp
+static readonly GroupSet Reporting = GroupSet.Of("reporting");
+await mediator.SendAsync(new BuildDailyReport(), Reporting);
+```
+
+A set is an [`IReadOnlyList<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1) of its names, so it is accepted anywhere a
+group sequence is, including the dispatch overloads that take contextual items.
+
+Canonicalization is capped. Past the internal limit [`GroupSet.Of(params string[])`](/ergosfare.docs/api/core-abstractions/groupset#ofparams-string) returns
+non-canonical instances; those still dispatch identically, the caches simply compare
+names. The cap only guards against group names generated dynamically without bound.
 
 ## Fields
 
@@ -48,7 +46,7 @@ against pathological dynamic name generation.
 public static readonly GroupSet Empty
 ```
 
-The empty filter: no group filtering, the default pipeline.
+The filter that applies no group filtering, selecting the default pipeline.
 
 **Returns**
 
@@ -62,11 +60,11 @@ The empty filter: no group filtering, the default pipeline.
 public int Count { get; }
 ```
 
-Gets the number of elements in the collection.
+The number of group names in this set.
 
 **Returns**
 
-[`int`](https://learn.microsoft.com/dotnet/api/system.int32) — The number of elements in the collection.
+[`int`](https://learn.microsoft.com/dotnet/api/system.int32)
 
 ### `this[int]`
 
@@ -74,19 +72,43 @@ Gets the number of elements in the collection.
 public string this[int index] { get; }
 ```
 
-Gets the element at the specified index in the read-only list.
+The group name at `index`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `index` | [`int`](https://learn.microsoft.com/dotnet/api/system.int32) | The zero-based index of the element to get. |
+| `index` | [`int`](https://learn.microsoft.com/dotnet/api/system.int32) | The zero-based position to read. |
 
 **Returns**
 
-[`string`](https://learn.microsoft.com/dotnet/api/system.string) — The element at the specified index in the read-only list.
+[`string`](https://learn.microsoft.com/dotnet/api/system.string)
 
 ## Methods
+
+### `Create(ReadOnlySpan<string>)`
+
+```csharp
+public static GroupSet Create(ReadOnlySpan<string> groups)
+```
+
+Creates an immutable group set from a collection expression, such as ["audit"].
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `groups` | `ReadOnlySpan<string>` | Group names; an empty string is a valid name, distinct from no names. |
+
+**Returns**
+
+[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) — The canonical group set when available.
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentException`](https://learn.microsoft.com/dotnet/api/system.argumentexception) | A group name is null. |
 
 ### `GetEnumerator()`
 
@@ -94,11 +116,11 @@ Gets the element at the specified index in the read-only list.
 public IEnumerator<string> GetEnumerator()
 ```
 
-Returns an enumerator that iterates through the collection.
+Returns an enumerator over the group names, in order.
 
 **Returns**
 
-`IEnumerator<string>` — An enumerator that can be used to iterate through the collection.
+`IEnumerator<string>`
 
 ### `Of(params string[])`
 
@@ -106,20 +128,25 @@ Returns an enumerator that iterates through the collection.
 public static GroupSet Of(params string[] groups)
 ```
 
-Returns the canonical [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) for the given group names. Order is
-significant and comparison is ordinal, matching dispatch-time group semantics
-exactly; the input sequence is snapshotted, so later mutation of a passed array
-never affects the set.
+Returns the canonical set for `groups`. Two calls with the same
+names in the same order return the same instance, up to the canonicalization cap.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) | The group names; must not be null or contain nulls. |
+| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) | The group names. Order is significant and names are compared ordinally, matching dispatch-time group semantics. The sequence is copied, so mutating the argument afterwards does not affect the returned set. |
 
 **Returns**
 
-[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset)
+[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) — [`GroupSet.Empty`](/ergosfare.docs/api/core-abstractions/groupset#empty) when `groups` is empty; otherwise a set over the given names.
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `groups` is `null`. |
+| [`ArgumentException`](https://learn.microsoft.com/dotnet/api/system.argumentexception) | `groups` contains a `null` name. |
 
 ### `ToString()`
 
@@ -127,8 +154,34 @@ never affects the set.
 public override string ToString()
 ```
 
-Returns a string that represents the current object.
+Returns the group names for display, or `GroupSet.Empty` when there are none.
 
 **Returns**
 
-[`string`](https://learn.microsoft.com/dotnet/api/system.string) — A string that represents the current object.
+[`string`](https://learn.microsoft.com/dotnet/api/system.string)
+
+## Operators
+
+### `implicit operator GroupSet(string)`
+
+```csharp
+public static implicit operator GroupSet(string group)
+```
+
+Converts one group name into a single-group set.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `group` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The group name. An empty string is a valid group name. |
+
+**Returns**
+
+[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) — A set containing exactly the supplied name.
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `group` is null. |

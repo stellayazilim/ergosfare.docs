@@ -1,59 +1,63 @@
 ---
 title: "ICommandExceptionInterceptorFor<TCommand, TResult, TException>"
-description: "A type-safe exception interceptor for commands with a strongly-typed result that runs only for exceptions of type TException."
+description: "Handles failures of type TException raised while dispatching a TCommand, and supplies the result the caller receives instead."
 sidebar:
   label: "ICommandExceptionInterceptorFor<TCommand, TResult, TException>"
-  order: 10
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-A type-safe exception interceptor for commands with a strongly-typed result that runs
-only for exceptions of type `TException`. The exception arrives
-already typed — no `is` check in the interceptor body.
+Handles failures of type `TException` raised while dispatching a
+`TCommand`, and supplies the result the caller receives instead.
 
 ```csharp
 public interface ICommandExceptionInterceptorFor<in TCommand, TResult, TException> : ICommand, IMessage, IAsyncExceptionInterceptor<TCommand, TResult>, IExceptionInterceptor, IExceptionInterceptorFilter<TException>, IExceptionInterceptorFilter where TCommand : ICommand<TResult> where TResult : notnull where TException : Exception
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptorFor%5BTCommand%2CTResult%2CTException%5D.cs#L30)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptorFor%5BTCommand%2CTResult%2CTException%5D.cs#L23)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The command type being intercepted. Must implement [`ICommand<TResult>`](/ergosfare.docs/api/commands-abstractions/icommand-1). |
-| `TResult` | The result type of the command. Also the type returned by the interceptor — an interceptor that declines to replace the result returns `null`. |
-| `TException` | The exception type this interceptor accepts, matched with `catch` semantics: derived exception types match too. |
+| `TCommand` | The command type this interceptor accepts. |
+| `TResult` | The result type the command declares. |
+| `TException` | The failure type this interceptor accepts. Matching follows `catch` semantics, so derived types match too. |
 
 ## Remarks
 
-Filtering does not reorder anything: matching interceptors run in the pipeline's
-existing order (weight descending, then type name), and the result threads through them
-exactly as it does through the unfiltered
-[`ICommandExceptionInterceptor<TCommand, TResult>`](/ergosfare.docs/api/commands-abstractions/icommandexceptioninterceptor-2). When no interceptor
-accepts the thrown exception, it leaves the pipeline unwrapped with its original stack.
+The failure arrives already typed, so no type test is needed in the body. Filtering
+changes nothing about order: the interceptors that accept a failure run in the stage's
+usual order, by descending weight and then type name, threading the result through each.
+A failure no interceptor accepts reaches the caller with its original stack.
 
 ## Methods
 
 ### `HandleAsync(TCommand, TResult?, TException, ErgosfareContext)`
 
 ```csharp
-ValueTask<TResult?> HandleAsync(TCommand command, TResult? result, TException exception, ErgosfareContext context)
+ValueTask<TResult> HandleAsync(TCommand command, TResult? result, TException exception, ErgosfareContext context)
 ```
 
-Handles the exception asynchronously, potentially modifying the command result.
+Handles `exception` and produces the result to continue with.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` | The command being processed when the exception occurred. |
-| `result` | `TResult` | The result produced before the exception occurred, if any. |
-| `exception` | `TException` | The exception thrown during pipeline execution. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `command` | `TCommand` | The command whose dispatch failed. |
+| `result` | `TResult` | The result produced before the failure, which is the result type's default when the handler itself failed. |
+| `exception` | `TException` | The failure being handled, already typed. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) producing the (possibly modified) result that continues through the pipeline.
+`ValueTask<TResult>` — The result the caller receives.
+
+Running this method is what marks the failure handled, and a handled failure has to
+leave a result behind: the call site locked the result type when it dispatched. To
+leave a failure for the caller, do not accept it — narrow
+`TException` so this interceptor never sees it, and a failure no
+interceptor accepts reaches the caller unchanged.

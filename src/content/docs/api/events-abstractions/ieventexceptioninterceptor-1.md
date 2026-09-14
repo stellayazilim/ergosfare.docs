@@ -1,58 +1,54 @@
 ---
 title: "IEventExceptionInterceptor<TEvent>"
-description: "Represents an asynchronous exception interceptor for events, allowing custom logic to execute when an exception occurs during event handling."
+description: "Handles failures raised while publishing a TEvent."
 sidebar:
   label: "IEventExceptionInterceptor<TEvent>"
-  order: 6
+  order: 3
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents an asynchronous exception interceptor for events, allowing custom logic
-to execute when an exception occurs during event handling.
+Handles failures raised while publishing a `TEvent`.
 
 ```csharp
 public interface IEventExceptionInterceptor<in TEvent> : IEvent, IMessage, IAsyncExceptionInterceptor<TEvent, Unit>, IExceptionInterceptor where TEvent : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor%5BTEvent%5D.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor%5BTEvent%5D.cs#L20)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of event being intercepted. Must be non-nullable and implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
+| `TEvent` | The event type this interceptor accepts. Any non-null type will do — an event need not implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
 
 ## Remarks
 
-Implementing this interface allows the interceptor to participate in the event mediation
-pipeline when an exception is thrown during the handling of `TEvent`.
-
-This interface inherits from [`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-1), enabling
-asynchronous exception handling logic.
-
-The `TEvent` type must be non-nullable and implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent).
+Running is what marks the failure handled, and a failure no interceptor accepts reaches
+the publisher unchanged. Because a publish has no result, handling here means the
+publish completes rather than throwing. Use
+[`IEventExceptionInterceptorFor<TEvent, TException>`](/ergosfare.docs/api/events-abstractions/ieventexceptioninterceptorfor-2) to accept only certain
+failures.
 
 ## Methods
 
-### `HandleAsync(TEvent, ValueTask, Exception, ErgosfareContext)`
+### `HandleAsync(TEvent, Exception, ErgosfareContext)`
 
 ```csharp
-ValueTask HandleAsync(TEvent @event, ValueTask result, Exception exception, ErgosfareContext context)
+ValueTask HandleAsync(TEvent @event, Exception exception, ErgosfareContext context)
 ```
 
-Handles an exception asynchronously that occurred during the processing of the event.
+Handles `exception`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | `TEvent` | The event being processed. |
-| `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | The result returned by the main handlers, or `null` if the event does not produce a result. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during event handling. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
+| `event` | `TEvent` | The event whose publish failed. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure being handled. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous exception handling operation.
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

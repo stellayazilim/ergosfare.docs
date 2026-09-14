@@ -1,25 +1,27 @@
 ---
 title: "StagedResultPlan"
-description: "The result-producing counterpart of StagedVoidPlan: a compile-time staged pipeline plan for a message with a result contract."
+description: "A compiled plan that runs a result-producing message's whole pipeline as straight-line typed calls; the result-producing counterpart of StagedVoidPlan, with…"
 sidebar:
   label: "StagedResultPlan"
-  order: 4
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.StagedPlans`](/ergosfare.docs/api/core-abstractions-stagedplans)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The result-producing counterpart of [`StagedVoidPlan`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedvoidplan): a compile-time
-staged pipeline plan for a message with a result contract. The same advisory contract
-applies — see [`StagedVoidPlan`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedvoidplan).
+A compiled plan that runs a result-producing message's whole pipeline as straight-line
+typed calls; the result-producing counterpart of [`StagedVoidPlan`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedvoidplan), with the
+same rules about when it is trusted.
 
 ```csharp
-public abstract class StagedResultPlan
+public abstract class StagedResultPlan : ICompiledPlan
 ```
 
 [View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/StagedPlans/StagedResultPlan.cs#L7)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
+
+**Implements:** [`ICompiledPlan`](/ergosfare.docs/api/core-abstractions-stagedplans/icompiledplan)
 
 **Derived:** [`StagedResultPlan<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedresultplan-2)
 
@@ -28,56 +30,28 @@ public abstract class StagedResultPlan
 ### `Composition`
 
 ```csharp
-public abstract StagedPlanComposition Composition { get; }
+public abstract StagedPlanKey Composition { get; }
 ```
 
-The pipeline composition the plan was baked against.
+The pipeline this plan was compiled against.
 
 **Returns**
 
-[`StagedPlanComposition`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedplancomposition)
+[`StagedPlanKey`](/ergosfare.docs/api/core-abstractions-stagedplans/stagedplankey)
 
-### `SupportsDirectConstruction`
+### `FilterGroups`
 
 ```csharp
-public virtual bool SupportsDirectConstruction { get; }
+public virtual string[]? FilterGroups { get; }
 ```
 
-Whether the plan carries a direct-construction variant of its pipeline
-(`ExecuteDirect`): every participant constructed with `new` instead of a
-container resolution. The hosting executor uses that variant only after verifying
-at runtime that every participant's effective DI registration is the module's own
-plain transient one — the single shape where container resolution and direct
-construction are observably identical.
+Every group this plan can filter for, or `null` when the plan was compiled for
+one group set and needs no filtering.
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean)
+[`string[]`](https://learn.microsoft.com/dotnet/api/system.string)
 
-## Methods
-
-### `Accept<TReturn, TState>(IStagedResultPlanVisitor<TReturn, TState>, TState)`
-
-```csharp
-public abstract TReturn Accept<TReturn, TState>(IStagedResultPlanVisitor<TReturn, TState> visitor, TState state)
-```
-
-Invokes the visitor with this plan's message and result types as the generic arguments.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TReturn` |  |
-| `TState` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `visitor` | `IStagedResultPlanVisitor<TReturn, TState>` |  |
-| `state` | `TState` |  |
-
-**Returns**
-
-`TReturn`
+A filtering plan serves dispatches whose groups are only known at runtime: it holds
+every participant and decides per call, so what the executor must check is the
+pipeline over exactly these groups.

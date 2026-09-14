@@ -1,37 +1,53 @@
 ---
 title: "IEventFinalInterceptor<TEvent>"
-description: "Represents a final interceptor for events, allowing custom logic to be executed after all other event processing (handlers, pre-, post-interceptors) has comp…"
+description: "Runs once the pipeline of a TEvent has settled, whether delivery succeeded or failed."
 sidebar:
   label: "IEventFinalInterceptor<TEvent>"
-  order: 10
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents a final interceptor for events, allowing custom logic
-to be executed after all other event processing (handlers, pre-, post-interceptors)
-has completed.
+Runs once the pipeline of a `TEvent` has settled, whether delivery
+succeeded or failed.
 
 ```csharp
 public interface IEventFinalInterceptor<in TEvent> : IEvent, IMessage, IAsyncFinalInterceptor<TEvent, Unit>, IFinalInterceptor where TEvent : IEvent
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/FinalInterceptors/IEventFinalInterceptor%5BTEvent%5D.cs#L19)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of event being intercepted. Must implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
+| `TEvent` | The event type this interceptor accepts. Unlike the other event interceptors, this one requires the event to implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
 
 ## Remarks
 
-Implementing [`IEventFinalInterceptor<TEvent>`](/ergosfare.docs/api/events-abstractions/ieventfinalinterceptor-1) allows the interceptor
-to participate in the event mediation pipeline at the final stage, after
-all handlers and other interceptors have run.
+It observes the outcome and cannot change it, and a publish stopped by
+`context.Abort()` runs no final interceptors. Because a publish has no result, the
+only outcome to observe is the failure.
 
-This interface inherits from [`IAsyncFinalInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncfinalinterceptor-2),
-so final-interceptor logic can be asynchronous and return a [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask).
+## Methods
 
-The `TEvent` type must implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent).
+### `HandleAsync(TEvent, Exception?, ErgosfareContext)`
+
+```csharp
+ValueTask HandleAsync(TEvent @event, Exception? exception, ErgosfareContext context)
+```
+
+Observes how the publish settled.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `event` | `TEvent` | The event that was published. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure that ended the publish, or `null` when it succeeded. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
+
+**Returns**
+
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

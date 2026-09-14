@@ -1,6 +1,6 @@
 ---
 title: "IExceptionInterceptorFilter"
-description: "The erased probe an exception interceptor carries when it accepts only some exceptions."
+description: "Narrows an exception interceptor to the failures it accepts."
 sidebar:
   label: "IExceptionInterceptorFilter"
   order: 12
@@ -9,26 +9,25 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The erased probe an exception interceptor carries when it accepts only some exceptions.
-The exception stage asks every interceptor that implements it whether the thrown
-exception is one it accepts, runs only those that answer yes, and rethrows the original
-exception unwrapped when none does.
+Narrows an exception interceptor to the failures it accepts.
 
 ```csharp
 public interface IExceptionInterceptorFilter
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IExceptionInterceptorFilter.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IExceptionInterceptorFilter.cs#L21)
 
 ## Remarks
 
-An interceptor that does not implement this contract accepts every exception — the
-untyped facades keep their unfiltered behavior with no opt-in.
+The exception stage asks each interceptor that implements this contract whether it
+accepts the failure, and skips the ones that say no — a skipped interceptor does not
+count as having handled anything, so a failure every interceptor rejects stays
+unhandled and settles as if no interceptor were registered at all.
 
-The probe is deliberately separate from the dispatch contracts
-([`IExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptor-2) and the asynchronous pair):
-filtering is orthogonal to which typed member the stage invokes, so a filtered
-interceptor is dispatched through exactly the same arm as an unfiltered one.
+An interceptor that does not implement this contract accepts every failure. Prefer the
+typed [`IExceptionInterceptorFilter<TException>`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptorfilter-1), which implements
+[`IExceptionInterceptorFilter.Matches(Exception)`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptorfilter#matchesexception) for you; implement this one directly only for a test the exception
+type alone cannot express.
 
 ## Methods
 
@@ -38,14 +37,14 @@ interceptor is dispatched through exactly the same arm as an unfiltered one.
 bool Matches(Exception exception)
 ```
 
-Determines whether this interceptor accepts the thrown exception.
+Reports whether this interceptor accepts `exception`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception the pipeline threw. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure the pipeline raised. |
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when the interceptor should run for this exception; otherwise `false`.
+[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` to run this interceptor for the failure.

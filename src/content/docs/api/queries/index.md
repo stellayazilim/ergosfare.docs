@@ -10,4 +10,4 @@ The `Stella.Ergosfare.Queries` namespace contains 1 public type.
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`QueryMediator`](/ergosfare.docs/api/queries/querymediator) | Class | The default implementation of [`IQueryMediator`](/ergosfare.docs/api/queries-abstractions/iquerymediator). Handles both standard queries and streaming queries using the internal message mediation pipeline, supporting pre/post/final interceptors and result adapters. |
+| [`QueryMediator`](/ergosfare.docs/api/queries/querymediator) | Class | The query mediator an application resolves: it holds the scope it was resolved from and hands every query and stream to the container's dispatch engine. |

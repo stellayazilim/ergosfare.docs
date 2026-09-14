@@ -1,85 +1,70 @@
 ---
 title: "IEventMediator"
-description: "Represents the mediator interface for publishing events within the application."
+description: "Publishes events to their handlers."
 sidebar:
   label: "IEventMediator"
-  order: 12
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents the mediator interface for publishing events within the application.
+Publishes events to their handlers.
 
 ```csharp
 public interface IEventMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEventMediator.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/IEventMediator.cs#L13)
 
 ## Remarks
 
-The event mediator is responsible for broadcasting events to all registered handlers
-and orchestrating the event handling pipeline. Unlike commands, which are handled by
-exactly one handler, events can be handled by multiple handlers, allowing for decoupled
-communication between different parts of the application.
-In the publish-subscribe pattern, events represent notifications about something that
-has happened in the system. The event mediator helps maintain separation between the
-event publishers and the event subscribers (handlers).
+An event reaches every handler registered for it, where a command reaches exactly one —
+which is what lets parts of an application react to each other without knowing each
+other. Everything a publish needs is passed as an argument; only the three abstract
+members carry real work, and the rest are conveniences implemented in terms of them.
 
 ## Methods
 
-### `PublishAsync(IEvent, ErgosfareContext, EventMediationSettings?)`
+### `PublishAsync(IEvent, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-ValueTask PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? eventMediationSettings = null)
+ValueTask PublishAsync(IEvent @event, CancellationToken cancellationToken = default)
 ```
 
-Publishes an event under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context
-(`using var scope = context.CreateScope();`) and passes
-`scope.Context` here. The caller owns the context's lifetime;
-cancellation flows from the context.
+Publishes `event` through its default pipeline.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event to publish. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The externally owned execution context to publish under. |
-| `eventMediationSettings` | [`EventMediationSettings`](/ergosfare.docs/api/events-abstractions/eventmediationsettings) | Optional settings for pipeline execution. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when every handler has run.
 
-### `PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`
+### `PublishAsync(IEvent, ErgosfareContext, GroupSet?)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-ValueTask PublishAsync(IEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default)
+ValueTask PublishAsync(IEvent @event, ErgosfareContext context, GroupSet? groups = null)
 ```
 
-Asynchronously publishes an event.
+Publishes `event` under an execution context supplied by the caller
+— the shape a nested publish uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event to be published. |
-| `eventMediationSettings` | [`EventMediationSettings`](/ergosfare.docs/api/events-abstractions/eventmediationsettings) | Optional settings for event mediation that control aspects such as handler filtering and error handling behavior. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation that can be used to cancel the event processing. |
+| `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event to publish. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under, typically a child opened with `using var scope = context.CreateScope();` and passed as `scope.Context`. The caller owns its lifetime, and cancellation comes from it. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to deliver to; an empty set uses the default group. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task representing the asynchronous event publication operation.
-
-This method broadcasts the event to all registered handlers for the event's type.
-The event handling pipeline is executed for each handler, including pre-handlers,
-the main handler, post-handlers, and error handlers if exceptions occur.
-By default, if no handlers are found for the event, the operation completes successfully
-without any action. This behavior can be changed using the [`EventMediationSettings`](/ergosfare.docs/api/events-abstractions/eventmediationsettings).
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when every handler has run.
 
 ### `PublishAsync(IEvent, GroupSet, CancellationToken)`
 
@@ -87,58 +72,45 @@ without any action. This behavior can be changed using the [`EventMediationSetti
 ValueTask PublishAsync(IEvent @event, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Publishes an event under a canonical group filter. With a reused
-[`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) (define filters once, statically) the
-grouped broadcast plan matches on a single reference check and the call
-allocates no settings object. The default implementation routes through the
-settings overload, so foreign mediator implementations keep working unchanged.
+Publishes `event` to every handler registered for its type.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) | The event to publish. |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The canonical group filter; [`GroupSet.Empty`](/ergosfare.docs/api/core-abstractions/groupset#empty) publishes the default pipeline. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to deliver to; an empty set uses the default group. Reusing a [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) lets the cached pipeline be matched by reference. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when every handler has run.
 
-### `PublishAsync<TEvent>(TEvent, EventMediationSettings?, CancellationToken)`
+### `PublishAsync<TEvent>(TEvent, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-ValueTask PublishAsync<TEvent>(TEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default) where TEvent : notnull
+ValueTask PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : notnull
 ```
 
-Asynchronously publishes an event with a specific type.
+Publishes `event` through its default pipeline, naming its type at
+compile time.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of the event to be published. |
+| `TEvent` | The event's compile-time type. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | `TEvent` | The event to be published. |
-| `eventMediationSettings` | [`EventMediationSettings`](/ergosfare.docs/api/events-abstractions/eventmediationsettings) | Optional settings for event mediation that control aspects such as handler filtering and error handling behavior. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation that can be used to cancel the event processing. |
+| `event` | `TEvent` | The event to publish. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task representing the asynchronous event publication operation.
-
-This method provides a strongly-typed alternative to the non-generic
-[`IEventMediator.PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`](/ergosfare.docs/api/events-abstractions/ieventmediator#publishasyncievent-eventmediationsettings-cancellationtoken) method.
-It broadcasts the event to all registered handlers for the event's type.
-The event handling pipeline is executed for each handler, including pre-handlers,
-the main handler, post-handlers, and error handlers if exceptions occur.
-By default, if no handlers are found for the event, the operation completes successfully
-without any action. This behavior can be changed using the [`EventMediationSettings`](/ergosfare.docs/api/events-abstractions/eventmediationsettings).
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when every handler has run.
 
 ### `PublishAsync<TEvent>(TEvent, GroupSet, CancellationToken)`
 
@@ -146,23 +118,26 @@ without any action. This behavior can be changed using the [`EventMediationSetti
 ValueTask PublishAsync<TEvent>(TEvent @event, GroupSet groups, CancellationToken cancellationToken = default) where TEvent : notnull
 ```
 
-Strongly-typed counterpart of
-[`IEventMediator.PublishAsync(IEvent, GroupSet, CancellationToken)`](/ergosfare.docs/api/events-abstractions/ieventmediator#publishasyncievent-groupset-cancellationtoken).
+Publishes `event` naming its type at compile time, which also
+allows any non-null type to be an event.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of the event to publish. |
+| `TEvent` | The event's compile-time type. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `event` | `TEvent` | The event to publish. |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The canonical group filter. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to deliver to; an empty set uses the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when every handler has run.
+
+When the named type is the event's runtime type — the usual case — the pipeline is
+found through a compile-time slot rather than a lookup.

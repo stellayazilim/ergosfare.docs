@@ -1,37 +1,36 @@
 ---
 title: "ICommandPreInterceptor<TCommand>"
-description: "Defines a type-safe pre-interceptor for a command."
+description: "Runs before the handler of a TCommand and decides which command the rest of the pipeline sees."
 sidebar:
   label: "ICommandPreInterceptor<TCommand>"
-  order: 23
+  order: 19
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Defines a type-safe pre-interceptor for a command. It runs before the handler and returns
-the command that continues through the pipeline — the original instance, or a rewritten one.
+Runs before the handler of a `TCommand` and decides which command
+the rest of the pipeline sees.
 
 ```csharp
 public interface ICommandPreInterceptor<TCommand> : ICommand, IMessage, IAsyncPreInterceptor<TCommand>, IPreInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%5D.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/PreInterceptors/ICommandPreInterceptor%5BTCommand%5D.cs#L17)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The type of command to intercept. |
+| `TCommand` | The command type this interceptor accepts. |
 
 ## Remarks
 
-A pre-interceptor carries no result, so — unlike the post/exception interceptors, whose
-second type parameter is the result — the single-parameter form returns the command type
-directly rather than [`object`](https://learn.microsoft.com/dotnet/api/system.object). Use the non-generic
-[`ICommandPreInterceptor`](/ergosfare.docs/api/commands-abstractions/icommandpreinterceptor) to intercept any command (returning [`object`](https://learn.microsoft.com/dotnet/api/system.object)),
-or [`ICommandPreInterceptor<TCommand, TModifiedCommand>`](/ergosfare.docs/api/commands-abstractions/icommandpreinterceptor-2) to return a different,
-derived command type. `TCommand` is invariant because it is returned.
+A pre-interceptor produces no result, so this form returns the command type itself
+rather than [`object`](https://learn.microsoft.com/dotnet/api/system.object) — which is why `TCommand` is
+invariant here. Returning a derived command is allowed and needs nothing extra: it is
+still a `TCommand`. Use [`ICommandPreInterceptor`](/ergosfare.docs/api/commands-abstractions/icommandpreinterceptor) to
+accept any command instead.
 
 ## Methods
 
@@ -41,16 +40,15 @@ derived command type. `TCommand` is invariant because it is returned.
 ValueTask<TCommand> HandleAsync(TCommand command, ErgosfareContext context)
 ```
 
-Handles the command before its handler runs and returns the command that continues
-through the pipeline (the original, or a rewritten instance).
+Processes `command` before its handler runs.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` | The command to intercept. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `command` | `TCommand` | The command as the previous stage left it. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<TCommand>`
+`ValueTask<TCommand>` — The command the rest of the pipeline receives — either the one passed in or a replacement.
