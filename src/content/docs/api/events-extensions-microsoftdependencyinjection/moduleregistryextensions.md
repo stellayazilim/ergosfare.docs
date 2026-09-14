@@ -1,6 +1,6 @@
 ---
 title: "ModuleRegistryExtensions"
-description: "Provides extension methods for registering the event module in an IModuleRegistry."
+description: "Adds the event module to a registry."
 sidebar:
   label: "ModuleRegistryExtensions"
   order: 2
@@ -9,7 +9,7 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides extension methods for registering the event module in an [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry).
+Adds the event module to a registry.
 
 ```csharp
 public static class ModuleRegistryExtensions
@@ -27,15 +27,15 @@ public static class ModuleRegistryExtensions
 public static IModuleRegistry AddEventModule(this IModuleRegistry registry, Action<EventModuleBuilder> builder)
 ```
 
-Adds the `EventModule` to the module registry.
+Adds the event module, registering the events `builder` selects.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `registry` | [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The module registry to which the event module will be added. |
-| `builder` | `Action<EventModuleBuilder>` | An action that configures the [`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) by selecting event participants from the compile-time frozen composition table. |
+| `registry` | [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The registry being configured. |
+| `builder` | `Action<EventModuleBuilder>` | Selects which event constructs this container runs. |
 
 **Returns**
 
-[`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) instance for fluent chaining.
+[`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same registry, so calls can be chained.

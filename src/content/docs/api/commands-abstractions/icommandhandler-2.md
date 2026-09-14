@@ -1,30 +1,31 @@
 ---
 title: "ICommandHandler<TCommand, TResult>"
-description: "Represents a handler for commands that produce a strongly-typed result."
+description: "Handles commands of type TCommand and returns the TResult they declare."
 sidebar:
   label: "ICommandHandler<TCommand, TResult>"
-  order: 15
+  order: 12
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a handler for commands that produce a strongly-typed result.
+Handles commands of type `TCommand` and returns the
+`TResult` they declare.
 
 ```csharp
 public interface ICommandHandler<in TCommand, TResult> : ICommand, IMessage, IAsyncHandler<TCommand, TResult>, IHandler where TCommand : ICommand<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%2CTResult%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/Handlers/ICommandHandler%5BTCommand%2CTResult%5D.cs#L15)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The type of command this handler processes. Must implement [`ICommand<TResult>`](/ergosfare.docs/api/commands-abstractions/icommand-1). |
-| `TResult` | The type of result produced by the command. |
+| `TCommand` | The command type this handler accepts. |
+| `TResult` | The result type the command declares. |
 
 ## Remarks
 
-Use this interface when you want type-safe handling of commands with a specific result type.
-The handler processes the command asynchronously and returns the strongly-typed result.
+The result type comes from the command itself, so the caller and the handler cannot
+disagree about it. A command is sent to exactly one handler.

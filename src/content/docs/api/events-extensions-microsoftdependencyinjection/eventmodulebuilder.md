@@ -1,6 +1,6 @@
 ---
 title: "EventModuleBuilder"
-description: "Provides a builder for selecting the event constructs this container runs from the compiled composition table."
+description: "Selects which of the compiled event constructs this container runs."
 sidebar:
   label: "EventModuleBuilder"
   order: 1
@@ -9,43 +9,69 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides a builder for selecting the event constructs this container runs from the
-compiled composition table.
+Selects which of the compiled event constructs this container runs.
 
 ```csharp
 public class EventModuleBuilder
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/EventModuleBuilder.cs#L18)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection/EventModuleBuilder.cs#L13)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
-## Remarks
-
-Events and the subscribers serving them are registered individually or by
-[`Type`](https://learn.microsoft.com/dotnet/api/system.type); what each event's pipeline looks like is decided at compile time.
-
 ## Constructors
 
-### `EventModuleBuilder(FrozenCompositionCatalog)`
+### `EventModuleBuilder(DispatchPlanCatalog)`
 
 ```csharp
-public EventModuleBuilder(FrozenCompositionCatalog compositions)
+public EventModuleBuilder(DispatchPlanCatalog compositions)
 ```
 
-Provides a builder for selecting the event constructs this container runs from the
-compiled composition table.
+Selects which of the compiled event constructs this container runs.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `compositions` | [`FrozenCompositionCatalog`](/ergosfare.docs/api/core-abstractions-dispatchroots/frozencompositioncatalog) | The container's composition catalog, told which constructs this registration selects. |
+| `compositions` | [`DispatchPlanCatalog`](/ergosfare.docs/api/core-abstractions-planning/dispatchplancatalog) | The catalog this builder records the container's selection in. |
 
-Events and the subscribers serving them are registered individually or by
-[`Type`](https://learn.microsoft.com/dotnet/api/system.type); what each event's pipeline looks like is decided at compile time.
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `compositions` is `null`. |
 
 ## Methods
+
+### `AddGenerated()`
+
+```csharp
+public EventModuleBuilder AddGenerated()
+```
+
+Applies the compile-time default selection for this module.
+
+**Returns**
+
+[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder)
+
+### `AddGenerated(string)`
+
+```csharp
+public EventModuleBuilder AddGenerated(string discoveryKeyPattern)
+```
+
+Applies the compile-time selection for a constant discovery-key pattern.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `discoveryKeyPattern` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | An exact key or trailing-star prefix. |
+
+**Returns**
+
+[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The same builder.
 
 ### `Register(Type)`
 
@@ -53,42 +79,46 @@ Events and the subscribers serving them are registered individually or by
 public EventModuleBuilder Register(Type eventType)
 ```
 
-Registers an event construct — an event, or one of the subscribers and interceptors
-serving events (their contracts carry the module marker too).
+Registers one event construct.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `eventType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type to register. |
+| `eventType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type to register: an event, or one of the handlers and interceptors that serve events. |
 
 **Returns**
 
-[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The current [`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) instance for fluent chaining.
+[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The same builder, so calls can be chained.
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) |  |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `eventType` is `null`. |
+| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | The type is a pipeline participant but belongs to another module. |
+
+An event itself needs no marker, so any type is accepted as one. A participant is
+held to its module: a type implementing a pipeline contract must also carry
+[`IEvent`](/ergosfare.docs/api/events-abstractions/ievent) to be registered here.
 
 ### `Register<TEvent>()`
 
 ```csharp
-public EventModuleBuilder Register<TEvent>() where TEvent : IEvent
+public EventModuleBuilder Register<TEvent>() where TEvent : notnull
 ```
 
-Registers an event construct.
+Registers one event construct.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type to register. Must be an event construct. |
+| `TEvent` | The type to register: an event — which may be any non-null type — or one of the handlers and interceptors that serve events. |
 
 **Returns**
 
-[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The current [`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) instance for fluent chaining.
+[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The same builder, so calls can be chained.
 
 ### `RegisterParticipants(IEnumerable<Type>)`
 
@@ -96,21 +126,17 @@ Registers an event construct.
 public EventModuleBuilder RegisterParticipants(IEnumerable<Type> participantTypes)
 ```
 
-Registers a batch of pipeline participants — the bulk path source-generated
-registration uses.
+Registers many participants at once — the path generated registration uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `participantTypes` | `IEnumerable<Type>` | The subscriber and interceptor types to register. |
+| `participantTypes` | `IEnumerable<Type>` | The handler and interceptor types to register. |
 
 **Returns**
 
-[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The current [`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) instance for fluent chaining.
+[`EventModuleBuilder`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) — The same builder, so calls can be chained.
 
-No module assertion here: the generator has already partitioned its discoveries by
-module, and not every participant contract carries the module marker (the modifying
-interceptor shapes are declared purely over the core contracts).
-[`EventModuleBuilder.Register(Type)`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder#registertype) keeps the assertion, since a hand-written registration
-is where a wrong-module type actually surfaces.
+Unlike [`EventModuleBuilder.Register(Type)`](/ergosfare.docs/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder#registertype) this does not check the module: the generator has
+already sorted its discoveries by module.

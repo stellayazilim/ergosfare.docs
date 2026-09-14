@@ -1,38 +1,35 @@
 ---
 title: "IResultAdapter<TResult>"
-description: "Extracts a value-carried failure out of a pipeline result of type TResult without throwing it — the bridge that lets result-pattern values (the framework's o…"
+description: "Reads a failure out of a result value without throwing it, so a result that carries its error as data still reaches the exception-interceptor stage."
 sidebar:
   label: "IResultAdapter<TResult>"
-  order: 12
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Extracts a value-carried failure out of a pipeline result of type
-`TResult` without throwing it — the bridge that lets result-pattern
-values (the framework's own [`Result`](/ergosfare.docs/api/core-abstractions/result)/[`Result<TValue>`](/ergosfare.docs/api/core-abstractions/result-1), or foreign
-carriers such as FluentResults/OneOf) trigger the exception-interceptor stage.
+Reads a failure out of a result value without throwing it, so a result that carries its
+error as data still reaches the exception-interceptor stage.
 
 ```csharp
 public interface IResultAdapter<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultAdapter.cs#L15)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The closed pipeline result type the adapter understands. |
+| `TResult` | The closed result type this adapter reads. |
 
 ## Remarks
 
-Typed on purpose: the previous object-based contract boxed every value-typed result on
-every probe and re-discovered its target by `CanAdapt` checks. This shape binds per
-closed result type — resolved once per pipeline, called devirtualized, and passed by
-readonly reference so nothing is copied or boxed. A pipeline whose result type has no
-adapter pays nothing at all.
+Implement this for any carrier that represents failure as a value — the built-in
+[`Result`](/ergosfare.docs/api/core-abstractions-results/result) and [`Result<TValue>`](/ergosfare.docs/api/core-abstractions-results/result-1), or a third-party type such as
+FluentResults or OneOf. An adapter is bound once per closed result type; a pipeline
+whose result type has no adapter skips the probe entirely.
 
 ## Methods
 
@@ -42,15 +39,15 @@ adapter pays nothing at all.
 bool TryGetException(in TResult result, out Exception? exception)
 ```
 
-Attempts to extract a failure from `result` without throwing.
+Reads the failure carried by `result`, if there is one.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `result` | `TResult` | The pipeline result to inspect. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The carried failure, when present. |
+| `result` | `TResult` | The result value to inspect. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The carried failure when this method returns `true`; otherwise `null`. |
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when a failure was extracted; otherwise `false`.
+[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when `result` carries a failure.

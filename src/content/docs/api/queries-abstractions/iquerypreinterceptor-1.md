@@ -1,37 +1,36 @@
 ---
 title: "IQueryPreInterceptor<TQuery>"
-description: "Represents a type-safe pre-interceptor for query messages."
+description: "Runs before the handler of a TQuery and decides which query the rest of the pipeline sees."
 sidebar:
   label: "IQueryPreInterceptor<TQuery>"
-  order: 17
+  order: 16
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
-Represents a type-safe pre-interceptor for query messages. It runs before the query
-handler and returns the query that continues through the pipeline — the original, or a
-rewritten one.
+Runs before the handler of a `TQuery` and decides which query the
+rest of the pipeline sees.
 
 ```csharp
 public interface IQueryPreInterceptor<TQuery> : IQuery, IMessage, IAsyncPreInterceptor<TQuery>, IPreInterceptor where TQuery : IQuery
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor%5BTQuery%5D.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/PreInterceptors/IQueryPreInterceptor%5BTQuery%5D.cs#L18)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQuery` | The type of query to be intercepted. Must implement [`IQuery`](/ergosfare.docs/api/queries-abstractions/iquery). |
+| `TQuery` | The query type this interceptor accepts. |
 
 ## Remarks
 
-A pre-interceptor carries no result, so the single-parameter form returns the query type
-directly rather than [`object`](https://learn.microsoft.com/dotnet/api/system.object). Use the non-generic
-[`IQueryPreInterceptor`](/ergosfare.docs/api/queries-abstractions/iquerypreinterceptor) to intercept any query, or
-[`IQueryPreInterceptor<TQuery, TModifiedQuery>`](/ergosfare.docs/api/queries-abstractions/iquerypreinterceptor-2) to return a different, derived
-query type. `TQuery` is invariant because it is returned.
+A pre-interceptor produces no result, so this form returns the query type itself rather
+than [`object`](https://learn.microsoft.com/dotnet/api/system.object) — which is why `TQuery` is invariant here.
+Returning a derived query is allowed and needs nothing extra: it is still a
+`TQuery`. Use [`IQueryPreInterceptor`](/ergosfare.docs/api/queries-abstractions/iquerypreinterceptor) to accept any query
+instead.
 
 ## Methods
 
@@ -41,16 +40,15 @@ query type. `TQuery` is invariant because it is returned.
 ValueTask<TQuery> HandleAsync(TQuery query, ErgosfareContext context)
 ```
 
-Handles the query before its handler runs and returns the query that continues through
-the pipeline (the original, or a rewritten instance).
+Processes `query` before its handler runs.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `query` | `TQuery` | The query to intercept. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `query` | `TQuery` | The query as the previous stage left it. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<TQuery>`
+`ValueTask<TQuery>` — The query the rest of the pipeline receives — either the one passed in or a replacement.

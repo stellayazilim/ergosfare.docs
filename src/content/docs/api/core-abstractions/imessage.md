@@ -1,22 +1,24 @@
 ---
 title: "IMessage"
-description: "base placeholder interface for all attachable types in Stella.Ergosfare system"
+description: "Marks a type as a message that can be dispatched through an Ergosfare pipeline."
 sidebar:
   label: "IMessage"
-  order: 6
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-base placeholder interface for all attachable types in Stella.Ergosfare system
+Marks a type as a message that can be dispatched through an Ergosfare pipeline.
 
 ```csharp
 public interface IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessage.cs#L10)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IMessage.cs#L12)
 
 ## Remarks
 
-Represents registerable message types in Stella.Ergosfare registry
+The interface declares no members. It exists so handler and interceptor contracts can
+constrain their message type argument, and so registration can recognize which types
+participate in dispatch.

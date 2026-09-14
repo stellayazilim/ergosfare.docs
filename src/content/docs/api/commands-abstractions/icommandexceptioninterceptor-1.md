@@ -1,38 +1,33 @@
 ---
 title: "ICommandExceptionInterceptor<TCommand>"
-description: "Marker interface for asynchronous exception interceptors for commands."
+description: "Handles failures raised while dispatching a TCommand, without naming the result type."
 sidebar:
   label: "ICommandExceptionInterceptor<TCommand>"
-  order: 8
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Marker interface for asynchronous exception interceptors for commands.
-Inherits the result-agnostic [`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-1) and
-[`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) to allow registration within the command module.
-This interface does not modify the behavior or return type; interception logic
-is handled by [`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-1).
+Handles failures raised while dispatching a `TCommand`, without
+naming the result type.
 
 ```csharp
 public interface ICommandExceptionInterceptor<in TCommand> : ICommand, IMessage, IAsyncExceptionInterceptor<TCommand>, IExceptionInterceptor where TCommand : ICommand
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%5D.cs#L25)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%5D.cs#L18)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The type of command being intercepted. Must implement [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) |
+| `TCommand` | The command type this interceptor accepts. |
 
 ## Remarks
 
-The result-agnostic base is deliberate: a result-typed base (the previous
-`IAsyncExceptionInterceptor<TCommand, object>`) is invisible to the
-pipeline's pattern match whenever the pipeline result is a value type — void command
-pipelines carry a [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) result internally, so
-the exception stage failed with [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) the moment
-it ran. For a strongly-typed result use
+Use this for commands that return nothing, and for work that applies whatever the result
+is. It must stay result-agnostic to serve a void command: those pipelines carry a
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) in their result slot, which a
+result-typed contract would not match. For a typed result, implement
 [`ICommandExceptionInterceptor<TCommand, TResult>`](/ergosfare.docs/api/commands-abstractions/icommandexceptioninterceptor-2).

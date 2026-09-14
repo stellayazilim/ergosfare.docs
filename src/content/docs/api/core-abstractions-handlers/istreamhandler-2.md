@@ -1,6 +1,6 @@
 ---
 title: "IStreamHandler<TMessage, TResult>"
-description: "Represents a handler that streams results asynchronously for messages of type TMessage."
+description: "Handles messages of type TMessage by streaming TResult items back to the caller."
 sidebar:
   label: "IStreamHandler<TMessage, TResult>"
   order: 22
@@ -9,28 +9,33 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Represents a handler that streams results asynchronously for messages of type `TMessage`.
-Produces an [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1) to enable asynchronous streaming of multiple results.
+Handles messages of type `TMessage` by streaming
+`TResult` items back to the caller.
 
 ```csharp
 public interface IStreamHandler<in TMessage, out TResult> : IHandler<TMessage, IAsyncEnumerable<TResult>>, IHandler where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L22)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of the message to handle. Must be non-nullable. |
-| `TResult` | The type of each item in the streamed result. Must be non-nullable. |
+| `TMessage` | The message type this handler accepts. |
+| `TResult` | The type of each streamed item. |
 
 ## Remarks
 
-This interface extends [`IHandler<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/ihandler-2) with `TResult`
-set to [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1), allowing the handler to produce multiple results asynchronously.
-The explicit interface implementation maps the generic [`IHandler<TMessage, TResult>.Handle(TMessage, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/ihandler-2#handletmessage-ergosfarecontext) method
-to the strongly-typed [`IStreamHandler<TMessage, TResult>.StreamAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/istreamhandler-2#streamasynctmessage-ergosfarecontext) method.
+Shared streaming contract. Implementations can combine this interface with module
+markers to declare their module membership, or use a module-specific streaming handler
+contract. Module membership does not by itself add a streaming dispatch API to a module.
+
+The contract is [`IHandler<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/ihandler-2) closed over
+[`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1); its `Handle` is implemented explicitly here and
+forwards to [`IStreamHandler<TMessage, TResult>.StreamAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/istreamhandler-2#streamasynctmessage-ergosfarecontext), so implementations only write the streaming
+method. Items are produced as the caller enumerates, after the dispatch call itself has
+returned.
 
 ## Methods
 
@@ -40,15 +45,15 @@ to the strongly-typed [`IStreamHandler<TMessage, TResult>.StreamAsync(TMessage, 
 IAsyncEnumerable<out TResult> StreamAsync(TMessage message, ErgosfareContext context)
 ```
 
-Streams results asynchronously for a given message.
+Streams the results of handling `message`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `message` | `TMessage` | The message to handle. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`IAsyncEnumerable<TResult>` — An [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1) representing the streamed asynchronous results of the message handling.
+`IAsyncEnumerable<TResult>` — The streamed results.

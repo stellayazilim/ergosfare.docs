@@ -1,6 +1,6 @@
 ---
 title: "ErgosfareContextScope"
-description: "A child execution-context scope for nested dispatches: the handler opens a scope, passes ErgosfareContextScope.Context to the inner mediator call, and dispos…"
+description: "The child context of a nested dispatch, together with the lifetime that ends it."
 sidebar:
   label: "ErgosfareContextScope"
   order: 2
@@ -9,27 +9,24 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-A child execution-context scope for nested dispatches: the handler opens a scope,
-passes [`ErgosfareContextScope.Context`](/ergosfare.docs/api/core-abstractions/ergosfarecontextscope#context) to the inner mediator call, and disposes the scope when
-done. The child starts with clean items (isolation by default) and inherits the
-parent's cancellation token, so nested work stays on the outer cancellation chain.
-Disposing returns the child to the pool — the context must not be used after the
-scope is disposed.
+The child context of a nested dispatch, together with the lifetime that ends it. Open
+one with [`ErgosfareContext.CreateScope()`](/ergosfare.docs/api/core-abstractions/ergosfarecontext#createscope), pass [`ErgosfareContextScope.Context`](/ergosfare.docs/api/core-abstractions/ergosfarecontextscope#context) to the
+inner mediator call, and dispose the scope when that call completes.
 
 ```csharp
 public readonly struct ErgosfareContextScope : IDisposable
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Context/ErgosfareContextScope.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Context/ErgosfareContextScope.cs#L14)
 
 **Implements:** [`IDisposable`](https://learn.microsoft.com/dotnet/api/system.idisposable)
 
 ## Remarks
 
-The scope is a struct: `using var scope = ctx.CreateScope();` allocates nothing.
-An `Abort()` inside the child only aborts the inner pipeline; nothing ambient is
-overwritten, so there is no restore step — the parent context stays untouched in the
-caller's parameter.
+The child starts with no items, so nested work is isolated by default, and inherits the
+parent's cancellation token. Disposing recycles the child, which must not be used
+afterwards; the parent context is untouched throughout, including when the nested
+pipeline aborts. The scope is a struct, so opening one allocates nothing.
 
 ## Properties
 
@@ -39,7 +36,7 @@ caller's parameter.
 public ErgosfareContext Context { get; }
 ```
 
-The child execution context to pass to nested mediator calls.
+The child context to pass to the nested dispatch.
 
 **Returns**
 
@@ -53,10 +50,8 @@ The child execution context to pass to nested mediator calls.
 public void Dispose()
 ```
 
-Ends the scope, returning the child context to the pool. The context must not
-be used afterwards.
+Ends the scope and recycles the child context, which must not be used afterwards.
 
-Null-conditional for the one shape that has no context to return: a
-`default(ErgosfareContextScope)` that never came from `CreateScope()`.
-Disposing that stays the no-op it has always been rather than throwing out of a
-`using` and masking whatever the block was really doing.
+Disposing a `default(ErgosfareContextScope)` — one that never came from
+[`ErgosfareContext.CreateScope()`](/ergosfare.docs/api/core-abstractions/ergosfarecontext#createscope) and so holds no context — does nothing,
+rather than throwing out of the `using` block.

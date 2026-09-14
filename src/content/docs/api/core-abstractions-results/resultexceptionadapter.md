@@ -1,6 +1,6 @@
 ---
 title: "ResultExceptionAdapter"
-description: "The framework's default adapter for its own Result carrier: a field read, no boxing, no reflection."
+description: "Reads and builds the framework's Result carrier."
 sidebar:
   label: "ResultExceptionAdapter"
   order: 3
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The framework's default adapter for its own [`Result`](/ergosfare.docs/api/core-abstractions/result) carrier: a field read,
-no boxing, no reflection. Bound automatically — never registered by hand.
+Reads and builds the framework's [`Result`](/ergosfare.docs/api/core-abstractions-results/result) carrier. Bound automatically —
+never registered by hand.
 
 ```csharp
 public sealed class ResultExceptionAdapter : IResultAdapter<Result>, IResultMaterializer<Result>
@@ -30,7 +30,7 @@ public sealed class ResultExceptionAdapter : IResultAdapter<Result>, IResultMate
 public static readonly ResultExceptionAdapter Instance
 ```
 
-The shared instance; the adapter is stateless.
+The shared instance; the adapter holds no state.
 
 **Returns**
 
@@ -44,7 +44,7 @@ The shared instance; the adapter is stateless.
 public Result Materialize(Exception exception)
 ```
 
-Builds the failed carrier representing `exception`.
+Builds the failed result carrying `exception`.
 
 **Parameters**
 
@@ -54,7 +54,7 @@ Builds the failed carrier representing `exception`.
 
 **Returns**
 
-[`Result`](/ergosfare.docs/api/core-abstractions/result) — A failed [`Result`](/ergosfare.docs/api/core-abstractions/result) carrying `exception`.
+[`Result`](/ergosfare.docs/api/core-abstractions-results/result) — The failed result.
 
 ### `TryGetException(in Result, out Exception?)`
 
@@ -62,15 +62,15 @@ Builds the failed carrier representing `exception`.
 public bool TryGetException(in Result result, out Exception? exception)
 ```
 
-Attempts to extract a failure from `result` without throwing.
+Reads the failure carried by `result`, if there is one.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `result` | [`Result`](/ergosfare.docs/api/core-abstractions/result) | The pipeline result to inspect. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The carried failure, when present. |
+| `result` | [`Result`](/ergosfare.docs/api/core-abstractions-results/result) | The result to inspect. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The carried failure, or `null` on success. |
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when a failure was extracted; otherwise `false`.
+[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when the result carries a failure.

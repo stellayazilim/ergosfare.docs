@@ -1,0 +1,163 @@
+---
+title: Çok Biçimlilik
+description: Base tipe kayıtlı bir handler ya da interceptor türetilmiş bir mesaja nasıl ulaşır, ve birkaçı ulaşabildiğinde hangisi kazanır.
+---
+
+`ICommand`'a kayıtlı bir katılımcı her command'a ulaşır. `OrderCommand`'a kayıtlı olan her sipariş
+command'ına ulaşır. Kesişen işleri her mesajı adlandırmadan yapılabilir kılan şey budur ve tek bir
+kurala, tek bir eşitlik bozucuyla birlikte uyar.
+
+## Doğrudan ve kovaryant
+
+Bir kayıt, dispatch edilen tipin kendisini adlandırdığında **doğrudan**; mesajın atanabilir
+olduğu bir şeyi — base sınıf ya da implemente ettiği bir arayüz — adlandırdığında
+**kovaryant**tır.
+
+```csharp
+public abstract record OrderCommand : ICommand;
+public sealed record PlaceOrder(Guid Id) : OrderCommand;
+
+// PlaceOrder için doğrudan
+public sealed class PlaceOrderHandler : ICommandHandler<PlaceOrder> { … }
+
+// PlaceOrder için kovaryant
+public sealed class LogOrders : ICommandPreInterceptor<OrderCommand> { … }
+
+// her command için kovaryant
+public sealed class LogEverything : ICommandPreInterceptor { … }
+```
+
+Bir `PlaceOrder` dispatch etmek üçünü de çalıştırır: iki interceptor, sonra handler.
+
+## Handler kuralı: doğrudan olan kesin kazanır
+
+Bir command ya da query'nin tam olarak bir handler'ı vardır. Hem doğrudan hem kovaryant aday
+varsa doğrudan olan alır — belirsizlik yok, uyarı yok, çünkü öncelik merdiveninin söylediği budur:
+
+```csharp
+public sealed class OrderCommandHandler : ICommandHandler<OrderCommand> { … }  // yedek
+public sealed class PlaceOrderHandler   : ICommandHandler<PlaceOrder>   { … }  // kazanır
+```
+
+`PlaceOrder` dispatch etmek `PlaceOrderHandler`'ı çalıştırır. `OrderCommandHandler` diğer *bütün*
+sipariş command'larına hizmet etmeye devam eder. Bu, özel geçersiz kılmaları olan varsayılan bir
+handler deyimidir ve derlenmiş planlar tarafından tamamen desteklenir: tek doğrudan handler'ı olan
+bir mesaj, base tiplerinin ne taşıdığından bağımsız olarak plan alır.
+
+**Beraberlik hatadır.** İki doğrudan handler, ya da onları ayıracak doğrudan handler olmadan iki
+kovaryant handler, merdivenin seçecek bir şeyi olmaması demektir:
+
+```
+error ERGO010: Message 'PlaceOrder' is claimed by 2 main handlers at the same direct level
+(App.PlaceOrderHandler, App.PlaceOrderHandlerV2) …
+```
+
+Derleme zamanında raporlanır çünkü derleme zamanında kanıtlanabilir. Birini silerek, birini
+doğrudan yaparak ya da onları farklı gruplara koyarak çözün.
+
+## Interceptor kuralı: herkes çalışır
+
+Interceptor'lar dışlayıcı değildir. Eşleşen her biri çalışır; aşaması içinde `[Weight]` azalan
+sırayla, doğrudan kayıtlar kovaryant olanlardan önce:
+
+```csharp
+[Weight(100)] public sealed class Authorize : ICommandPreInterceptor { … }
+[Weight(50)]  public sealed class Validate  : ICommandPreInterceptor<OrderCommand> { … }
+```
+
+## Event kuralı: herkes çalışır, ve amaç da budur
+
+Bir publish eşleşen her aboneye teslim eder, dolayısıyla kovaryant bir abone rakip bir talep
+değil sıradan bir katılımcıdır:
+
+```csharp
+public sealed record OrderShipped(Guid Id) : OrderEvent;
+
+public sealed class NotifyCustomer : IEventHandler<OrderShipped> { … }
+public sealed class AuditOrders    : IEventHandler<OrderEvent>   { … }
+```
+
+Bir `OrderShipped` yayınlamak ikisini de çalıştırır.
+
+## Değer tiplerinde varyans yoktur
+
+Sözleşme varyansı bir referans tipi özelliğidir. `struct` bir mesaj yalnız onu tam olarak
+adlandıran kayıtlara ulaşır:
+
+```csharp
+public readonly record struct Ping : ICommand;
+
+public sealed class LogEverything : ICommandPreInterceptor { … }  // Ping'i GÖRMEZ
+public sealed class PingHandler   : ICommandHandler<Ping>    { … }  // görür
+```
+
+Bu bir Ergosfare kuralı değil, çalışma zamanının işleyişidir — ve derleme zamanı yargıları da
+aynı şekilde uygular, dolayısıyla doğrudan handler'ı olmayan bir struct mesaj, `ICommand` için
+bir handler varken bile `ERGO005`'tir.
+
+{% aside type="caution" %}
+Struct mesajlardan tam da bu yüzden kaçınmakta fayda var: yazdığınız her kesişen interceptor
+onları sessizce atlar.
+{% /aside %}
+
+## Base tip üzerinden dispatch
+
+Çağrı yerindeki statik tip, derleyicinin görebildiği şeydir:
+
+```csharp
+OrderCommand command = GetNext();
+await mediator.SendAsync(command);   // çalışma zamanı tipinin pipeline'ı çalışır
+```
+
+Çalışan pipeline *çalışma zamanı* tipine aittir, ki istediğiniz de budur. Ama derleyici artık
+yalnız bunun bir `OrderCommand` olduğunu bilir, dolayısıyla erişilebilirlik cevapları buna göre
+zayıflar. `ICommand` ya da `object` üzerinden dispatch etmek daha da zayıflatır ve açtığınızda
+`ERGO009` bu noktaları raporlar.
+
+Bu, statik tipi kodun doğal olarak izin verdiği kadar özel tutmak için bir sebeptir — kuyruktan
+mesaj okuyan bir çağrı yerini zorlamak için değil.
+
+## Bir mesajı kovaryant interceptor'lardan muaf tutmak
+
+Bazen bir mesaj kesişen muameleyi almamalıdır — denetlenmemesi gereken bir sağlık probu,
+loglanması gürültü olacak bir mesaj:
+
+```csharp
+[ExcludeFromPipeline]
+public sealed record HealthProbe : ICommand;
+```
+
+Bu, kovaryant eşleşen her interceptor'ı düşürür. Doğrudan kayıtlı olanlar ve handler yine
+çalışır. Yalnız bazılarını düşürmek için grup adlandırın:
+
+```csharp
+[ExcludeFromPipeline("audit", "logging")]
+public sealed record HealthProbe : ICommand;
+```
+
+Dışlama kompozisyon tablosu kurulurken çözülür, dolayısıyla dispatch başına hiçbir maliyeti
+yoktur. Bunu taşıyan bir mesaj derlenmiş plan almaz.
+
+## Generic mesajlar
+
+Generic bir mesaj tanımına göre anahtarlanır, dolayısıyla tek bir tablo girdisi her örneklemeye
+hizmet eder:
+
+```csharp
+public sealed record Wrap<T>(T Value) : ICommand;
+
+public sealed class WrapHandler<T> : ICommandHandler<Wrap<T>> { … }
+```
+
+Dispatch, katılımcıyı mesajın taşıdığı argümanlar üzerinden kapatır. Çalışmayan şey, sözleşmesi
+mesaj olarak çıplak bir tip parametresi adlandıran bir katılımcıdır:
+
+```csharp
+// ERGO016: hiçbir şeye kapanmaz, hiç çalışmaz
+public sealed class ValidateAnything<TCommand> : ICommandPreInterceptor<TCommand>
+    where TCommand : ICommand { … }
+```
+
+Katılımcılar mesajlara somut tipe göre eşlenir ve somut bir mesaj bunu kapatacak argüman
+taşımaz. Kısıt derlenmiş mesajları kabul ediyorsa üreteç katılımcıyı her biri üzerinden sizin
+için kapatır; hiçbirini kabul etmiyorsa `ERGO016` bunu söyler.

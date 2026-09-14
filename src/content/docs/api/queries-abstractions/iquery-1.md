@@ -1,6 +1,6 @@
 ---
 title: "IQuery<TResult>"
-description: "Represents a type-safe query message that produces a result of type TResult."
+description: "Marks a type as a query whose handler returns a TResult."
 sidebar:
   label: "IQuery<TResult>"
   order: 2
@@ -9,24 +9,22 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
-Represents a type-safe query message that produces a result of type `TResult`.
+Marks a type as a query whose handler returns a `TResult`.
 
 ```csharp
 public interface IQuery<TResult> : IQuery, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQuery%5BTResult%5D.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IQuery%5BTResult%5D.cs#L11)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The type of result returned by the query. |
+| `TResult` | The type the handler returns. |
 
 ## Remarks
 
-This interface extends [`IQuery`](/ergosfare.docs/api/queries-abstractions/iquery) and is intended for queries that return
-a specific result type when handled by a query handler.
-
-Implementing [`IQuery<TResult>`](/ergosfare.docs/api/queries-abstractions/iquery-1) allows the query to be registered within
-the query module and processed by type-safe query handlers and interceptors.
+Declaring the result type on the query means the caller and the handler cannot disagree
+about it. For a query that yields many results, implement
+[`IStreamQuery<TResult>`](/ergosfare.docs/api/queries-abstractions/istreamquery-1) instead.

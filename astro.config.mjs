@@ -55,11 +55,11 @@ function researchGuidance() {
             entries: [
                 {
                     id: 'guidance:lines',
-                    title: 'Stable and preview document different surfaces',
+                    title: 'Stable and preview after the v2.4 promotion',
                     summary:
                         'Two documentation lines are published. Pages under /preview describe the pre-release ' +
                         'surface; pages at the site root describe stable v2. They are not interchangeable, and ' +
-                        'APIs removed in one still exist in the other.',
+                        'At the v2.4 promotion both lines cover the same API surface; later preview releases may diverge.',
                     detail:
                         'version line stable preview which line release pre-release surface differs. ' +
                         'Decide which line the question is about before answering. If the user does not say, ' +
@@ -132,7 +132,7 @@ export default defineConfig({
         // to the line the reader is on, keyed off the `preview/` route prefix — so
         // a stable page never shows the preview tree and vice versa.
         sidebar: [
-            // ------------------------------------------------------ v2 stable (root)
+            // --------------------------------------------------------- v2 stable
             {
                 label: "Getting started",
                 translations: { tr: "Başlarken" },
@@ -152,7 +152,7 @@ export default defineConfig({
                     { label: "Interceptors", slug: "core-concepts/interceptors", translations: { tr: "Interceptorlar" } },
                     { label: "Execution context", slug: "core-concepts/execution-context", translations: { tr: "Yürütme Bağlamı" } },
                     { label: "Nested dispatch", slug: "core-concepts/nested-dispatch", translations: { tr: "İç İçe Dispatch" } },
-                    { label: "Modules and plugins", slug: "core-concepts/plugins", translations: { tr: "Modüller ve Eklentiler" } },
+                    { label: "Modules", slug: "core-concepts/modules", translations: { tr: "Modüller" } },
                 ]
             },
             {
@@ -183,19 +183,31 @@ export default defineConfig({
                 ]
             },
             {
+                label: "Best practices", translations: { tr: "İyi Uygulamalar" }, items: [
+                    { label: "Messages and handlers", slug: "best-practices/messages-and-handlers", translations: { tr: "Mesajlar ve Handler'lar" } },
+                    { label: "Interceptor or handler", slug: "best-practices/interceptor-or-handler", translations: { tr: "Interceptor mı Handler mı" } },
+                    { label: "Working with diagnostics", slug: "best-practices/diagnostics", translations: { tr: "Tanılamalarla Çalışmak" } },
+                    { label: "Composition root and testing", slug: "best-practices/composition-root", translations: { tr: "Composition Root ve Test" } },
+                ]
+            },
+            {
                 label: "Advanced", translations: { tr: "İleri Seviye" }, items: [
                     { label: "Performance", slug: "advanced/performance", translations: { tr: "Performans" } },
                     { label: "Native AOT and trimming", slug: "advanced/aot-and-trimming", translations: { tr: "Native AOT ve Trimming" } },
+                    { label: "Plugins", slug: "advanced/plugins", translations: { tr: "Eklentiler" } },
                     { label: "Experimental APIs", slug: "advanced/experimental-apis", translations: { tr: "Deneysel API'ler" } },
                 ]
             },
             {
                 label: "Recipes", translations: { tr: "Tarifler" }, items: [
                     { label: "RabbitMQ consumer", slug: "recipes/rabbitmq-consumer", translations: { tr: "RabbitMQ Consumer" } },
+                    { label: "Unit of work", slug: "recipes/unit-of-work", translations: { tr: "Unit of Work" } },
+                    { label: "Streaming multipart upload", slug: "recipes/streaming-upload" },
                 ]
             },
             {
                 label: "Migration", translations: { tr: "Geçiş" }, items: [
+                    { label: "v2.11 to v2.12", slug: "migration/v2.11-to-v2.12", translations: { tr: "v2.11'den v2.12'ye" } },
                     { label: "v2.2 to v2.3", slug: "migration/v2.2-to-v2.3", translations: { tr: "v2.2'den v2.3'e" } },
                     { label: "v1 to v2", slug: "migration/v1-to-v2", translations: { tr: "v1'den v2'ye" } },
                 ]

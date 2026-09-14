@@ -1,32 +1,35 @@
 ---
 title: Experimental APIs
-description: The ERGOEXP opt-in gate — what it means, how to opt in, and why it exists.
+description: Surfaces that are still moving, what "experimental" commits to, and how to opt in.
 ---
 
-Some APIs ship before their shape has settled. Rather than hold a release for them or let
-them quietly become de-facto stable, Ergosfare marks them `[Experimental]` with a diagnostic
-ID prefixed `ERGOEXP`.
+Three parts of the framework are marked experimental. They work, they are tested, and they ship —
+what is not settled is their **shape**, and using one means accepting that it may change in a
+minor release.
 
-Consuming one is a **compile-time error** until you opt in explicitly.
+Each surface produces a warning with its own diagnostic ID. Suppression is optional unless your project treats warnings as errors. The markers use `Obsolete` with an experimental message and a custom `ERGOEXP` ID; IDEs may also display obsolete styling.
 
-## What the marking means
+| Id | Surface |
+|---|---|
+| `ERGOEXP001` | the declarative result-adapter surface |
+| `ERGOEXP002` | the plugin surface |
+| `ERGOEXP003` | stream input and pipe converters |
 
-An `[Experimental]` API is **outside the compatibility promise**
-([COMPATIBILITY.md §4](https://github.com/stellayazilim/ergosfare/blob/main/COMPATIBILITY.md)).
-It may change signature, change behaviour, or disappear in any release — including a patch
-release. Nothing about the normal deprecation cycle applies.
+## ERGOEXP001 — result adapters
 
-## Opting in
+`[ResultAdapter]`, `[IgnoreResultAdapter]`, and `UseDefaultResultAdapter` with its carrier.
 
-Per call site, which is the form to prefer because it documents itself:
+What the value channel *does* is settled: a failing pipeline can hand the caller a failed
+carrier instead of throwing, and the exception interceptors still see the failure. How it is
+*declared* is what may still move.
 
 ```csharp
-#pragma warning disable ERGOEXP001 // opting into an experimental API
-var thing = new SomeExperimentalType();
-#pragma warning restore ERGOEXP001
+services.AddErgosfare(registry => registry
+    .UseDefaultResultAdapter(typeof(ResultAdapter<>))
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
-Or per project, when you have decided to accept the API across the board:
+Opt in for the project:
 
 ```xml
 <PropertyGroup>
@@ -34,45 +37,90 @@ Or per project, when you have decided to accept the API across the board:
 </PropertyGroup>
 ```
 
-Each experimental API gets its own ID, so opting into one never opts you into another.
+## ERGOEXP002 — plugins
 
-## Current experimental surface
+Everything in `Stella.Ergosfare.Plugins.Abstractions` — `[ErgosfarePlugin]`,
+`[PipelineInvokable]`, `[PluginServiceFilter]`, the `Hook` and `Module` enums — together with the
+module facade the generator emits from them.
 
-**`ERGOEXP001` — the declarative result-adapter surface.** `[ResultAdapter]`,
-`[IgnoreResultAdapter]`, and `IModuleRegistry.UseDefaultResultAdapter(...)` with its
-`DefaultResultAdapter` carrier.
+For a **consumer**, the surface is one line, and that is where the suppression goes:
 
-The value channel's *semantics* are settled — a handler returning a value-carried failure has
-that failure surfaced out of the pipeline without throwing. What is young is the **binding**
-surface: how a message declares which adapter serves it, and how an application configures a
-fallback. Those shapes may still shift in a minor release, so the gate stays on until they
-have been used enough to settle.
+```csharp
+#pragma warning disable ERGOEXP002
+services.AddErgosfare(registry => registry
+    .AddTiming()
+    .AddCommandModule(module => module.AddGenerated()));
+#pragma warning restore ERGOEXP002
+```
 
-The generator validates the binding at compile time regardless — `ERGOSG011` through
-`ERGOSG014` catch an adapter that can never bind, conflicting annotations, and a result type
-the configured default cannot serve. See
-[Configuring](/ergosfare.docs/getting-started/configuring#result-adapters).
+For a **plugin author**, the whole package is built on it, so the project-wide form is more
+practical:
 
-## Why a gate rather than a preview branch
+```xml
+<PropertyGroup>
+  <NoWarn>$(NoWarn);ERGOEXP002</NoWarn>
+</PropertyGroup>
+```
 
-The v2 line uses **rolling graduation**: features mature on `preview` and graduate to stable
-individually, with no big-bang release-candidate freeze. That works only if a genuinely
-unstable API can ship without blocking everything around it.
+See [Plugins](/ergosfare.docs/advanced/plugins).
 
-The `[Experimental]` gate is what makes that safe. An unfinished API can go out and be used
-by people who want it, while the opt-in makes the risk explicit at every call site — so it
-never accumulates silent dependents that a later change would break.
+## ERGOEXP003 — stream input
 
-## Experimental is not preview
+`CommandStream<TChunk, TSelf>` and `QueryStream<TChunk, TSelf>` carry metadata as message
+properties and input as a bounded, single-consumer asynchronous sequence. `Pipe` starts
+production immediately; capacity limits queued items. The root `ErgosfareStream` implements
+`IAsyncDisposable`. The explicit `IBufferWriter<T>` staging buffer grows separately, and
+`FlushAsync` applies backpressure when publishing staged items.
 
-Two different things, easy to conflate:
+Use `IPipeConverter<T>` for stateful conversion from a byte stream, and
+`IPipeConverter<S,T>` or delegate overloads for per-item conversion. Byte blocks and
+UTF-8 line helpers leave the source open. See the
+[streaming multipart upload recipe](/ergosfare.docs/recipes/streaming-upload).
 
-| | Meaning |
-|---|---|
-| **The preview line** | A whole release train that has not settled yet. APIs may change between previews; that is what "preview" means. |
-| **`[Experimental]`** | A specific API that is unstable *even relative to the line it ships on*. v2 being stable does not make its experimental APIs stable — they stay behind the gate until they graduate. |
+Generated output-stream plans send failures directly to the consumer and final stage;
+exception interceptors do not turn a failed stream into a replacement result. Early output
+disposal reports `StreamOutputDisposedException` to pending input producers and final
+interceptors. Explicit context abort still skips finals. Stream-specific post signatures
+and cancellation supplied only through output `WithCancellation` remain design work;
+pass the cancellation token to mediator dispatch and dispose unused inputs explicitly.
 
-An API can be experimental on a stable release. That is the point of the gate.
+```xml
+<PropertyGroup>
+  <NoWarn>$(NoWarn);ERGOEXP003</NoWarn>
+</PropertyGroup>
+```
 
-See [Versioning and release model](https://github.com/stellayazilim/ergosfare#versioning--release-model)
-for the branch and tag rules.
+## What the marker commits to
+
+**It will keep working in the release it shipped in.** Experimental is not unfinished — these
+surfaces carry tests like everything else.
+
+**It may change shape in a minor release.** An attribute may be renamed, a parameter added, an
+enum member removed. The plugin surface has already been through this once: it had six
+addressable stages, two of which let a plugin change a consumer's pipeline structure, and it
+was cut back to four observation-only hooks.
+
+**A change will be in the changelog with a migration note.** The two-parameter pre-interceptor
+removal is the template — what went, why, and what replaces it.
+
+## Where the line is
+
+Something is experimental when *how you express it* is still being worked out. Once the
+spelling has survived real use, the marker comes off and the surface joins the ordinary
+compatibility promise.
+
+The rest of the framework — the message contracts, the mediators, interceptors, discovery,
+groups, weights — is not experimental and does not change shape in a minor release.
+
+## Should you use them
+
+**Result adapters:** yes, if your application already carries failures as values. It replaces
+the try/catch you would write in every handler, and the declaration is the only part that might
+move.
+
+**Plugins:** yes for internal packages, where you control both sides and can update together.
+For a package published to third parties, weigh it — your consumers inherit the suppression and
+the churn.
+
+Either way, pin the exact version. In a preview line a floating reference turns a shape change
+into a surprise at restore time.

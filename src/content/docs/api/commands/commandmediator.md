@@ -1,6 +1,6 @@
 ---
 title: "CommandMediator"
-description: "Mediates command messages through the pipeline executor closed over the command's runtime type: handlers are always invoked through their typed members, and…"
+description: "The command mediator an application resolves: it holds the scope it was resolved from and hands every send to the container's dispatch engine."
 sidebar:
   label: "CommandMediator"
   order: 1
@@ -9,98 +9,65 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands`](/ergosfare.docs/api/commands)  
 **Assembly:** `Stella.Ergosfare.Commands.dll`
 
-Mediates command messages through the pipeline executor closed over the command's
-runtime type: handlers are always invoked through their typed members, and the dispatch
-path carries no object-typed bridge, options object, or erased strategy.
+The command mediator an application resolves: it holds the scope it was resolved from and
+hands every send to the container's dispatch engine.
 
 ```csharp
 public class CommandMediator : ICommandMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands/CommandMediator.cs#L11)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands/CommandMediator.cs#L14)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
 **Implements:** [`ICommandMediator`](/ergosfare.docs/api/commands-abstractions/icommandmediator)
 
-## Constructors
+## Remarks
 
-### `CommandMediator(IMessageMediator)`
-
-```csharp
-[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
-public CommandMediator(IMessageMediator messageMediator)
-```
-
-Wraps an existing [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) — the original construction shape,
-kept for direct construction and foreign mediator implementations.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `messageMediator` | [`IMessageMediator`](/ergosfare.docs/api/core-abstractions/imessagemediator) |  |
-
-### `CommandMediator(MessageDispatchEngine, IServiceProvider)`
-
-```csharp
-[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
-public CommandMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
-```
-
-Engine-backed construction: dispatches go straight to the process-wide engine with
-`serviceProvider` as the handler-resolution scope, making the
-facade the only object built per resolution.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `engine` | [`MessageDispatchEngine`](/ergosfare.docs/api/core/messagedispatchengine) | The singleton dispatch engine. |
-| `serviceProvider` | [`IServiceProvider`](https://learn.microsoft.com/dotnet/api/system.iserviceprovider) | The provider of the scope this facade serves. |
+The engine is shared across the process and this facade is the only object built per
+resolution.
 
 ## Methods
 
-### `SendAsync(ICommand, CommandMediationSettings?, CancellationToken)`
+### `SendAsync(ICommand, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-public ValueTask SendAsync(ICommand commandConstruct, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
+public ValueTask SendAsync(ICommand commandConstruct, CancellationToken cancellationToken = default)
 ```
 
-Sends a void command through the executor pipeline.
+Sends `commandConstruct` through its default pipeline.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `commandConstruct` | [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) |  |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/api/commands-abstractions/commandmediationsettings) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `commandConstruct` | [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) | The command to send. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
-### `SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`
+The conveniences are declared on this class as well as on the interface. A call made
+through the concrete type does not find a default interface method, so declaring them
+only on the interface would leave those calls without an overload to bind to.
+
+### `SendAsync(ICommand, ErgosfareContext, GroupSet?)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-public ValueTask SendAsync(ICommand commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
+public ValueTask SendAsync(ICommand commandConstruct, ErgosfareContext context, GroupSet? groups = null)
 ```
 
-Sends a void command under an externally owned execution context — the
-nested-dispatch path: a handler opens a scope on its own context and passes the
-child here. The caller owns the context's lifetime; cancellation flows from the
-context.
+Sends `command` under an execution context supplied by the caller —
+the shape a nested send uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `commandConstruct` | [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) |  |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) |  |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/api/commands-abstractions/commandmediationsettings) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under, typically a child opened with `using var scope = context.CreateScope();` and passed as `scope.Context`. The caller owns its lifetime, and cancellation comes from it. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
 
 **Returns**
 
@@ -112,76 +79,157 @@ context.
 public ValueTask SendAsync(ICommand commandConstruct, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Sends a void command under a canonical group filter — no settings object, and with
-a reused [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) the grouped executor lookup matches on a single
-reference check. An empty set routes to the group-less fast lane.
+Sends `command` to its handler and completes when the pipeline has
+run.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `commandConstruct` | [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) |  |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. Reusing a [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) lets the cached pipeline be matched by reference. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
-### `SendAsync<TResult>(ICommand<TResult>, CommandMediationSettings?, CancellationToken)`
+### `SendAsync<TCommand, TResult>(TCommand, CancellationToken)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
+public ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand commandConstruct, CancellationToken cancellationToken = default) where TCommand : ICommand<TResult>
 ```
 
-Sends a typed command through the executor pipeline and returns its result.
+Sends `commandConstruct` through its default pipeline, naming both
+types.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The expected result type of the command. |
+| `TCommand` | The command's own type. |
+| `TResult` | The result type the command declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | `TCommand` | The command to send. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
+
+**Returns**
+
+`ValueTask<TResult>` — The result the handler produced.
+
+### `SendAsync<TCommand, TResult>(TCommand, ErgosfareContext, GroupSet?)`
+
+```csharp
+public ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand commandConstruct, ErgosfareContext context, GroupSet? groups = null) where TCommand : ICommand<TResult>
+```
+
+Sends `commandConstruct` under a caller-owned context, naming both
+types.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TCommand` | The command's own type. |
+| `TResult` | The result type the command declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | `TCommand` | The command to send. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+
+**Returns**
+
+`ValueTask<TResult>` — The result the handler produced.
+
+### `SendAsync<TCommand, TResult>(TCommand, GroupSet, CancellationToken)`
+
+```csharp
+public ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand commandConstruct, GroupSet groups, CancellationToken cancellationToken = default) where TCommand : ICommand<TResult>
+```
+
+Sends `commandConstruct` naming both its own type and its result, so
+the pipeline is found through a static generic field rather than a lookup on the
+command's runtime type.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TCommand` | The command's own type. |
+| `TResult` | The result type the command declares. |
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `commandConstruct` | `TCommand` | The command to send. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
+
+**Returns**
+
+`ValueTask<TResult>` — The result the handler produced.
+
+### `SendAsync<TResult>(ICommand<TResult>, CancellationToken)`
+
+```csharp
+public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, CancellationToken cancellationToken = default)
+```
+
+Sends `commandConstruct` through its default pipeline and returns
+its result.
+
+**Type parameters**
+
+| Name | Description |
+| --- | --- |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `commandConstruct` | `ICommand<TResult>` | The command to send. |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/api/commands-abstractions/commandmediationsettings) | Optional settings for command mediation, such as filtering or additional items. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for aborting the operation. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) representing the asynchronous operation and containing the command result.
+`ValueTask<TResult>` — The result the handler produced.
 
-### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, CommandMediationSettings?)`
+### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, GroupSet?)`
 
 ```csharp
-[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
-public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
+public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, ErgosfareContext context, GroupSet? groups = null)
 ```
 
-Result-producing counterpart of
-[`CommandMediator.SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`](/ergosfare.docs/api/commands/commandmediator#sendasyncicommand-ergosfarecontext-commandmediationsettings).
+Sends `command` under a caller-owned execution context and returns
+its result.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` |  |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `commandConstruct` | `ICommand<TResult>` |  |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) |  |
-| `commandMediationSettings` | [`CommandMediationSettings`](/ergosfare.docs/api/commands-abstractions/commandmediationsettings) |  |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
 ### `SendAsync<TResult>(ICommand<TResult>, GroupSet, CancellationToken)`
 
@@ -189,23 +237,22 @@ Result-producing counterpart of
 public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Result-producing counterpart of
-[`CommandMediator.SendAsync(ICommand, GroupSet, CancellationToken)`](/ergosfare.docs/api/commands/commandmediator#sendasyncicommand-groupset-cancellationtoken).
+Sends `command` and returns the result its handler produced.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` |  |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `commandConstruct` | `ICommand<TResult>` |  |
-| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.

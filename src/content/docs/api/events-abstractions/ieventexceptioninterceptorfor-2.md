@@ -1,38 +1,35 @@
 ---
 title: "IEventExceptionInterceptorFor<TEvent, TException>"
-description: "An exception interceptor for a specific event type that runs only for exceptions of type TException."
+description: "Handles failures of type TException raised while publishing a TEvent."
 sidebar:
   label: "IEventExceptionInterceptorFor<TEvent, TException>"
-  order: 7
+  order: 4
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-An exception interceptor for a specific event type that runs only for exceptions of type
-`TException`. The exception arrives already typed — no `is`
-check in the interceptor body.
+Handles failures of type `TException` raised while publishing a
+`TEvent`.
 
 ```csharp
 public interface IEventExceptionInterceptorFor<in TEvent, TException> : IEvent, IMessage, IAsyncExceptionInterceptor<TEvent, Unit>, IExceptionInterceptor, IExceptionInterceptorFilter<TException>, IExceptionInterceptorFilter where TEvent : notnull where TException : Exception
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptorFor%5BTEvent%2CTException%5D.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptorFor%5BTEvent%2CTException%5D.cs#L23)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of event being intercepted. Must implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
-| `TException` | The exception type this interceptor accepts, matched with `catch` semantics: derived exception types match too. |
+| `TEvent` | The event type this interceptor accepts. Any non-null type will do — an event need not implement [`IEvent`](/ergosfare.docs/api/events-abstractions/ievent). |
+| `TException` | The failure type this interceptor accepts. Matching follows `catch` semantics, so derived types match too. |
 
 ## Remarks
 
-A publish produces no result, so — unlike
-[`IEventExceptionInterceptor<TEvent>`](/ergosfare.docs/api/events-abstractions/ieventexceptioninterceptor-1), which still carries a vestigial
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) parameter — the handled member takes only the event, the
-exception and the context. When no interceptor accepts the thrown exception, it leaves
-the pipeline unwrapped with its original stack.
+The failure arrives already typed, so no type test is needed in the body. A failure this
+interceptor rejects is left for another to accept, and one nothing accepts reaches the
+publisher unchanged.
 
 ## Methods
 
@@ -42,16 +39,16 @@ the pipeline unwrapped with its original stack.
 ValueTask HandleAsync(TEvent @event, TException exception, ErgosfareContext context)
 ```
 
-Handles an exception thrown while the event was being published.
+Handles `exception`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | `TEvent` | The event being processed when the exception occurred. |
-| `exception` | `TException` | The exception thrown during pipeline execution. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
+| `event` | `TEvent` | The event whose publish failed. |
+| `exception` | `TException` | The failure being handled, already typed. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous exception handling operation.
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

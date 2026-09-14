@@ -1,6 +1,6 @@
 ---
 title: "IPreInterceptor<TMessage>"
-description: "Synchronous pre-interceptor contract for messages of type TMessage."
+description: "Runs before the main handler of a TMessage and decides what the rest of the pipeline sees."
 sidebar:
   label: "IPreInterceptor<TMessage>"
   order: 21
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Synchronous pre-interceptor contract for messages of type `TMessage`.
-Executed before the main handler; may inspect, validate, enrich, or replace the message.
+Runs before the main handler of a `TMessage` and decides what the
+rest of the pipeline sees.
 
 ```csharp
 public interface IPreInterceptor<in TMessage> : IPreInterceptor where TMessage : notnull
@@ -22,13 +22,13 @@ public interface IPreInterceptor<in TMessage> : IPreInterceptor where TMessage :
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of message this interceptor handles. |
+| `TMessage` | The message type this interceptor accepts. |
 
 ## Remarks
 
-This is a standalone synchronous contract — asynchronous pre-interceptors implement
-[`IAsyncPreInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpreinterceptor-1) instead; the pipeline dispatches each through
-its own typed member with no object-typed bridge between them.
+Use this to inspect, validate or replace a message. Implement
+[`IAsyncPreInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpreinterceptor-1) instead when the work involves awaiting;
+the two are separate contracts and an interceptor implements one of them.
 
 ## Methods
 
@@ -38,15 +38,15 @@ its own typed member with no object-typed bridge between them.
 object Handle(TMessage message, ErgosfareContext context)
 ```
 
-Handles a message before it reaches the main handler.
+Processes `message` before it reaches the main handler.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | `TMessage` | The input message to process. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `message` | `TMessage` | The message as the previous stage left it. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-[`object`](https://learn.microsoft.com/dotnet/api/system.object) — The message that continues through the pipeline — either `message` itself or a modified instance of `TMessage`.
+[`object`](https://learn.microsoft.com/dotnet/api/system.object) — The message the rest of the pipeline receives — either `message` or a replacement. The returned value must be a `TMessage`; the pipeline casts it before passing it on.

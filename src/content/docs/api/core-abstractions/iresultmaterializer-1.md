@@ -1,42 +1,41 @@
 ---
 title: "IResultMaterializer<TResult>"
-description: "The inverse of IResultAdapter<TResult>: builds a failed TResult out of an exception."
+description: "Builds a failed result value from an exception — the inverse of IResultAdapter<TResult>."
 sidebar:
   label: "IResultMaterializer<TResult>"
-  order: 13
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The inverse of [`IResultAdapter<TResult>`](/ergosfare.docs/api/core-abstractions/iresultadapter-1): builds a failed
-`TResult` out of an exception. An adapter that also implements
-this contract declares its carrier type fully value-based — a real throw inside the
-pipeline is caught and materialized into a failed carrier instead of reaching the
-caller, and an unhandled carried failure flows out as the result rather than being
-rethrown. The framework's own Results.Result/Results.Result&lt;TValue>
-adapters implement it; a foreign carrier's adapter may opt in when the carrier can
-represent an arbitrary exception.
+Builds a failed result value from an exception — the inverse of
+[`IResultAdapter<TResult>`](/ergosfare.docs/api/core-abstractions/iresultadapter-1).
 
 ```csharp
 public interface IResultMaterializer<out TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultMaterializer.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/IResultMaterializer.cs#L22)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The closed pipeline result type the materializer produces. |
+| `TResult` | The closed result type this materializer produces. |
 
 ## Remarks
 
-Deliberately separate from [`IResultAdapter<TResult>`](/ergosfare.docs/api/core-abstractions/iresultadapter-1): every carrier can
-surface a failure, but not every carrier can absorb one (a union type without an
-exception arm extracts fine yet cannot materialize). Pipelines probe for this contract
-once, next to the adapter binding — a carrier without it keeps the classic semantics:
-an unhandled exception is rethrown to the caller.
+Implementing this alongside [`IResultAdapter<TResult>`](/ergosfare.docs/api/core-abstractions/iresultadapter-1) changes how the
+pipeline settles for that result type: an exception thrown inside the pipeline is
+caught and turned into a failed result instead of reaching the caller, and a carried
+failure that no interceptor handled flows out as the returned result rather than being
+rethrown.
+
+It is a separate contract because not every carrier can absorb an arbitrary exception.
+A result type whose adapter does not implement this keeps the default behavior: an
+unhandled failure is thrown to the caller. The built-in
+[`Result`](/ergosfare.docs/api/core-abstractions-results/result) and [`Result<TValue>`](/ergosfare.docs/api/core-abstractions-results/result-1) adapters implement it.
 
 ## Methods
 
@@ -46,7 +45,7 @@ an unhandled exception is rethrown to the caller.
 TResult Materialize(Exception exception)
 ```
 
-Builds the failed carrier representing `exception`.
+Builds the failed result carrying `exception`.
 
 **Parameters**
 

@@ -1,32 +1,31 @@
 ---
 title: "IStreamQuery<TResult>"
-description: "Represents a stream query message that produces multiple results of type TResult over time."
+description: "Marks a type as a query whose handler streams TResult items back to the caller."
 sidebar:
   label: "IStreamQuery<TResult>"
-  order: 18
+  order: 17
 ---
 
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
-Represents a stream query message that produces multiple results of type `TResult` over time.
+Marks a type as a query whose handler streams `TResult` items back
+to the caller.
 
 ```csharp
 public interface IStreamQuery<out TResult> : IQuery, IMessage
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IStreamQuery%5BTResult%5D.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/IStreamQuery%5BTResult%5D.cs#L13)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The type of results produced by the stream query. |
+| `TResult` | The type of each streamed item. |
 
 ## Remarks
 
-This interface extends [`IQuery`](/ergosfare.docs/api/queries-abstractions/iquery) and is intended for reactive or streaming scenarios,
-where the query yields multiple results asynchronously instead of a single value.
-
-Implementing [`IStreamQuery<TResult>`](/ergosfare.docs/api/queries-abstractions/istreamquery-1) allows the query to be registered within
-the query module and handled by [`IStreamQueryHandler<TQuery, TResult>`](/ergosfare.docs/api/queries-abstractions/istreamqueryhandler-2) implementations.
+Use this where results arrive over time rather than all at once. Such a query is served
+by an [`IStreamQueryHandler<TQuery, TResult>`](/ergosfare.docs/api/queries-abstractions/istreamqueryhandler-2), and items are produced as the
+caller enumerates them.

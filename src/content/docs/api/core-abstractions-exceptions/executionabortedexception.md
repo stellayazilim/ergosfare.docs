@@ -1,6 +1,6 @@
 ---
 title: "ExecutionAbortedException"
-description: "Raised by ErgosfareContext.Abort(): a participant stopped the pipeline."
+description: "Thrown by ErgosfareContext.Abort() when a participant ends the dispatch."
 sidebar:
   label: "ExecutionAbortedException"
   order: 2
@@ -9,28 +9,29 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/api/core-abstractions-exceptions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Raised by [`ErgosfareContext.Abort()`](/ergosfare.docs/api/core-abstractions/ergosfarecontext#abort): a participant stopped the pipeline.
+Thrown by [`ErgosfareContext.Abort()`](/ergosfare.docs/api/core-abstractions/ergosfarecontext#abort) when a participant ends the dispatch.
 
 ```csharp
 public class ExecutionAbortedException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionAbortedException.cs#L36)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Exceptions/ExecutionAbortedException.cs#L33)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 
 **Implements:** [`ISerializable`](https://learn.microsoft.com/dotnet/api/system.runtime.serialization.iserializable)
 
+**Derived:** [`StreamOutputDisposedException`](/ergosfare.docs/api/core-abstractions-exceptions/streamoutputdisposedexception)
+
 ## Remarks
 
-This is Ergosfare's own signal and it means exactly what it says — the pipeline
-    is cut where it stands. Nothing further runs: not the remaining participants of
-    the current stage, not the exception stage, not the final stage. There is no
-    pipeline result to expect either; a stopped pipeline did not produce one.
+The pipeline stops where the signal was raised. Nothing downstream runs — not the rest
+of the current stage, not the exception stage, not the final stage — and the pipeline
+produces no result, which is why this exception carries none.
 
-    It reaches the caller, because the caller is who asked for the work. Whatever the
-    aborting participant chose to say travels with it — [`ExecutionAbortedException.Reason`](/ergosfare.docs/api/core-abstractions-exceptions/executionabortedexception#reason) for a
-    human, [`ExecutionAbortedException.Value`](/ergosfare.docs/api/core-abstractions-exceptions/executionabortedexception#value) for a program:
+The signal travels out to the caller that asked for the dispatch, carrying whatever the
+aborting participant attached: [`ExecutionAbortedException.Reason`](/ergosfare.docs/api/core-abstractions-exceptions/executionabortedexception#reason) to read, [`ExecutionAbortedException.Value`](/ergosfare.docs/api/core-abstractions-exceptions/executionabortedexception#value) to act
+on.
 
 
 ```csharp
@@ -46,10 +47,8 @@ catch (ExecutionAbortedException aborted)
 ```
 
 
-    The mechanism does not change with the shape of the pipeline: with interceptors
-    or without, the signal travels straight out. Applications that would rather carry
-    outcomes as values than as exceptions have the result-adapter surface for that;
-    abort is the exception-shaped channel, and it is deliberately the loud one.
+This is the exception-shaped channel, and it behaves the same whether the pipeline
+has interceptors. To carry outcomes as values instead, use the result-adapter surface.
 
 ## Constructors
 
@@ -59,7 +58,7 @@ catch (ExecutionAbortedException aborted)
 public ExecutionAbortedException()
 ```
 
-Stops a pipeline, carrying nothing but the signal itself.
+Initializes the signal with no stated reason.
 
 ### `ExecutionAbortedException(string?, object?)`
 
@@ -67,14 +66,14 @@ Stops a pipeline, carrying nothing but the signal itself.
 public ExecutionAbortedException(string? reason, object? value)
 ```
 
-Stops a pipeline, saying why and handing the caller something to act on.
+Initializes the signal with a reason and a value for the caller.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the pipeline was stopped; also the exception message. |
-| `value` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | Data about the abort for the caller to inspect. It is not the pipeline's result; a stopped pipeline has none. |
+| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the dispatch ended; becomes the exception message. `null` uses the default reason. |
+| `value` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | Data about the abort for the caller to inspect. It is not the pipeline's result; an aborted pipeline has none. |
 
 ### `ExecutionAbortedException(string?)`
 
@@ -82,23 +81,23 @@ Stops a pipeline, saying why and handing the caller something to act on.
 public ExecutionAbortedException(string? reason)
 ```
 
-Stops a pipeline, saying why.
+Initializes the signal with a reason.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the pipeline was stopped; also the exception message. |
+| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the dispatch ended; becomes the exception message. `null` uses the default reason. |
 
 ## Properties
 
 ### `Reason`
 
 ```csharp
-public string? Reason { get; }
+public string Reason { get; }
 ```
 
-Why the pipeline was stopped, as the aborting participant stated it.
+Why the dispatch ended, as the aborting participant stated it.
 
 **Returns**
 
@@ -110,7 +109,7 @@ Why the pipeline was stopped, as the aborting participant stated it.
 public object? Value { get; }
 ```
 
-What the aborting participant attached to the signal, if anything.
+What the aborting participant attached to the signal, or `null` if nothing.
 
 **Returns**
 

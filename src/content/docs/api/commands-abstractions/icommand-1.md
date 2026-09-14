@@ -1,15 +1,15 @@
 ---
 title: "ICommand<TResult>"
-description: "Represents a command that produces a result of type TResult when handled."
+description: "Marks a type as a command whose handler returns a TResult."
 sidebar:
   label: "ICommand<TResult>"
-  order: 5
+  order: 2
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a command that produces a result of type `TResult` when handled.
+Marks a type as a command whose handler returns a `TResult`.
 
 ```csharp
 public interface ICommand<TResult> : ICommand, IMessage
@@ -21,10 +21,10 @@ public interface ICommand<TResult> : ICommand, IMessage
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The type of result that will be returned when the command is processed. |
+| `TResult` | The type the handler returns. |
 
 ## Remarks
 
-This interface extends the base [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) interface to support commands that need to return
-data to the caller. While regular commands are used for state-changing operations without returning data,
-commands with results allow for obtaining computed values or status information from the handler.
+Use this where the caller needs something back from the operation — a generated
+identifier, a computed value, an outcome to act on. A command that only changes state
+implements [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) instead.

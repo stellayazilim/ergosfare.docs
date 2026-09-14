@@ -1,6 +1,6 @@
 ---
 title: "IQueryHandler<TQuery, TResult>"
-description: "Represents a type-safe asynchronous handler for a query of type TQuery, producing a result of type TResult."
+description: "Handles queries of type TQuery and returns the TResult they declare."
 sidebar:
   label: "IQueryHandler<TQuery, TResult>"
   order: 10
@@ -9,26 +9,24 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Abstractions`](/ergosfare.docs/api/queries-abstractions)  
 **Assembly:** `Stella.Ergosfare.Queries.Abstractions.dll`
 
-Represents a type-safe asynchronous handler for a query of type `TQuery`,
-producing a result of type `TResult`.
+Handles queries of type `TQuery` and returns the
+`TResult` they declare.
 
 ```csharp
 public interface IQueryHandler<in TQuery, TResult> : IQuery, IMessage, IAsyncHandler<TQuery, TResult>, IHandler where TQuery : IQuery<TResult>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IQueryHandler%5BTQuery%2CTResult%5D.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Queries.Abstractions/Handlers/IQueryHandler%5BTQuery%2CTResult%5D.cs#L15)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQuery` | The type of query being handled. Must implement [`IQuery<TResult>`](/ergosfare.docs/api/queries-abstractions/iquery-1). |
-| `TResult` | The type of result returned by the query. |
+| `TQuery` | The query type this handler accepts. |
+| `TResult` | The result type the query declares. |
 
 ## Remarks
 
-Implementing this interface allows a handler to process a query asynchronously
-within the query mediation pipeline and return a strongly-typed result.
-
-Handlers implementing this interface are automatically recognized and invoked
-by the query mediator when the corresponding query type is dispatched.
+A query is served by exactly one handler, so registering two for the same query type
+fails the dispatch. Registration finds this handler through the contract itself — there
+is nothing to wire up by hand.

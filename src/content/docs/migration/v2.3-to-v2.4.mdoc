@@ -1,0 +1,42 @@
+---
+title: v2.3 to v2.4
+description: Promote the compiled-plan preview surface to the independent stable v2.4 release line.
+---
+
+Stable v2.4.0 promotes the features tested through v2.16.0-preview. These numbers belong
+to independent release lines. The public removals were announced by v2.3.1 deprecations.
+
+## Update composition and dispatch
+
+Use public module builders with `AddGenerated()` / `AddGenerated(pattern)` and explicit
+`Register<T>()` selections. Put executable plan generation in the composition root; libraries
+can keep application selection methods and export selections with `ErgosfareGeneratePlans=false`.
+Participants not selected at compilation cannot be introduced during startup or later.
+
+Resolve `ICommandMediator`, `IQueryMediator` and `IEventMediator` from DI. Remove direct
+mediator construction and calls to the deprecated mediator extension classes. Grouped
+dispatch accepts `GroupSet`; collection expressions, implicit strings and `GroupSet.Of()`
+replace the old string, array and enumerable overload families.
+
+Replace two-parameter pre-interceptors with the single-message contract. Remove mediation
+settings, `ForceMemoizedHandlers` and runtime registry/composition manipulation. Generated
+plans determine participants and adapter calls at compilation; there is no reflective
+execution fallback when a plan is missing.
+
+## Treat diagnostics as part of composition
+
+A known message/group without a main handler, including events, is a compilation error.
+Dynamic groups use the generated filtering plan and report a missing handler at runtime.
+Result adapters are compile-time-selected helpers, not DI services.
+
+## Opt into experimental streams deliberately
+
+`CommandStream<TChunk, TSelf>` and `QueryStream<TChunk, TSelf>` provide fluent, bounded
+input with metadata on the concrete message. Existing experimental wrapper types remain.
+Dispose input objects, pass cancellation to mediator dispatch and keep the request scope
+alive throughout consumption. Output failures propagate to consumers/finals rather than
+being swallowed by exception interceptors.
+
+`ERGOEXP001–003` remain warnings for adapters, plugins and stream input even in the stable
+package. The [streaming upload recipe](/ergosfare.docs/recipes/streaming-upload) provides a
+complete application example with context handoff, cleanup and transport tests.

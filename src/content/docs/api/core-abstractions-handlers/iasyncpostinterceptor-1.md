@@ -1,6 +1,6 @@
 ---
 title: "IAsyncPostInterceptor<TMessage>"
-description: "Asynchronous post-interceptor contract for messages of type TMessage that is agnostic of the result type."
+description: "Runs after the main handler of a TMessage asynchronously, without naming the result type."
 sidebar:
   label: "IAsyncPostInterceptor<TMessage>"
   order: 8
@@ -9,26 +9,27 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Asynchronous post-interceptor contract for messages of type `TMessage`
-that is agnostic of the result type. Executes after the main handler has processed the message.
+Runs after the main handler of a `TMessage` asynchronously,
+without naming the result type.
 
 ```csharp
 public interface IAsyncPostInterceptor<in TMessage> : IPostInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IAsyncPostInterceptor%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PostInterceptors/IAsyncPostInterceptor%5BTMessage%5D.cs#L15)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of the message being handled. |
+| `TMessage` | The message type this interceptor accepts. |
 
 ## Remarks
 
-This is a standalone asynchronous contract — it does not inherit the synchronous
-[`IPostInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/ipostinterceptor-2), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncPostInterceptor<TMessage>.HandleAsync(TMessage, object, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpostinterceptor-1#handleasynctmessage-object-ergosfarecontext) directly.
+Use this when the interceptor works for any result — logging or metrics, say. To read
+or replace a typed result, implement
+[`IAsyncPostInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpostinterceptor-2) instead. These are separate
+contracts and an interceptor implements one of them.
 
 ## Methods
 
@@ -38,16 +39,16 @@ implementation: the pipeline invokes [`IAsyncPostInterceptor<TMessage>.HandleAsy
 ValueTask<object> HandleAsync(TMessage message, object messageResult, ErgosfareContext context)
 ```
 
-Handles a message asynchronously after it has been processed by the main handler.
+Processes the result of handling `message`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | `TMessage` | The message that was handled by the main handler. |
-| `messageResult` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The result produced so far by the pipeline. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `message` | `TMessage` | The message that was handled. |
+| `messageResult` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The result as the previous stage left it. Void pipelines pass a completed task here, which carries no meaning. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<object>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) whose result is the (possibly replaced) result that continues through the pipeline.
+`ValueTask<object>` — The result the rest of the pipeline receives — either `messageResult` or a replacement, which must be of the pipeline's result type. If it carries a failure the result type's adapter can read, the remaining post-interceptors are skipped and the pipeline moves to its exception stage.

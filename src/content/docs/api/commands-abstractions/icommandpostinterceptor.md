@@ -1,30 +1,24 @@
 ---
 title: "ICommandPostInterceptor"
-description: "Represents a post-processing interceptor for commands that executes after any ICommand is handled."
+description: "Runs after the handler of any command, whatever its type."
 sidebar:
   label: "ICommandPostInterceptor"
-  order: 18
+  order: 15
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a post-processing interceptor for commands that executes after any [`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) is handled.
+Runs after the handler of any command, whatever its type.
 
 ```csharp
 public interface ICommandPostInterceptor : ICommand, IMessage, IAsyncPostInterceptor<ICommand>, IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Commands.Abstractions/PostInterceptors/ICommandPostInterceptor.cs#L13)
 
 ## Remarks
 
-This interceptor is non-generic and non-type-safe. It can be registered to run for multiple command types
-without specifying a particular result type. The
-    HandleAsync
-
-method returns [`object`](https://learn.microsoft.com/dotnet/api/system.object),
-so any result modifications are handled via object references and casting.
-
-For scenarios where type safety is required, use the generic version:
-[`ICommandPostInterceptor<TCommand, TResult>`](/ergosfare.docs/api/commands-abstractions/icommandpostinterceptor-2).
+Because it accepts every command, this contract sees the command as
+[`ICommand`](/ergosfare.docs/api/commands-abstractions/icommand) and its result as [`object`](https://learn.microsoft.com/dotnet/api/system.object). To work with a typed
+result, implement [`ICommandPostInterceptor<TCommand, TResult>`](/ergosfare.docs/api/commands-abstractions/icommandpostinterceptor-2).

@@ -3,13 +3,16 @@ title: Using Ergosfare docs with AI
 description: Connect the Ergosfare documentation to Codex, Claude, Cursor, VS Code, or any stdio-compatible MCP client.
 ---
 
-Ergosfare publishes its guides and generated API reference as an
+Ergosfare publishes its guides and its generated API reference as an
 [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) catalog. Connect it once and
-your AI coding client can search the current documentation, read complete pages, and look up
-exact public API names without cloning the docs repository or pasting pages into a prompt.
+an AI coding client can search the documentation as it stands today, read whole pages, and look
+up exact public signatures — without cloning this repository or pasting pages into a prompt.
 
-The MCP server runs locally through `npx` and reads the catalog from the public docs site. It
-does not require an API key.
+That last part matters more here than it does for most libraries. Ergosfare's surface moved
+substantially across the preview line, and a model answering from memory will confidently
+describe APIs that no longer exist. The catalog is how it reads the current answer instead.
+
+The server runs locally through `npx` and reads the published catalog. There is no API key.
 
 {% aside type="note" %}
 You need a current [Node.js LTS](https://nodejs.org/) installation. Confirm that both Node.js
@@ -137,20 +140,29 @@ approve a project.
 
 ## Ask useful questions
 
-The integration exposes documentation search, full-page reading, page listing, and exact API
-reference search. Tell the assistant which documentation line you want so stable and preview
-APIs are not mixed.
+The integration exposes four things: documentation search, full-page reading, a page listing,
+and exact API reference search. Two habits get much better answers out of them.
+
+**Name the line.** Stable and preview document different surfaces, and a question that names
+neither invites an answer that mixes them. Say *stable* or *preview* in the prompt.
+
+**Research against the English pages.** The English documentation is the canonical set: it
+covers every section, and it is what changes first when the surface does. The Turkish pages are
+a translation of the basics — getting started, core concepts and cross-cutting concerns — and
+they exist to be read, not to be the source a model reasons from. Ask your question against the
+English pages even when you want the answer in Turkish; the assistant can translate its reply,
+which is a better outcome than reasoning from a partial set.
 
 Try prompts such as:
 
-- “Using `ergosfare-docs`, show me the smallest stable command and handler setup.”
-- “Search the preview docs for group-aware dispatch plans and explain the generated path.”
+- “Using `ergosfare-docs`, show me the smallest preview command and handler setup.”
+- “Search the preview docs for how staged plans are chosen, and explain when a plan is refused.”
 - “Find the exact public signature of `ICommandMediator.SendAsync` in the API reference.”
-- “Compare the stable and preview guidance for compile-time discovery; cite the pages used.”
-- “Read the Turkish quick start and adapt it to this project.”
+- “Read the English page on compile-time discovery and answer me in Turkish.”
+- “Which ERGO diagnostics fail a build, and what does each one mean?”
 
-The server checks for a newer published catalog while tools are being used, so a long-lived
-client can pick up documentation deployments without reinstalling the package.
+The server checks for a newer published catalog while its tools are in use, so a long-lived
+client picks up a documentation deployment without reinstalling the package.
 
 ## Troubleshooting
 

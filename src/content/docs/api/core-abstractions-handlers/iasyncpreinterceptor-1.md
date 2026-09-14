@@ -1,6 +1,6 @@
 ---
 title: "IAsyncPreInterceptor<TMessage>"
-description: "Asynchronous pre-interceptor contract for messages of type TMessage."
+description: "Runs before the main handler of a TMessage asynchronously, and decides what the rest of the pipeline sees."
 sidebar:
   label: "IAsyncPreInterceptor<TMessage>"
   order: 9
@@ -9,26 +9,25 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Asynchronous pre-interceptor contract for messages of type `TMessage`.
-Executed before the main handler; may inspect, validate, or replace the message.
+Runs before the main handler of a `TMessage` asynchronously, and
+decides what the rest of the pipeline sees.
 
 ```csharp
 public interface IAsyncPreInterceptor<in TMessage> : IPreInterceptor where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IAsyncPreInterceptor%5BTMessage%5D.cs#L14)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IAsyncPreInterceptor%5BTMessage%5D.cs#L13)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of message this interceptor handles. |
+| `TMessage` | The message type this interceptor accepts. |
 
 ## Remarks
 
-This is a standalone asynchronous contract — it does not inherit the synchronous
-[`IPreInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/ipreinterceptor-1), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncPreInterceptor<TMessage>.HandleAsync(TMessage, ErgosfareContext)`](/ergosfare.docs/api/core-abstractions-handlers/iasyncpreinterceptor-1#handleasynctmessage-ergosfarecontext) directly.
+This is a contract in its own right; it does not extend the synchronous
+[`IPreInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/ipreinterceptor-1), and an interceptor implements one of the two.
 
 ## Methods
 
@@ -38,15 +37,15 @@ implementation: the pipeline invokes [`IAsyncPreInterceptor<TMessage>.HandleAsyn
 ValueTask<object> HandleAsync(TMessage message, ErgosfareContext context)
 ```
 
-Handles a message asynchronously before it reaches the main handler.
+Processes `message` before it reaches the main handler.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | `TMessage` | The input message to be processed. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `message` | `TMessage` | The message as the previous stage left it. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<object>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) whose result is the message that continues through the pipeline — either the original message or a modified instance of `TMessage`.
+`ValueTask<object>` — The message the rest of the pipeline receives — either `message` or a replacement. The produced value must be a `TMessage`; the pipeline casts it before passing it on.

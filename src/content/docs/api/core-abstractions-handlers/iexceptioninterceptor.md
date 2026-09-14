@@ -1,6 +1,6 @@
 ---
 title: "IExceptionInterceptor"
-description: "Non-generic marker root for exception interceptors."
+description: "Marks a type as an exception interceptor, for registration and storage."
 sidebar:
   label: "IExceptionInterceptor"
   order: 10
@@ -9,15 +9,17 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Non-generic marker root for exception interceptors. Carries no members — the pipeline
-invokes exception interceptors exclusively through their typed contracts
-([`IExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptor-2) /
-[`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-1) /
-[`IAsyncExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-2));
-this root exists for storage typing and registration.
+Marks a type as an exception interceptor, for registration and storage.
 
 ```csharp
 public interface IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IExceptionHandler.cs#L12)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Abstractions/Handlers/ExceptionInterceptors/IExceptionHandler.cs#L13)
+
+## Remarks
+
+The interface declares no members. Exception interceptors are invoked through the typed
+member of [`IExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iexceptioninterceptor-2),
+[`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-1) or
+[`IAsyncExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/api/core-abstractions-handlers/iasyncexceptioninterceptor-2).

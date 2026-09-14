@@ -1,22 +1,21 @@
 ---
 title: "ServiceCollectionExtensions"
-description: "Provides extension methods for registering and configuring the Stella.Ergosfare framework with the ASP.NET Core dependency injection system."
+description: "Adds Ergosfare to a dependency injection container."
 sidebar:
   label: "ServiceCollectionExtensions"
-  order: 6
+  order: 5
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides extension methods for registering and configuring the Stella.Ergosfare framework
-with the ASP.NET Core dependency injection system.
+Adds Ergosfare to a dependency injection container.
 
 ```csharp
 public static class ServiceCollectionExtensions
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ServiceCollectionExtensions.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/main/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/ServiceCollectionExtensions.cs#L8)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
@@ -28,27 +27,24 @@ public static class ServiceCollectionExtensions
 public static IServiceCollection AddErgosfare(this IServiceCollection services, Action<IModuleRegistry> ergosfareBuilderAction)
 ```
 
-Adds and configures the Stella.Ergosfare framework to the application's
-[`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection).
+Registers Ergosfare and the modules configured in
+`ergosfareBuilderAction`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `services` | [`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) | The [`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) to which Stella.Ergosfare services will be added. |
-| `ergosfareBuilderAction` | `Action<IModuleRegistry>` | An action that configures the Stella.Ergosfare module registry using an [`IModuleRegistry`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry). This allows registration of additional modules and customization of the messaging pipeline. |
+| `services` | [`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) | The container to add Ergosfare to. |
+| `ergosfareBuilderAction` | `Action<IModuleRegistry>` | Configures the registry: which modules to register, and how the framework should behave. |
 
 **Returns**
 
-[`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) — The same [`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) instance, enabling fluent chaining of service registrations.
+[`IServiceCollection`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) — The same collection, so calls can be chained.
 
-This method registers:
+This registers the dispatch machinery — the dependencies factory, the pipeline
+executors and the mediators — along with this container's view of the compiled
+composition table, the default result adapter if one was configured, and every
+participant the registered modules named.
 
-- The dispatch machinery: the dependencies factory, executor cache and mediator.
-- A singleton [`FrozenCompositionCatalog`](/ergosfare.docs/api/core-abstractions-dispatchroots/frozencompositioncatalog) — this container's view of the compiled composition table.
-- The configured default result adapter, when [`IModuleRegistry.UseDefaultResultAdapter(Type)`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/imoduleregistry#usedefaultresultadaptertype) was called.
-- All module-defined handlers, interceptors, and services discovered at initialization.
-
-After setting up dependencies, this method invokes `ergosfareBuilderAction`
-to allow custom module configuration, then calls [`ModuleRegistry.Initialize()`](/ergosfare.docs/api/core-extensions-microsoftdependencyinjection/moduleregistry#initialize)
-to finalize the setup.
+The modules are configured first and the registry is finalized afterwards, so
+everything registered during configuration is in place before the container is built.
