@@ -7,8 +7,7 @@ Two parts of the framework are marked experimental. They work, they are tested, 
 what is not settled is their **shape**, and using one means accepting that it may change in a
 minor release.
 
-Each surface has one id, so opting in is a single documented suppression rather than one per
-member.
+Each surface produces a warning with its own diagnostic ID. Suppression is optional unless your project treats warnings as errors. The markers use `Obsolete` with an experimental message and a custom `ERGOEXP` ID; IDEs may also display obsolete styling.
 
 | Id | Surface |
 |---|---|
