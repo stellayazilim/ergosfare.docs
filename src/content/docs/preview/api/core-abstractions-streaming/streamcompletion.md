@@ -3,7 +3,7 @@ title: "StreamCompletion"
 description: "How a stream ended."
 sidebar:
   label: "StreamCompletion"
-  order: 4
+  order: 7
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Streaming`](/ergosfare.docs/preview/api/core-abstractions-streaming)  
@@ -12,6 +12,7 @@ sidebar:
 How a stream ended.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
 public enum StreamCompletion
 ```
 

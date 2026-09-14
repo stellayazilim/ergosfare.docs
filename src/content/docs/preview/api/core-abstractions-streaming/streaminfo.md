@@ -3,7 +3,7 @@ title: "StreamInfo"
 description: "What a stream carried, read at the point someone asks."
 sidebar:
   label: "StreamInfo"
-  order: 5
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Streaming`](/ergosfare.docs/preview/api/core-abstractions-streaming)  
@@ -12,6 +12,7 @@ sidebar:
 What a stream carried, read at the point someone asks.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
 public readonly record struct StreamInfo : IEquatable<StreamInfo>
 ```
 

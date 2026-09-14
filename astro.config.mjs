@@ -272,6 +272,7 @@ export default defineConfig({
                 label: "Recipes", translations: { tr: "Tarifler" }, items: [
                     { label: "RabbitMQ consumer", slug: "preview/recipes/rabbitmq-consumer", translations: { tr: "RabbitMQ Consumer" } },
                     { label: "Unit of work", slug: "preview/recipes/unit-of-work", translations: { tr: "Unit of Work" } },
+                    { label: "Streaming multipart upload", slug: "preview/recipes/streaming-upload" },
                 ]
             },
             {

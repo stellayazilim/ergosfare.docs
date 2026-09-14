@@ -12,6 +12,7 @@ sidebar:
 Where in a dispatch a [`PipelineInvokableAttribute`](/ergosfare.docs/preview/api/plugins-abstractions/pipelineinvokableattribute) method is called.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP002")]
 public enum Hook
 ```
 

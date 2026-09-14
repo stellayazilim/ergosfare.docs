@@ -13,6 +13,7 @@ Represents a mediation strategy that broadcasts a message asynchronously
 to all registered handlers of the specified `TMessage`.
 
 ```csharp
+[Obsolete("Removed in preview. Dispatch through IEventMediator; source-generated plans replace custom runtime mediation strategies.", false)]
 public sealed class AsyncBroadcastMediationStrategy<TMessage> : IMessageMediationStrategy<TMessage, ValueTask> where TMessage : notnull
 ```
 

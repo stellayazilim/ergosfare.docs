@@ -24,6 +24,7 @@ public static class ModuleRegistryExtensions
 ### `ForceMemoizedHandlers(IModuleRegistry)`
 
 ```csharp
+[Obsolete("Removed in preview. Generated plans honor dispatch-scope DI lifetimes; configure singleton lifetimes explicitly where reuse is intended.", false)]
 public static IModuleRegistry ForceMemoizedHandlers(this IModuleRegistry moduleRegistry)
 ```
 

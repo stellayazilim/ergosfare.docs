@@ -12,6 +12,7 @@ sidebar:
 Bridges between a chunk sequence and [`Stream`](https://learn.microsoft.com/dotnet/api/system.io.stream), in both directions.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
 public static class ByteStreamExtensions
 ```
 

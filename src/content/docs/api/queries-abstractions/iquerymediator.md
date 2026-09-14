@@ -20,6 +20,7 @@ public interface IQueryMediator : IMessage
 ### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, ErgosfareContext, QueryMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, ErgosfareContext context, QueryMediationSettings? queryMediationSettings = null)
 ```
 
@@ -80,6 +81,7 @@ foreign mediator implementations keep working unchanged.
 ### `QueryAsync<TQueryResult>(IQuery<TQueryResult>, QueryMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask<TQueryResult> QueryAsync<TQueryResult>(IQuery<TQueryResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -138,6 +140,7 @@ Streaming counterpart of
 ### `StreamAsync<TQueryResult>(IStreamQuery<TQueryResult>, QueryMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 IAsyncEnumerable<TQueryResult> StreamAsync<TQueryResult>(IStreamQuery<TQueryResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 

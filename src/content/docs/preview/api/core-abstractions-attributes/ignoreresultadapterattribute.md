@@ -14,6 +14,7 @@ built-in [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result
 application-wide default adapter applies to it.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class IgnoreResultAdapterAttribute : Attribute
 ```

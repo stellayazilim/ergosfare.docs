@@ -12,6 +12,7 @@ sidebar:
 Represents a type-safe pre-interceptor for queries in the Stella.Ergosfare pipeline.
 
 ```csharp
+[Obsolete("Removed in preview. Use IQueryPreInterceptor<TMessage>; the message type must stay unchanged.", false)]
 public interface IQueryPreInterceptor<in TQuery, TModifiedQuery> : IQuery, IMessage, IAsyncPreInterceptor<TQuery>, IPreInterceptor where TQuery : IQuery where TModifiedQuery : TQuery
 ```
 

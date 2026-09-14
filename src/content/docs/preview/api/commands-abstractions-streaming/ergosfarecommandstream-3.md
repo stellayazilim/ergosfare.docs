@@ -3,7 +3,7 @@ title: "ErgosfareCommandStream<TChunk, TMeta, TResult>"
 description: "A command whose payload arrives in chunks and which returns a TResult."
 sidebar:
   label: "ErgosfareCommandStream<TChunk, TMeta, TResult>"
-  order: 1
+  order: 2
 ---
 
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions.Streaming`](/ergosfare.docs/preview/api/commands-abstractions-streaming)  
@@ -13,7 +13,8 @@ A command whose payload arrives in chunks and which returns a
 `TResult`.
 
 ```csharp
-public abstract class ErgosfareCommandStream<TChunk, TMeta, TResult> : ErgosfareStream<TChunk>, IAsyncEnumerable<TChunk>, ICommand<TResult>, ICommand, IMessage where TMeta : notnull
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
+public abstract class ErgosfareCommandStream<TChunk, TMeta, TResult> : ErgosfareStream<TChunk>, IAsyncDisposable, IAsyncEnumerable<TChunk>, ICommand<TResult>, ICommand, IMessage where TMeta : notnull
 ```
 
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/Streaming/ErgosfareCommandStream%5BTChunk%2CTMeta%2CTResult%5D.cs#L26)
@@ -28,7 +29,7 @@ public abstract class ErgosfareCommandStream<TChunk, TMeta, TResult> : Ergosfare
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`ErgosfareStream`](/ergosfare.docs/preview/api/core-abstractions-streaming/ergosfarestream), `ErgosfareStream<TChunk>`
 
-**Implements:** `IAsyncEnumerable<TChunk>`, `ICommand<TResult>`, [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand), [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage)
+**Implements:** [`IAsyncDisposable`](https://learn.microsoft.com/dotnet/api/system.iasyncdisposable), `IAsyncEnumerable<TChunk>`, `ICommand<TResult>`, [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand), [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage)
 
 ## Remarks
 

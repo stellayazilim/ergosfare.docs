@@ -13,6 +13,7 @@ Binds a message type to the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/
 value-carried failures out of its pipeline result.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class ResultAdapterAttribute : Attribute
 ```

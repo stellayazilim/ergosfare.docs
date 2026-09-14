@@ -3,7 +3,7 @@ title: "UnplannedDispatchException"
 description: "Thrown when a dispatch has no compiled plan to run it."
 sidebar:
   label: "UnplannedDispatchException"
-  order: 7
+  order: 8
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/preview/api/core-abstractions-exceptions)  

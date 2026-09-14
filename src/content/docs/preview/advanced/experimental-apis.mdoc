@@ -1,9 +1,9 @@
 ---
 title: Experimental APIs
-description: The two surfaces that are still moving, what "experimental" commits to, and how to opt in.
+description: Surfaces that are still moving, what "experimental" commits to, and how to opt in.
 ---
 
-Two parts of the framework are marked experimental. They work, they are tested, and they ship —
+Three parts of the framework are marked experimental. They work, they are tested, and they ship —
 what is not settled is their **shape**, and using one means accepting that it may change in a
 minor release.
 
@@ -13,6 +13,7 @@ Each surface produces a warning with its own diagnostic ID. Suppression is optio
 |---|---|
 | `ERGOEXP001` | the declarative result-adapter surface |
 | `ERGOEXP002` | the plugin surface |
+| `ERGOEXP003` | stream input and pipe converters |
 
 ## ERGOEXP001 — result adapters
 
@@ -62,6 +63,32 @@ practical:
 ```
 
 See [Plugins](/ergosfare.docs/preview/advanced/plugins).
+
+## ERGOEXP003 — stream input
+
+`CommandStream<TChunk, TSelf>` and `QueryStream<TChunk, TSelf>` carry metadata as message
+properties and input as a bounded, single-consumer asynchronous sequence. `Pipe` starts
+production immediately; capacity limits queued items. The root `ErgosfareStream` implements
+`IAsyncDisposable`. The explicit `IBufferWriter<T>` staging buffer grows separately, and
+`FlushAsync` applies backpressure when publishing staged items.
+
+Use `IPipeConverter<T>` for stateful conversion from a byte stream, and
+`IPipeConverter<S,T>` or delegate overloads for per-item conversion. Byte blocks and
+UTF-8 line helpers leave the source open. See the
+[streaming multipart upload recipe](/ergosfare.docs/preview/recipes/streaming-upload).
+
+Generated output-stream plans send failures directly to the consumer and final stage;
+exception interceptors do not turn a failed stream into a replacement result. Early output
+disposal reports `StreamOutputDisposedException` to pending input producers and final
+interceptors. Explicit context abort still skips finals. Stream-specific post signatures
+and cancellation supplied only through output `WithCancellation` remain design work;
+pass the cancellation token to mediator dispatch and dispose unused inputs explicitly.
+
+```xml
+<PropertyGroup>
+  <NoWarn>$(NoWarn);ERGOEXP003</NoWarn>
+</PropertyGroup>
+```
 
 ## What the marker commits to
 

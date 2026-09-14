@@ -1262,6 +1262,10 @@
             "link": "/preview/api/commands-abstractions-streaming"
           },
           {
+            "label": "CommandStream<TChunk, TSelf>",
+            "link": "/preview/api/commands-abstractions-streaming/commandstream-2"
+          },
+          {
             "label": "ErgosfareCommandStream<TChunk, TMeta, TResult>",
             "link": "/preview/api/commands-abstractions-streaming/ergosfarecommandstream-3"
           },
@@ -1342,6 +1346,10 @@
           {
             "label": "NoHandlerFoundException",
             "link": "/preview/api/core-abstractions-exceptions/nohandlerfoundexception"
+          },
+          {
+            "label": "StreamOutputDisposedException",
+            "link": "/preview/api/core-abstractions-exceptions/streamoutputdisposedexception"
           },
           {
             "label": "UnplannedDispatchException",
@@ -1594,12 +1602,32 @@
             "link": "/preview/api/core-abstractions-streaming/ergosfarestream-1"
           },
           {
+            "label": "IPipeConverter<T>",
+            "link": "/preview/api/core-abstractions-streaming/ipipeconverter-1"
+          },
+          {
+            "label": "IPipeConverter<TSource, T>",
+            "link": "/preview/api/core-abstractions-streaming/ipipeconverter-2"
+          },
+          {
+            "label": "PipeConverters",
+            "link": "/preview/api/core-abstractions-streaming/pipeconverters"
+          },
+          {
             "label": "StreamCompletion",
             "link": "/preview/api/core-abstractions-streaming/streamcompletion"
           },
           {
             "label": "StreamInfo",
             "link": "/preview/api/core-abstractions-streaming/streaminfo"
+          },
+          {
+            "label": "StreamInput<TChunk, TSelf>",
+            "link": "/preview/api/core-abstractions-streaming/streaminput-2"
+          },
+          {
+            "label": "StreamInputPipeExtensions",
+            "link": "/preview/api/core-abstractions-streaming/streaminputpipeextensions"
           }
         ]
       },
@@ -1720,6 +1748,10 @@
           {
             "label": "ErgosfareQueryStream<TChunk, TMeta, TResult>",
             "link": "/preview/api/queries-abstractions-streaming/ergosfarequerystream-3"
+          },
+          {
+            "label": "QueryStream<TChunk, TSelf>",
+            "link": "/preview/api/queries-abstractions-streaming/querystream-2"
           }
         ]
       },

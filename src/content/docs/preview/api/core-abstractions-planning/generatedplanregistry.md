@@ -429,7 +429,7 @@ Returns the composition serving a runtime message type.
 
 [`PipelineDescriptor`](/ergosfare.docs/preview/api/core-abstractions-planning/pipelinedescriptor) — The exact entry when there is one; otherwise the nearest entry up the type's ancestor chain, which is how runtime-generated subtypes such as ORM proxies and mocks are served. `null` when no ancestor has an entry either.
 
-A generic runtime type is looked up by its generic definition. Outcomes are cached
+Closed generic entries take priority over generic-definition metadata. Outcomes are cached
 per runtime type, misses included, so an entry added after a type was first resolved
 is not picked up for that type — which holds because entries are only added as
 assemblies load.

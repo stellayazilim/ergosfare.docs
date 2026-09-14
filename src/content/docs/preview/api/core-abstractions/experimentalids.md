@@ -86,7 +86,6 @@ dispatch reaches a caller that is still writing, and whether the chunk sequence 
 this shape once the byte path is tuned. Those answers will move, and moving them will
 not be source-compatible.
 
-Marked experimental rather than obsolete because none of it has shipped: an error by
-default is the honest default for a surface nobody depends on yet. Opt in for a project
+Experimental APIs produce warnings by default. Suppress the warning for a project
 with `<NoWarn>$(NoWarn);ERGOEXP003</NoWarn>`, or at one site with
 `#pragma warning disable ERGOEXP003`.

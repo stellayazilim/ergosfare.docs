@@ -233,13 +233,20 @@ function fetchLocal(version: DocsVersion, buildDir: string): void {
     throw new Error(`dotnet restore failed for ${version.ref}`);
   }
 
+  // DocFX leaves old YAML behind when a type disappears. Only import a fresh output
+  // directory, otherwise removed APIs silently reappear in the published reference.
+  const produced = path.resolve(buildDir, "api");
+  if (path.dirname(produced) !== path.resolve(buildDir) || path.basename(produced) !== "api"
+      || (fs.existsSync(produced) && fs.lstatSync(produced).isSymbolicLink())) {
+    throw new Error(`Refusing to reset unexpected metadata directory: ${produced}`);
+  }
+  fs.rmSync(produced, { recursive: true, force: true });
   const res = run("docfx", ["metadata", "docfx.json"], { cwd: buildDir, quiet: true });
   if (!res.ok) {
     process.stderr.write(res.stdout + res.stderr);
     throw new Error(`docfx metadata failed for ${version.ref}`);
   }
 
-  const produced = path.join(buildDir, "api");
   if (!fs.existsSync(produced)) {
     throw new Error(`docfx reported success but ${produced} does not exist`);
   }

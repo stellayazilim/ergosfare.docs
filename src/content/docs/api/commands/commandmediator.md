@@ -28,6 +28,7 @@ public class CommandMediator : ICommandMediator
 ### `CommandMediator(IMessageMediator)`
 
 ```csharp
+[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
 public CommandMediator(IMessageMediator messageMediator)
 ```
 
@@ -43,6 +44,7 @@ kept for direct construction and foreign mediator implementations.
 ### `CommandMediator(MessageDispatchEngine, IServiceProvider)`
 
 ```csharp
+[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
 public CommandMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
 ```
 
@@ -62,6 +64,7 @@ facade the only object built per resolution.
 ### `SendAsync(ICommand, CommandMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask SendAsync(ICommand commandConstruct, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -82,6 +85,7 @@ Sends a void command through the executor pipeline.
 ### `SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask SendAsync(ICommand commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
 ```
 
@@ -127,6 +131,7 @@ reference check. An empty set routes to the group-less fast lane.
 ### `SendAsync<TResult>(ICommand<TResult>, CommandMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -153,6 +158,7 @@ Sends a typed command through the executor pipeline and returns its result.
 ### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, CommandMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> commandConstruct, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
 ```
 

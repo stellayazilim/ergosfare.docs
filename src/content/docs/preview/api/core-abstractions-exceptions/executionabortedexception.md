@@ -21,6 +21,8 @@ public class ExecutionAbortedException : Exception, ISerializable
 
 **Implements:** [`ISerializable`](https://learn.microsoft.com/dotnet/api/system.runtime.serialization.iserializable)
 
+**Derived:** [`StreamOutputDisposedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/streamoutputdisposedexception)
+
 ## Remarks
 
 The pipeline stops where the signal was raised. Nothing downstream runs — not the rest
@@ -45,7 +47,7 @@ catch (ExecutionAbortedException aborted)
 ```
 
 
-This is the exception-shaped channel and it behaves the same whether or not the pipeline
+This is the exception-shaped channel, and it behaves the same whether the pipeline
 has interceptors. To carry outcomes as values instead, use the result-adapter surface.
 
 ## Constructors

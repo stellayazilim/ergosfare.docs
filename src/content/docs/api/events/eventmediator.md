@@ -34,6 +34,7 @@ corrupt.
 ### `EventMediator(MessageDispatchEngine, IServiceProvider)`
 
 ```csharp
+[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
 public EventMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
 ```
 
@@ -53,6 +54,7 @@ facade the only object built per resolution.
 ### `PublishAsync(IEvent, ErgosfareContext, EventMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? eventMediationSettings = null)
 ```
 
@@ -76,6 +78,7 @@ context.
 ### `PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask PublishAsync(IEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -118,6 +121,7 @@ reference check. An empty set publishes the default pipeline.
 ### `PublishAsync<TEvent>(TEvent, EventMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask PublishAsync<TEvent>(TEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default) where TEvent : notnull
 ```
 

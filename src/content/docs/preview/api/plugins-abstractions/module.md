@@ -13,6 +13,7 @@ The message families a plugin method applies to, used by
 [`PluginServiceFilterAttribute`](/ergosfare.docs/preview/api/plugins-abstractions/pluginservicefilterattribute).
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP002")]
 [Flags]
 public enum Module
 ```

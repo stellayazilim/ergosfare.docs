@@ -13,7 +13,8 @@ A query whose payload arrives in chunks and which answers with a
 `TResult`.
 
 ```csharp
-public abstract class ErgosfareQueryStream<TChunk, TMeta, TResult> : ErgosfareStream<TChunk>, IAsyncEnumerable<TChunk>, IQuery<TResult>, IQuery, IMessage where TMeta : notnull
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
+public abstract class ErgosfareQueryStream<TChunk, TMeta, TResult> : ErgosfareStream<TChunk>, IAsyncDisposable, IAsyncEnumerable<TChunk>, IQuery<TResult>, IQuery, IMessage where TMeta : notnull
 ```
 
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Queries.Abstractions/Streaming/ErgosfareQueryStream%5BTChunk%2CTMeta%2CTResult%5D.cs#L19)
@@ -28,7 +29,7 @@ public abstract class ErgosfareQueryStream<TChunk, TMeta, TResult> : ErgosfareSt
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`ErgosfareStream`](/ergosfare.docs/preview/api/core-abstractions-streaming/ergosfarestream), `ErgosfareStream<TChunk>`
 
-**Implements:** `IAsyncEnumerable<TChunk>`, `IQuery<TResult>`, [`IQuery`](/ergosfare.docs/preview/api/queries-abstractions/iquery), [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage)
+**Implements:** [`IAsyncDisposable`](https://learn.microsoft.com/dotnet/api/system.iasyncdisposable), `IAsyncEnumerable<TChunk>`, `IQuery<TResult>`, [`IQuery`](/ergosfare.docs/preview/api/queries-abstractions/iquery), [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage)
 
 ## Remarks
 

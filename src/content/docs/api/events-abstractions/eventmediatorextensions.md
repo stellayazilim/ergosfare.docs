@@ -12,6 +12,7 @@ sidebar:
 Provides extension methods for [`IEventMediator`](/ergosfare.docs/api/events-abstractions/ieventmediator) to simplify event publishing.
 
 ```csharp
+[Obsolete("Removed in preview. Call the module mediator instance methods when upgrading; convert group sequences to GroupSet.Of(groups).", false)]
 public static class EventMediatorExtensions
 ```
 

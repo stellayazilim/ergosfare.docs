@@ -1,0 +1,143 @@
+---
+title: Streaming multipart upload
+description: Pipe a raw HTTP body into a command, validate its first file chunk in pre, and write it to disk without buffering the entire upload.
+---
+
+This recipe uses the experimental stream input surface introduced in **v2.16.0-preview**.
+The runnable example is [the E2E upload application](https://github.com/stellayazilim/Ergosfare/tree/preview/examples/e2e).
+It accepts one multipart file per request and keeps memory bounded independently of file size.
+
+## Give the message its metadata
+
+The message itself carries metadata; its base class owns the bounded input. The self type
+lets `Pipe` return `UploadFile`, so mediator dispatch retains the concrete message type.
+
+```csharp
+#pragma warning disable ERGOEXP003
+public sealed class UploadFile(string? contentType, long? contentLength)
+    : CommandStream<ReadOnlyMemory<byte>, UploadFile>(capacity: 4), ICommand<UploadReceipt>
+{
+    public string? ContentType { get; } = contentType;
+    public long? ContentLength { get; } = contentLength;
+}
+```
+
+Capacity means queued items, not bytes. Four chunks of up to 64 KiB are buffered in the
+queue; the producer's in-flight chunk, parser buffer and current file buffer are additional.
+The handler does not collect the complete file in memory.
+
+## Keep the endpoint small
+
+```csharp
+await using var input = new UploadFile(http.Request.ContentType, http.Request.ContentLength)
+    .Pipe(http.Request.Body, chunkSize: 65536, cancellationToken: http.RequestAborted);
+var receipt = await mediator.SendAsync<UploadReceipt>(input, http.RequestAborted);
+return Results.Json(receipt, ApiJsonContext.Default.UploadReceipt);
+```
+
+`Pipe` starts reading immediately, even before dispatch. It waits when the queue is full.
+The endpoint passes the **raw body**, including multipart framing. It neither binds
+`IFormFile` nor calls `ReadFormAsync`. Header values are ordinary metadata; participants
+do not need `HttpContext` or `IHttpContextAccessor`.
+
+The example also sets the server request limit to 2 GiB and translates application
+validation failures into HTTP responses. Custom sources must cooperate with cancellation.
+The caller owns `Request.Body`; pipe converters and the handler leave it open.
+
+## Validate and pass the first chunk through context
+
+`ValidateUploadInterceptor : ICommandPreInterceptor<UploadFile>` checks the outer
+Content-Type, boundary and declared length. It then adapts the single input enumeration
+to the `Stream` interface expected by `MultipartReader`:
+
+```csharp
+var body = message.AsStream();
+var reader = new MultipartReader(boundary, body, bufferSize: 65536);
+var section = await reader.ReadNextSectionAsync(context.CancellationToken);
+```
+
+`ReadNextSectionAsync` **advances the body**: it consumes framing and section headers and
+may read ahead into file bytes. The example requires the first section to have
+`Content-Disposition: form-data`, name `file`, and a filename. It rejects missing or
+non-file sections before the main handler runs.
+
+Pre then reads the first payload chunk and stores an internal `UploadSession` in context:
+
+```csharp
+var buffer = new byte[65536];
+var firstCount = await section.Body.ReadAsync(buffer, context.CancellationToken);
+context.Set(UploadSession.ContextKey,
+    new UploadSession(body, reader, section, fileName, section.ContentType, buffer, firstCount));
+return message;
+```
+
+The session holds the first chunk, its valid byte count, the same parser and the same
+section. Do not create another reader or enumerate the message again: that loses parser
+read-ahead or violates the single-consumer contract. A zero-byte file is valid; no file
+section is a validation error. This pre interceptor deliberately advances the stream,
+rather than restricting itself to metadata validation.
+
+Settable message properties can carry metadata without replacing the message. Context is
+used here to demonstrate dispatch-local participant communication and keep parser state
+off the public message surface.
+
+## Continue from the same section
+
+The main handler retrieves the session and writes the first chunk before requesting the next:
+
+```csharp
+var session = context.Get<UploadSession>(UploadSession.ContextKey);
+var count = session.FirstCount;
+while (count != 0)
+{
+    var chunk = session.Buffer.AsMemory(0, count);
+    await file.WriteAsync(chunk, context.CancellationToken);
+    hash.AppendData(chunk.Span);
+    bytes += count;
+    chunks++;
+    count = await session.File.Body.ReadAsync(session.Buffer, context.CancellationToken);
+}
+```
+
+The complete handler opens an asynchronous file with a server-generated unique name,
+computes SHA-256 incrementally, rejects additional multipart sections and drains the
+remaining body before returning. This is one HTTP request and one dispatch per file, not
+a resumable upload protocol. Transport chunk boundaries need not match application chunks.
+
+## Cleanup and MIME preservation
+
+On cancellation or failure, the handler removes partial output. Failed pre-validation
+disposes its adapter before rethrowing. A final interceptor disposes the adapter saved in
+context after successful validation; cleanup preserves the original error. The input's
+`IAsyncDisposable` lifetime and dispatch completion stop and await its bound producer.
+
+The response and a companion JSON file preserve the original display name, stored name,
+declared file MIME, byte/chunk counts and SHA-256. The file section's MIME is distinct from
+the outer `multipart/form-data` Content-Type. Missing MIME remains null; MIME is not inferred
+from an extension or verified through content sniffing. File bytes are written unchanged.
+
+The example uses compiled JSON metadata for NativeAOT. Storage names never come from the
+client's filename; files and metadata live under the Git-ignored `examples/e2e/upload/`.
+
+## Register and verify
+
+Keep the handler, pre and final interceptors in the application selection, and supply
+`UploadStorage` through DI. In the E2E application, `AddApplication()` stays in UseCases;
+the API generator emits plans from its referenced selections. The parser requires the
+`Microsoft.AspNetCore.App` framework reference in the application project.
+
+From the repository root:
+
+```shell
+task e2e:run
+# In another terminal, with the API running:
+task e2e:test:upload
+```
+
+Open `http://localhost:5099/streams/upload` for the browser form. From `examples/e2e`,
+the equivalent tasks are `task run` and `task test:upload`.
+
+The transport test sends 64 MiB incrementally and pauses before EOF to prove the handler
+is already writing. It verifies SHA-256 including the chunk read by pre, byte identity for
+WAV and UTF-8 files, MIME persistence, missing/empty files, extra-section rejection and
+cancellation/malformed-body cleanup. Its test files are removed afterward.

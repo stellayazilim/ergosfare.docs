@@ -18,6 +18,7 @@ the classic try/catch semantics. Nobody is forced onto the value channel: with n
 default configured and no annotation, pipelines behave exactly as before.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 public sealed class DefaultResultAdapter
 ```
 

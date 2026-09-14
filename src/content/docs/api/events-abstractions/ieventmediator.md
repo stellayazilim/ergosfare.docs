@@ -32,6 +32,7 @@ event publishers and the event subscribers (handlers).
 ### `PublishAsync(IEvent, ErgosfareContext, EventMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask PublishAsync(IEvent @event, ErgosfareContext context, EventMediationSettings? eventMediationSettings = null)
 ```
 
@@ -56,6 +57,7 @@ cancellation flows from the context.
 ### `PublishAsync(IEvent, EventMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask PublishAsync(IEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -106,6 +108,7 @@ settings overload, so foreign mediator implementations keep working unchanged.
 ### `PublishAsync<TEvent>(TEvent, EventMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask PublishAsync<TEvent>(TEvent @event, EventMediationSettings? eventMediationSettings = null, CancellationToken cancellationToken = default) where TEvent : notnull
 ```
 

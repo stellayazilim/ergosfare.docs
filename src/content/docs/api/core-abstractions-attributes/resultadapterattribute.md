@@ -17,6 +17,7 @@ bind to their built-in adapters); an unannotated message with any other result t
 performs no probing at all.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class ResultAdapterAttribute : Attribute
 ```

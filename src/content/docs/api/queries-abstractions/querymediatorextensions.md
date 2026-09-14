@@ -13,6 +13,7 @@ Provides extension methods for [`IQueryMediator`](/ergosfare.docs/api/queries-ab
 queries and stream queries with optional group filtering.
 
 ```csharp
+[Obsolete("Removed in preview. Call the module mediator instance methods when upgrading; convert group sequences to GroupSet.Of(groups).", false)]
 public static class QueryMediatorExtensions
 ```
 

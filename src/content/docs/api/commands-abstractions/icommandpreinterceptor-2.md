@@ -13,6 +13,7 @@ Represents a type-safe pre-interceptor for commands, allowing modification of th
 before it enters the pipeline.
 
 ```csharp
+[Obsolete("Removed in preview. Use ICommandPreInterceptor<TMessage>; the message type must stay unchanged.", false)]
 public interface ICommandPreInterceptor<in TCommand, TModifiedCommand> : ICommand, IMessage, IAsyncPreInterceptor<TCommand>, IPreInterceptor where TCommand : ICommand where TModifiedCommand : TCommand
 ```
 

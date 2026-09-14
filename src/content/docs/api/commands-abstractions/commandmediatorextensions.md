@@ -12,6 +12,7 @@ sidebar:
 Provides extension methods for [`ICommandMediator`](/ergosfare.docs/api/commands-abstractions/icommandmediator) to simplify sending commands.
 
 ```csharp
+[Obsolete("Removed in preview. Call the module mediator instance methods when upgrading; convert group sequences to GroupSet.Of(groups).", false)]
 public static class CommandMediatorExtensions
 ```
 

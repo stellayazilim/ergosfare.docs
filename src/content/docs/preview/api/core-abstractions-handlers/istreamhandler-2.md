@@ -16,7 +16,7 @@ Handles messages of type `TMessage` by streaming
 public interface IStreamHandler<in TMessage, out TResult> : IHandler<TMessage, IAsyncEnumerable<TResult>>, IHandler where TMessage : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L17)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/Main/IStreamHandler%5BTMessage%2CTResult%5D.cs#L22)
 
 **Type parameters**
 
@@ -26,6 +26,10 @@ public interface IStreamHandler<in TMessage, out TResult> : IHandler<TMessage, I
 | `TResult` | The type of each streamed item. |
 
 ## Remarks
+
+Shared streaming contract. Implementations can combine this interface with module
+markers to declare their module membership, or use a module-specific streaming handler
+contract. Module membership does not by itself add a streaming dispatch API to a module.
 
 The contract is [`IHandler<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ihandler-2) closed over
 [`IAsyncEnumerable<T>`](https://learn.microsoft.com/dotnet/api/system.collections.generic.iasyncenumerable-1); its `Handle` is implemented explicitly here and

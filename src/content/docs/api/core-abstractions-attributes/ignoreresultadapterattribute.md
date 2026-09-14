@@ -16,6 +16,7 @@ the dispatch path performs no probing at all. The escape hatch for applications 
 configure a default adapter but want individual messages off the value channel.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class IgnoreResultAdapterAttribute : Attribute
 ```

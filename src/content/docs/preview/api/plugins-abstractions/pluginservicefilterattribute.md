@@ -13,6 +13,7 @@ Narrows which pipelines a plugin service's [`PipelineInvokableAttribute`](/ergos
 methods reach. On the service it filters every method; on a method, only that one.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP002")]
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public sealed class PluginServiceFilterAttribute : Attribute
 ```

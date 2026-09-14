@@ -31,6 +31,7 @@ mediator helps maintain separation between the command issuers and the command h
 ### `SendAsync(ICommand, CommandMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask SendAsync(ICommand command, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -55,6 +56,7 @@ pre-handlers, the main handler, post-handlers, and error handlers if exceptions 
 ### `SendAsync(ICommand, ErgosfareContext, CommandMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask SendAsync(ICommand command, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
 ```
 
@@ -102,6 +104,7 @@ settings overload, so foreign mediator implementations keep working unchanged.
 ### `SendAsync<TResult>(ICommand<TResult>, CommandMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CommandMediationSettings? commandMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -133,6 +136,7 @@ The result produced by the handler is returned to the caller.
 ### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, CommandMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, ErgosfareContext context, CommandMediationSettings? commandMediationSettings = null)
 ```
 

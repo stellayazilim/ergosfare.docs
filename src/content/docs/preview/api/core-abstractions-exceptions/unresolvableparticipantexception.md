@@ -3,7 +3,7 @@ title: "UnresolvableParticipantException"
 description: "Thrown when a message's pipeline names a participant that the dispatching container cannot resolve."
 sidebar:
   label: "UnresolvableParticipantException"
-  order: 9
+  order: 10
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/preview/api/core-abstractions-exceptions)  

@@ -28,6 +28,7 @@ public class QueryMediator : IQueryMediator, IMessage
 ### `QueryMediator(MessageDispatchEngine, IServiceProvider)`
 
 ```csharp
+[Obsolete("Removed in preview. Resolve the module mediator from dependency injection instead of constructing it directly.", false)]
 public QueryMediator(MessageDispatchEngine engine, IServiceProvider serviceProvider)
 ```
 
@@ -47,6 +48,7 @@ facade the only object built per resolution.
 ### `QueryAsync<TResult>(IQuery<TResult>, ErgosfareContext, QueryMediationSettings?)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask<TResult> QueryAsync<TResult>(IQuery<TResult> query, ErgosfareContext context, QueryMediationSettings? queryMediationSettings = null)
 ```
 
@@ -103,6 +105,7 @@ reference check. An empty set routes to the group-less fast lane.
 ### `QueryAsync<TResult>(IQuery<TResult>, QueryMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public ValueTask<TResult> QueryAsync<TResult>(IQuery<TResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 
@@ -159,6 +162,7 @@ object on the way.
 ### `StreamAsync<TResult>(IStreamQuery<TResult>, QueryMediationSettings?, CancellationToken)`
 
 ```csharp
+[Obsolete("Removed in preview. Use the CancellationToken, GroupSet or ErgosfareContext overloads without mediation settings when upgrading.", false)]
 public IAsyncEnumerable<TResult> StreamAsync<TResult>(IStreamQuery<TResult> query, QueryMediationSettings? queryMediationSettings = null, CancellationToken cancellationToken = default)
 ```
 

@@ -1,6 +1,6 @@
 ---
 title: "ExperimentalIds"
-description: "The diagnostic ids behind the framework's ExperimentalAttribute markings — one id per experimental surface, so consumers opt in with a single, documented sup…"
+description: "The diagnostic ids behind the framework's experimental warnings, emitted with ObsoleteAttribute — one id per experimental surface, allowing a single, documen…"
 sidebar:
   label: "ExperimentalIds"
   order: 3
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The diagnostic ids behind the framework's [`ExperimentalAttribute`](https://learn.microsoft.com/dotnet/api/system.diagnostics.codeanalysis.experimentalattribute)
-markings — one id per experimental surface, so consumers opt in with a single,
+The diagnostic ids behind the framework's experimental warnings, emitted with
+[`ObsoleteAttribute`](https://learn.microsoft.com/dotnet/api/system.obsoleteattribute) — one id per experimental surface, allowing a single,
 documented suppression instead of chasing members.
 
 ```csharp

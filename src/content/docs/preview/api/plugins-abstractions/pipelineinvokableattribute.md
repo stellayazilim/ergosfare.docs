@@ -13,6 +13,7 @@ Marks a method to be called from inside every dispatch pipeline its filters admi
 given [`PipelineInvokableAttribute.Hook`](/ergosfare.docs/preview/api/plugins-abstractions/pipelineinvokableattribute#hook).
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP002")]
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public sealed class PipelineInvokableAttribute : Attribute
 ```

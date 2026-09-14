@@ -12,6 +12,7 @@ sidebar:
 Declares an assembly to be an Ergosfare plugin and gives it a name.
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP002")]
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
 public sealed class ErgosfarePluginAttribute : Attribute
 ```

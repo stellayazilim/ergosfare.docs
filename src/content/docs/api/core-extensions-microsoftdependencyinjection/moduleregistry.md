@@ -72,6 +72,7 @@ Registers a module with the registry.
 ### `UseDefaultResultAdapter(Type)`
 
 ```csharp
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP001")]
 public IModuleRegistry UseDefaultResultAdapter(Type adapterType)
 ```
 

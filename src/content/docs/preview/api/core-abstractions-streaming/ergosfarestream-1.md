@@ -12,7 +12,8 @@ sidebar:
 A message whose payload arrives in chunks instead of all at once.
 
 ```csharp
-public abstract class ErgosfareStream<TChunk> : ErgosfareStream, IMessage, IAsyncEnumerable<TChunk>
+[Obsolete("Experimental API: subject to change or removal in any release.", false, DiagnosticId = "ERGOEXP003")]
+public abstract class ErgosfareStream<TChunk> : ErgosfareStream, IMessage, IAsyncDisposable, IAsyncEnumerable<TChunk>
 ```
 
 [View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Streaming/ErgosfareStream%5BTChunk%5D.cs#L30)
@@ -25,9 +26,9 @@ public abstract class ErgosfareStream<TChunk> : ErgosfareStream, IMessage, IAsyn
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`ErgosfareStream`](/ergosfare.docs/preview/api/core-abstractions-streaming/ergosfarestream)
 
-**Implements:** [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage), `IAsyncEnumerable<TChunk>`
+**Implements:** [`IMessage`](/ergosfare.docs/preview/api/core-abstractions/imessage), [`IAsyncDisposable`](https://learn.microsoft.com/dotnet/api/system.iasyncdisposable), `IAsyncEnumerable<TChunk>`
 
-**Derived:** [`ErgosfareCommandStream<TChunk, TMeta>`](/ergosfare.docs/preview/api/commands-abstractions-streaming/ergosfarecommandstream-2), [`ErgosfareCommandStream<TChunk, TMeta, TResult>`](/ergosfare.docs/preview/api/commands-abstractions-streaming/ergosfarecommandstream-3), [`ErgosfareQueryStream<TChunk, TMeta, TResult>`](/ergosfare.docs/preview/api/queries-abstractions-streaming/ergosfarequerystream-3)
+**Derived:** [`ErgosfareCommandStream<TChunk, TMeta>`](/ergosfare.docs/preview/api/commands-abstractions-streaming/ergosfarecommandstream-2), [`ErgosfareCommandStream<TChunk, TMeta, TResult>`](/ergosfare.docs/preview/api/commands-abstractions-streaming/ergosfarecommandstream-3), [`StreamInput<TChunk, TSelf>`](/ergosfare.docs/preview/api/core-abstractions-streaming/streaminput-2), [`ErgosfareQueryStream<TChunk, TMeta, TResult>`](/ergosfare.docs/preview/api/queries-abstractions-streaming/ergosfarequerystream-3)
 
 ## Remarks
 
@@ -45,24 +46,6 @@ there is nobody left to produce the rest.
 Whoever creates the stream owns its writing end and completes it. A stream nobody
 consumes — no handler matched, a stage refused — is faulted by the dispatch rather than
 left open, so the next write fails instead of blocking forever.
-
-## Fields
-
-### `DefaultCapacity`
-
-```csharp
-public const int DefaultCapacity = 4
-```
-
-How many chunks a bounded channel holds before a writer has to wait.
-
-**Returns**
-
-[`int`](https://learn.microsoft.com/dotnet/api/system.int32)
-
-Small on purpose. The buffer exists to keep the handler fed across a scheduling gap,
-not to hold the payload — a larger window buys throughput only when the producer is
-bursty, and costs memory proportional to the chunk size.
 
 ## Constructors
 
@@ -102,7 +85,7 @@ Creates a stream the caller writes into.
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `capacity` | [`int`](https://learn.microsoft.com/dotnet/api/system.int32) | How many chunks may be buffered before a write waits; defaults to [`ErgosfareStream<TChunk>.DefaultCapacity`](/ergosfare.docs/preview/api/core-abstractions-streaming/ergosfarestream-1#defaultcapacity). |
+| `capacity` | [`int`](https://learn.microsoft.com/dotnet/api/system.int32) | How many chunks may be buffered before a write waits; defaults to `DefaultCapacity`. |
 
 **Exceptions**
 
@@ -110,154 +93,39 @@ Creates a stream the caller writes into.
 | --- | --- |
 | [`ArgumentOutOfRangeException`](https://learn.microsoft.com/dotnet/api/system.argumentoutofrangeexception) | `capacity` is not positive. |
 
-## Properties
-
-### `Info`
-
-```csharp
-public StreamInfo Info { get; }
-```
-
-What this stream has carried so far, and how it ended if it has.
-
-**Returns**
-
-[`StreamInfo`](/ergosfare.docs/preview/api/core-abstractions-streaming/streaminfo)
-
-One value rather than three loose members, because this is what the stages are handed:
-they see what the stream did, never what it carried.
-
-### `IsAdopted`
-
-```csharp
-public bool IsAdopted { get; }
-```
-
-Whether this stream was created over an existing source rather than to be written to.
-
-**Returns**
-
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean)
-
 ## Methods
 
-### `Complete()`
+### `ClaimSource()`
 
 ```csharp
-public void Complete()
+protected void ClaimSource()
 ```
 
-Says no more chunks are coming.
+Claims the writing end for one source, before any manual writes.
 
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) | The stream adopted an existing source. |
-
-The handler's enumeration ends here. Without it the handler waits for a chunk that
-never arrives, which is the one hazard of the writing form.
-
-### `Fault(Exception)`
+### `CompleteFromSource()`
 
 ```csharp
-public void Fault(Exception exception)
+protected void CompleteFromSource()
 ```
 
-Ends the stream with a failure, which surfaces at the handler's next read.
+Completes the writing end owned by the bound source.
+
+### `WriteFromSourceAsync(TChunk, CancellationToken)`
+
+```csharp
+protected ValueTask WriteFromSourceAsync(TChunk chunk, CancellationToken cancellationToken)
+```
+
+Writes from the single bound source without claiming the manual writer.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure to end it with. |
-
-Used by the producer when its own source broke, and by the dispatch when nothing will
-consume the stream. Either way the sequence is over: a faulted stream is not resumed.
-
-### `GetAsyncEnumerator(CancellationToken)`
-
-```csharp
-public IAsyncEnumerator<TChunk> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-```
-
-Reads the chunks. The handler's side of the message, and it may be taken once.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancels the enumeration. |
-
-**Returns**
-
-`IAsyncEnumerator<TChunk>` — An enumerator over the chunks, in the order they were written.
-
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) | The chunks were already taken. |
-
-The message is the sequence, so a handler writes `await foreach (var chunk in
-command)` and nothing stands between it and the payload. Single-pass is the
-contract, not an implementation detail: a network-backed sequence cannot be
-enumerated twice, and a second reader would silently take chunks the first one needs.
-The guard is here rather than in the iterator so that it fires when the enumerator is
-asked for, not at the first move.
-
-### `TryWrite(TChunk)`
-
-```csharp
-public bool TryWrite(TChunk chunk)
-```
-
-Writes a chunk if the buffer has room, and reports rather than waits when it does not.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `chunk` | `TChunk` | The chunk to write. |
-
-**Returns**
-
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when the chunk was taken.
-
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) | The stream adopted an existing source. |
-
-For producers that cannot wait — live capture, telemetry — where dropping is better
-than stalling. The decision belongs to the caller, which is why this returns instead
-of dropping silently.
-
-### `WriteAsync(TChunk, CancellationToken)`
-
-```csharp
-public ValueTask WriteAsync(TChunk chunk, CancellationToken cancellationToken = default)
-```
-
-Writes a chunk, waiting while the buffer is full.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `chunk` | `TChunk` | The chunk to write. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancels the wait. |
+| `chunk` | `TChunk` |  |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
 
 **Returns**
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
-
-**Exceptions**
-
-| Type | Condition |
-| --- | --- |
-| [`InvalidOperationException`](https://learn.microsoft.com/dotnet/api/system.invalidoperationexception) | The stream adopted an existing source. |
-
-Waiting is the back-pressure: it suspends nothing when the buffer has room, and when
-it does not, the producer slowing down is the correct behaviour.

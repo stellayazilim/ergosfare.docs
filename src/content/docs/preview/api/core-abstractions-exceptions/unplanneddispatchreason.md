@@ -3,7 +3,7 @@ title: "UnplannedDispatchReason"
 description: "Why a dispatch had no compiled plan to run; carried by UnplannedDispatchException so callers and tests can tell the cases apart without parsing the message."
 sidebar:
   label: "UnplannedDispatchReason"
-  order: 8
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/preview/api/core-abstractions-exceptions)  
