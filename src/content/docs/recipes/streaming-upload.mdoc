@@ -65,8 +65,8 @@ app.Run();
 
 ## Add Upload.cs
 
-Copy the following complete file next to `Program.cs`. No E2E application types or other
-project files are needed. Pre reads one payload chunk; the handler writes it once and
+Copy the following file next to `Program.cs`. Pre reads one payload chunk; the handler
+writes it once and
 continues from the same multipart section. Empty files are accepted; missing files and
 additional sections are rejected. Partial files are removed on handler failure or cancellation.
 
@@ -220,5 +220,4 @@ interceptor disposes the adapter, while the endpoint's `await using` stops and a
 input producer. Request cancellation reaches both the producer and file operations.
 
 This is one request per file, not a resumable upload protocol. Add application-specific
-authorization, content checks and durable storage as needed. For a larger example with a
-browser form and persisted receipts, see the [upload example](https://github.com/stellayazilim/Ergosfare/tree/main/examples/e2e).
+authorization, content checks and durable storage as needed.
