@@ -1,16 +1,16 @@
 ---
 title: "UnresolvableParticipantException"
-description: "Exception thrown when a message's selected frozen composition names a participant that the dispatching container cannot resolve."
+description: "Thrown when a message's pipeline names a participant that the dispatching container cannot resolve."
 sidebar:
   label: "UnresolvableParticipantException"
-  order: 7
+  order: 9
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/preview/api/core-abstractions-exceptions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Exception thrown when a message's selected frozen composition names a participant that
-the dispatching container cannot resolve.
+Thrown when a message's pipeline names a participant that the dispatching container
+cannot resolve.
 
 ```csharp
 public class UnresolvableParticipantException : InvalidOperationException, ISerializable
@@ -24,10 +24,10 @@ public class UnresolvableParticipantException : InvalidOperationException, ISeri
 
 ## Remarks
 
-Raised while the pipeline is being built rather than part-way through a dispatch, so no
-participant runs before the failure. Nothing is cached for the failed build. Ensure the
-module that selected the participant also registers it with dependency injection before
-building the container.
+The failure happens while the pipeline is being built, so no participant runs before
+it, and nothing is cached for the failed build. Registering a type in the message
+registry does not register it with dependency injection — the module that puts a
+participant in the pipeline must also register it with the container.
 
 ## Constructors
 
@@ -37,8 +37,8 @@ building the container.
 public UnresolvableParticipantException(Type messageType, Type participantType)
 ```
 
-Exception thrown when a message's selected frozen composition names a participant that
-the dispatching container cannot resolve.
+Thrown when a message's pipeline names a participant that the dispatching container
+cannot resolve.
 
 **Parameters**
 
@@ -47,10 +47,10 @@ the dispatching container cannot resolve.
 | `messageType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The message type whose pipeline could not be built. |
 | `participantType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The participant the container cannot resolve. |
 
-Raised while the pipeline is being built rather than part-way through a dispatch, so no
-participant runs before the failure. Nothing is cached for the failed build. Ensure the
-module that selected the participant also registers it with dependency injection before
-building the container.
+The failure happens while the pipeline is being built, so no participant runs before
+it, and nothing is cached for the failed build. Registering a type in the message
+registry does not register it with dependency injection — the module that puts a
+participant in the pipeline must also register it with the container.
 
 ## Properties
 
@@ -60,7 +60,7 @@ building the container.
 public Type MessageType { get; }
 ```
 
-Gets the message type whose pipeline could not be built.
+The message type whose pipeline could not be built.
 
 **Returns**
 
@@ -72,7 +72,7 @@ Gets the message type whose pipeline could not be built.
 public Type ParticipantType { get; }
 ```
 
-Gets the participant the container cannot resolve.
+The participant the container cannot resolve.
 
 **Returns**
 

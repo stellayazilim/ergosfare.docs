@@ -9,7 +9,7 @@ paketlerine karşı derleniyor.
 
 ## 1. Ergosfare'yi kaydedin
 
-Composition root'ta tek bir çağrı. `RegisterGenerated()` kaynak üreteci tarafından yazılır ve
+Composition root'ta tek bir çağrı. `AddGenerated()` kaynak üreteci tarafından yazılır ve
 bulduğu her yapıyı adıyla sayar:
 
 ```csharp
@@ -21,9 +21,9 @@ using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 Yalnız kullandığınız modülleri kaydedin. Event'i olmayan bir uygulamanın event modülüne ihtiyacı
@@ -142,7 +142,7 @@ public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterc
 }
 ```
 
-Kendine ait bir kayıt gerekmez — `RegisterGenerated()` onu zaten buldu. Tek bir mesaja
+Kendine ait bir kayıt gerekmez — `AddGenerated()` onu zaten buldu. Tek bir mesaja
 daraltmak için `ICommandPreInterceptor<CreateProduct>` implemente edin; bu size tipli mesajı da
 verir:
 

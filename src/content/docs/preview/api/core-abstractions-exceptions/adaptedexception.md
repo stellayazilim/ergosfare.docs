@@ -1,6 +1,6 @@
 ---
 title: "AdaptedException"
-description: "Exception wrapper used by result adapters to surface errors without directly throwing the original result type."
+description: "An exception that carries the result value it was derived from, so code raising a failure out of a result carrier can hand the carrier itself to whoever catc…"
 sidebar:
   label: "AdaptedException"
   order: 1
@@ -9,18 +9,24 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Exceptions`](/ergosfare.docs/preview/api/core-abstractions-exceptions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Exception wrapper used by result adapters to surface errors without
-directly throwing the original result type.
+An exception that carries the result value it was derived from, so code raising a
+failure out of a result carrier can hand the carrier itself to whoever catches it.
 
 ```csharp
 public sealed class AdaptedException : Exception, ISerializable
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/AdaptedException.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Exceptions/AdaptedException.cs#L17)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception)
 
 **Implements:** [`ISerializable`](https://learn.microsoft.com/dotnet/api/system.runtime.serialization.iserializable)
+
+## Remarks
+
+The framework never raises this exception. It is available to
+[`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) implementations and to application code that turns
+a failed result into a throw without losing the original value.
 
 ## Constructors
 
@@ -30,15 +36,25 @@ public sealed class AdaptedException : Exception, ISerializable
 public AdaptedException(string message, object originalResult)
 ```
 
-Exception wrapper used by result adapters to surface errors without
-directly throwing the original result type.
+An exception that carries the result value it was derived from, so code raising a
+failure out of a result carrier can hand the carrier itself to whoever catches it.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Human-readable message for the exception. |
-| `originalResult` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The original result object that was adapted. |
+| `message` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The exception message. |
+| `originalResult` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The result value the failure was derived from. Cannot be `null`. |
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `originalResult` is `null`. |
+
+The framework never raises this exception. It is available to
+[`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) implementations and to application code that turns
+a failed result into a throw without losing the original value.
 
 ## Properties
 
@@ -48,8 +64,7 @@ directly throwing the original result type.
 public object OriginalResult { get; }
 ```
 
-Gets the original result object that triggered this exception.
-Stored by reference, not copied.
+The result value this exception was derived from, held by reference.
 
 **Returns**
 
@@ -63,20 +78,20 @@ Stored by reference, not copied.
 public TResult GetOriginalResult<TResult>() where TResult : notnull
 ```
 
-Retrieves the original result as a strongly typed value.
+Returns [`AdaptedException.OriginalResult`](/ergosfare.docs/preview/api/core-abstractions-exceptions/adaptedexception#originalresult) cast to `TResult`.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` | The expected type of the original result. |
+| `TResult` | The type the original result is expected to be. |
 
 **Returns**
 
-`TResult` — The original result cast to `TResult`.
+`TResult` — The original result.
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`InvalidCastException`](https://learn.microsoft.com/dotnet/api/system.invalidcastexception) | Thrown if the original result cannot be cast to the requested type. |
+| [`InvalidCastException`](https://learn.microsoft.com/dotnet/api/system.invalidcastexception) | The original result is not a `TResult`. |

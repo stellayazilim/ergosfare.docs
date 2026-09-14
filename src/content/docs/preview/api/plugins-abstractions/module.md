@@ -1,6 +1,6 @@
 ---
 title: "Module"
-description: "The message families a plugin method applies to, as a filter on emission (PluginServiceFilterAttribute)."
+description: "The message families a plugin method applies to, used by PluginServiceFilterAttribute."
 sidebar:
   label: "Module"
   order: 3
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Plugins.Abstractions`](/ergosfare.docs/preview/api/plugins-abstractions)  
 **Assembly:** `Stella.Ergosfare.Plugins.Abstractions.dll`
 
-The message families a plugin method applies to, as a filter on emission
-([`PluginServiceFilterAttribute`](/ergosfare.docs/preview/api/plugins-abstractions/pluginservicefilterattribute)).
+The message families a plugin method applies to, used by
+[`PluginServiceFilterAttribute`](/ergosfare.docs/preview/api/plugins-abstractions/pluginservicefilterattribute).
 
 ```csharp
 [Flags]
@@ -21,10 +21,10 @@ public enum Module
 
 ## Remarks
 
-Family is not expressible as a generic constraint — there is no type a plugin can
-constrain on to mean "every command" without naming the module's marker — so it gets its
-own flag. Shape filtering stays with the constraint: a method declared
-`where TMessage : ICacheableQuery` is emitted only into plans whose message
+Family needs its own flag because it cannot be said as a generic constraint — there is no
+type to constrain on that means "every command" without naming the module's marker.
+Filtering by message shape stays with the constraint: a method declared
+`where TMessage : ICacheableQuery` reaches only the pipelines whose message
 satisfies it.
 
 ## Fields
@@ -35,7 +35,7 @@ satisfies it.
 All = Command | Query | Event
 ```
 
-Every family — the default when no family filter is declared.
+Every family — what applies when no family filter is declared.
 
 **Returns**
 
@@ -47,7 +47,7 @@ Every family — the default when no family filter is declared.
 Command = 1
 ```
 
-Command dispatch plans, both the resultless and result-returning shapes.
+Command pipelines, both those that return a result and those that do not.
 
 **Returns**
 
@@ -59,7 +59,7 @@ Command dispatch plans, both the resultless and result-returning shapes.
 Event = 4
 ```
 
-Event broadcast plans.
+Event broadcast pipelines.
 
 **Returns**
 
@@ -71,7 +71,7 @@ Event broadcast plans.
 None = 0
 ```
 
-No family — a filter that selects nothing.
+No family, which selects nothing.
 
 **Returns**
 
@@ -83,10 +83,12 @@ No family — a filter that selects nothing.
 Query = 2
 ```
 
-Query dispatch plans. Streaming queries are named by this family but not yet served
-by it: the stream lane has no compiled plan, and a plugin call lives only in a plan
-body. A stream dispatch therefore observes nothing until that lane joins the family.
+Query pipelines.
 
 **Returns**
 
 [`Module`](/ergosfare.docs/preview/api/plugins-abstractions/module)
+
+Streaming queries belong to this family by name but are not served by it yet: a
+plugin call lives inside a compiled plan, and the streaming path has none. A stream
+dispatch therefore reaches no plugin until it does.

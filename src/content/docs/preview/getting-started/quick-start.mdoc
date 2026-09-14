@@ -8,7 +8,7 @@ described in [Installation](/ergosfare.docs/preview/getting-started/installation
 
 ## 1. Register Ergosfare
 
-One call at the composition root. `RegisterGenerated()` is written by the source generator and
+One call at the composition root. `AddGenerated()` is written by the source generator and
 names every construct it found:
 
 ```csharp
@@ -20,9 +20,9 @@ using Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 Register only the modules you use. A project with no events needs no event module.
@@ -141,7 +141,7 @@ public sealed class LogCommands(ILogger<LogCommands> logger) : ICommandPreInterc
 }
 ```
 
-It needs no registration of its own — `RegisterGenerated()` already found it. Narrow it to one
+It needs no registration of its own — `AddGenerated()` already found it. Narrow it to one
 message by implementing `ICommandPreInterceptor<CreateProduct>`, which also lets you return the
 typed message:
 

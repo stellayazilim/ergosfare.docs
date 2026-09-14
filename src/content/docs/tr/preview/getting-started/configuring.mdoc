@@ -9,29 +9,39 @@ uygulamaya ait olan sorular kalıyor.
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 `AddErgosfare` dispatch makinesini kaydeder — mediator'ler, executor'lar, bağımlılık fabrikası —
 ve bu container'ın derlenmiş kompozisyon tablosuna bakışını. Her modül kendi mediator'ünü ve
 seçtiği katılımcıları ekler.
 
+Assembly taraması yalnızca aday tipleri bulur. `AddGenerated` ve açık `Register<T>()`
+çağrıları, doğrulamaya ve plan üretimine girecek katılımcıları derleme zamanında seçer.
+Seçimler derleme zamanında birleşir; runtime koşulları farklı plan tanımları oluşturmaz.
+
+`ExcludeFromDiscovery` otomatik toplamayı engeller. Açık `Register<T>()` aynı tipi tam
+modeliyle seçer; grup, constructor ve adapter doğrulamaları aynen uygulanır. Referans verilen kütüphanenin yapılandırma metodu çağrıldığında, üretilmiş seçim
+manifesti bu metodun seçimlerini composition root’a taşır. Initialization sonrasında
+kataloğa kayıt veya descriptor eklenemez.
+
 ## Bir modülün neyi kaydedeceğini seçmek
 
 Modül builder'ının içinde üç şekil var.
 
-**`RegisterGenerated()`** toplu yoldur ve çoğu uygulamanın çağırdığı budur. Üreteç tarafından
-yazılır ve varsayılan keşfe katılan her yapıyı adıyla sayar.
+**`AddGenerated()`** toplu yoldur ve çoğu uygulamanın çağırdığı budur. Public builder
+metodudur ve Ergosfare’e aittir. Seçilen tipleri generator üretir; çağrı için
+üretilmiş bir namespace eklemek gerekmez.
 
-**`RegisterGenerated(desen)`** bunun yerine keşif anahtarına göre seçer — tam bir anahtar, ya da
+**`AddGenerated(desen)`** bunun yerine keşif anahtarına göre seçer — tam bir anahtar, ya da
 `*` ile biten bir önek:
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("reporting.*"))
+    .AddGenerated()
+    .AddGenerated("reporting.*"))
 ```
 
 Seçimler birleşimdir, dolayısıyla örtüşen desenleri zincirlemek güvenlidir. Bkz.
@@ -56,11 +66,17 @@ her sonuç slot'u fırlatmayı bırakır:
 ```csharp
 services.AddErgosfare(registry => registry
     .UseDefaultResultAdapter(typeof(ResultAdapter<>))
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 Açık bir generic, uyduğu her sonuç slot'u için kapatılır. Kapalı bir tip adlandırmak o tek
 slot'u bağlar.
+
+Kapatma derleme zamanında olur ve bu, çağrıya iki kural koyar. Argüman, derlemenin
+çözebildiği düz bir `typeof` olmalıdır — bir değişken ya da hesaplanmış bir tip `ERGO019`'dur —
+ve bir derleme tek bir varsayılan adapter adlandırır; başka bir şey adlandıran ikinci bir çağrı
+`ERGO020`'dir. Birden fazla sonuç ailesine hizmet eden bir adapter bunu birden fazla
+`IResultAdapter<TResult>` gerçeklemesiyle yapar, ikinci bir çağrıyla değil.
 
 Bir varsayılan yapılandırmak, değer taşıyan hatayı uygulamanın sözleşmesi hâline getirir ve
 derleyici sizi buna bağlı tutar: sonucuna hiçbir adapter'ın hizmet etmediği, sonuç üreten bir
@@ -82,7 +98,7 @@ katılımcıları saklar:
 ```csharp
 services.AddErgosfare(registry => registry
     .ForceMemoizedHandlers()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 Bu, handler'ları gerçekten durumsuz ve bağımlılıkları singleton olan uygulamalar içindir — bir
@@ -96,7 +112,7 @@ Bir plugin paketi registry üzerinde kendi `Add<Ad>` uzantısını üretir:
 ```csharp
 services.AddErgosfare(registry => registry
     .AddTiming()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 Plugin seçenek bildiriyorsa o çağrı onları alır. Plugin'ler deneyseldir — `ERGOEXP002` — ve
@@ -113,9 +129,10 @@ zamanında `ERGO010`'dur.
 **Interceptor sırası.** Tipteki `[Weight]`, doğrudan kayıtlar kovaryant olanlardan önce. Sıralama
 derlenen şeyin parçasıdır, dolayısıyla çağrı başına yeniden düzenlenemez.
 
-**Handler'sız bir dispatch'in fırlatıp fırlatmayacağı.** Fırlatır, ve abonesiz bir publish döner
-— ama ikisi de bir anahtar değil, çünkü hiç kimseye ulaşamamak derleme zamanında `ERGO005`'tir.
-Çalışma zamanında kalan şey container'ınızın yaptığı seçimdir, ki istediğiniz de odur.
+**Handler'sız bir dispatch'in fırlatıp fırlatmayacağı.** Event dahil her dispatch en az bir
+ana handler seçmelidir. Derleyicinin kanıtlayabildiği ihlaller `ERGO005` veya `ERGO024` ile
+derleme hatasıdır. Dinamik grup hiçbir handler seçmezse `NoHandlerFoundException` fırlatılır.
+Bu davranış yapılandırmayla değiştirilemez.
 
 **Dispatch başına pipeline seçenekleri.** Bir dispatch mesajı, bir grup kümesini, bir context'i
 ve bir cancellation token'ı alır. Pipeline'ın şeklini değiştirecek her şey derlenmiş planı

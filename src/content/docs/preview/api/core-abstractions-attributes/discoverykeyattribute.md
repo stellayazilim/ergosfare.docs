@@ -1,6 +1,6 @@
 ---
 title: "DiscoveryKeyAttribute"
-description: "Gates a registrable construct behind one or more discovery keys: a keyed type is excluded from default discovery (RegisterGenerated()) and registers only whe…"
+description: "Puts a type behind one or more discovery keys, so it registers only when a registration call asks for one of them."
 sidebar:
   label: "DiscoveryKeyAttribute"
   order: 2
@@ -9,30 +9,28 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Gates a registrable construct behind one or more discovery keys: a keyed type is
-excluded from default discovery (`RegisterGenerated()`) and registers only when a
-registration call selects one of its keys, e.g. `RegisterGenerated("reporting")`
-or `RegisterGenerated("reporting.*")`.
+Puts a type behind one or more discovery keys, so it registers only when a registration
+call asks for one of them.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Assembly|AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface, Inherited = false)]
 public sealed class DiscoveryKeyAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/DiscoveryKeyAttribute.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/DiscoveryKeyAttribute.cs#L20)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 
 ## Remarks
 
-Untagged types carry the implicit default key (the empty string), which is what the
-pattern-less registration calls select. Listing the empty string alongside other keys
-(`[DiscoveryKey("", "debug")]`) keeps a type in default discovery while also making
-it selectable by key.
+A keyed type is left out of key-less discovery (`AddGenerated()`) and picked
+up by `AddGenerated("reporting")` or by a prefix pattern such as
+`AddGenerated("reporting.*")`. To keep a type in key-less discovery while
+still making it selectable, list [`DiscoveryKeyAttribute.DefaultKey`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute#defaultkey) among its keys —
+`[DiscoveryKey("", "debug")]`.
 
-Applied to an assembly, the attribute sets the default keys for every registrable type
-in that assembly that declares no [`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) of its own —
-letting a library tag its whole surface (e.g. a modular-monolith module) in one place.
+Applied to an assembly, the attribute supplies the keys for every type in it that
+declares no keys of its own.
 
 ## Fields
 
@@ -42,9 +40,8 @@ letting a library tag its whole surface (e.g. a modular-monolith module) in one 
 public const string DefaultKey = ""
 ```
 
-The default discovery key carried by types that declare no
-[`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute): the empty string, selected by the pattern-less
-registration calls.
+The key a type carries when it declares none — the empty string, which is what
+key-less registration calls select.
 
 **Returns**
 
@@ -58,10 +55,8 @@ registration calls.
 public DiscoveryKeyAttribute(params string[] keys)
 ```
 
-Gates a registrable construct behind one or more discovery keys: a keyed type is
-excluded from default discovery (`RegisterGenerated()`) and registers only when a
-registration call selects one of its keys, e.g. `RegisterGenerated("reporting")`
-or `RegisterGenerated("reporting.*")`.
+Puts a type behind one or more discovery keys, so it registers only when a registration
+call asks for one of them.
 
 **Parameters**
 
@@ -69,14 +64,14 @@ or `RegisterGenerated("reporting.*")`.
 | --- | --- | --- |
 | `keys` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
 
-Untagged types carry the implicit default key (the empty string), which is what the
-pattern-less registration calls select. Listing the empty string alongside other keys
-(`[DiscoveryKey("", "debug")]`) keeps a type in default discovery while also making
-it selectable by key.
+A keyed type is left out of key-less discovery (`AddGenerated()`) and picked
+up by `AddGenerated("reporting")` or by a prefix pattern such as
+`AddGenerated("reporting.*")`. To keep a type in key-less discovery while
+still making it selectable, list [`DiscoveryKeyAttribute.DefaultKey`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute#defaultkey) among its keys —
+`[DiscoveryKey("", "debug")]`.
 
-Applied to an assembly, the attribute sets the default keys for every registrable type
-in that assembly that declares no [`DiscoveryKeyAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/discoverykeyattribute) of its own —
-letting a library tag its whole surface (e.g. a modular-monolith module) in one place.
+Applied to an assembly, the attribute supplies the keys for every type in it that
+declares no keys of its own.
 
 ## Properties
 
@@ -86,7 +81,7 @@ letting a library tag its whole surface (e.g. a modular-monolith module) in one 
 public string[] Keys { get; }
 ```
 
-Gets the discovery keys assigned to the type or assembly.
+The discovery keys declared for this type or assembly.
 
 **Returns**
 

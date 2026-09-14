@@ -1,6 +1,6 @@
 ---
 title: "IEventExceptionInterceptor"
-description: "Exception interceptor for every event: the untyped counterpart of IEventExceptionInterceptor<TEvent>, reached for any published message."
+description: "Handles failures raised while publishing an event that implements IEvent."
 sidebar:
   label: "IEventExceptionInterceptor"
   order: 2
@@ -9,20 +9,20 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Exception interceptor for every event: the untyped counterpart of
-[`IEventExceptionInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptor-1), reached for any published message.
+Handles failures raised while publishing an event that implements [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent).
 
 ```csharp
 public interface IEventExceptionInterceptor : IEvent, IMessage, IAsyncExceptionInterceptor<IEvent, Unit>, IExceptionInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L16)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/ExceptionInterceptors/IEventExceptionInterceptor.cs#L15)
 
 ## Remarks
 
-Carries its own member rather than inheriting the stage contract's, so the resultless
-slot the machinery threads never reaches an implementor — a publish has no result, and a
-parameter that can only ever hold one fixed value is not a parameter.
+Running is what marks the failure handled, and a failure no interceptor accepts reaches
+the publisher unchanged. Because a publish has no result, there is nothing to produce —
+handling here means the publish completes rather than throwing. Use
+[`IEventExceptionInterceptorFor<TException>`](/ergosfare.docs/preview/api/events-abstractions/ieventexceptioninterceptorfor-1) to accept only certain failures.
 
 ## Methods
 
@@ -32,16 +32,16 @@ parameter that can only ever hold one fixed value is not a parameter.
 ValueTask HandleAsync(IEvent @event, Exception exception, ErgosfareContext context)
 ```
 
-Handles an exception asynchronously that occurred during the processing of the event.
+Handles `exception`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event being processed. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during event handling. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
+| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event whose publish failed. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure being handled. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous exception handling operation.
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

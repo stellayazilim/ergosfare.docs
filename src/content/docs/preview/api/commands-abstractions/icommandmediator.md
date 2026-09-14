@@ -1,6 +1,6 @@
 ---
 title: "ICommandMediator"
-description: "Represents the mediator interface for sending commands within the application."
+description: "Sends commands to their handlers."
 sidebar:
   label: "ICommandMediator"
   order: 14
@@ -9,26 +9,20 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents the mediator interface for sending commands within the application.
+Sends commands to their handlers.
 
 ```csharp
 public interface ICommandMediator
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ICommandMediator.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ICommandMediator.cs#L13)
 
 ## Remarks
 
-The command mediator is responsible for routing commands to their appropriate handlers
-    and orchestrating the command handling pipeline. It ensures that commands are processed
-    by exactly one handler and provides methods for sending commands both with and without
-    expected results.
-
-    Everything a dispatch can be told is a parameter. A settings object used to carry the
-    same two things, and carrying them that way meant allocating one per dispatch and
-    reading it at dispatch time — a shape nothing can be compiled from. The conveniences
-    below are default implementations over the full calls, so an implementation writes
-    four methods and inherits the rest.
+Everything a dispatch needs is passed as an argument. Only the four overloads that take
+`IEnumerable<string>` groups or an [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) are abstract;
+the rest are conveniences implemented in terms of those, so an implementation writes four
+methods and inherits the others.
 
 ## Methods
 
@@ -38,37 +32,35 @@ The command mediator is responsible for routing commands to their appropriate ha
 ValueTask SendAsync(ICommand command, CancellationToken cancellationToken = default)
 ```
 
-Sends a command through its default pipeline.
+Sends `command` through its default pipeline.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) | The command to send. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
 [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
 
-### `SendAsync(ICommand, ErgosfareContext, IEnumerable<string>?)`
+### `SendAsync(ICommand, ErgosfareContext, GroupSet?)`
 
 ```csharp
-ValueTask SendAsync(ICommand command, ErgosfareContext context, IEnumerable<string>? groups = null)
+ValueTask SendAsync(ICommand command, ErgosfareContext context, GroupSet? groups = null)
 ```
 
-Sends under an externally owned execution context — the nested-dispatch path: a
-handler opens a scope on its own context (`using var scope = context.CreateScope();`)
-and passes `scope.Context` here. The caller owns the context's lifetime;
-cancellation flows from the context.
+Sends `command` under an execution context supplied by the caller —
+the shape a nested send uses.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
-| `groups` | `IEnumerable<string>` |  |
+| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) | The command to send. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The context to run under, typically a child opened with `using var scope = context.CreateScope();` and passed as `scope.Context`. The caller owns its lifetime, and cancellation comes from it. |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
 
 **Returns**
 
@@ -80,57 +72,16 @@ cancellation flows from the context.
 ValueTask SendAsync(ICommand command, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Sends under a canonical group filter. Define the set once, statically, and the cached
-pipeline matches it on a single reference check; [`GroupSet.Empty`](/ergosfare.docs/preview/api/core-abstractions/groupset#empty)
-dispatches the default pipeline.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
-| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
-
-### `SendAsync(ICommand, IEnumerable<string>?, CancellationToken)`
-
-```csharp
-ValueTask SendAsync(ICommand command, IEnumerable<string>? groups, CancellationToken cancellationToken)
-```
-
-Sends a command that produces no result to its handler.
+Sends `command` to its handler and completes when the pipeline has
+run.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) | The command to send. |
-| `groups` | `IEnumerable<string>` | The group filter, or `null` for the default pipeline. A reused [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) matches the cached pipeline on a single reference check. |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Cancellation token for the operation. |
-
-**Returns**
-
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask)
-
-### `SendAsync(ICommand, string[], CancellationToken)`
-
-```csharp
-ValueTask SendAsync(ICommand command, string[] groups, CancellationToken cancellationToken = default)
-```
-
-Sends under a group filter given as a plain array.
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand) |  |
-| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. Reusing a [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) lets the cached pipeline be matched by reference. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
@@ -142,52 +93,52 @@ Sends under a group filter given as a plain array.
 ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, CancellationToken cancellationToken = default) where TCommand : ICommand<TResult>
 ```
 
-Typed send through the default pipeline.
+Sends `command` through its default pipeline, naming both types.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` |  |
-| `TResult` |  |
+| `TCommand` | The command's own type. |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `command` | `TCommand` | The command to send. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
-### `SendAsync<TCommand, TResult>(TCommand, ErgosfareContext, IEnumerable<string>?)`
+### `SendAsync<TCommand, TResult>(TCommand, ErgosfareContext, GroupSet?)`
 
 ```csharp
-ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, ErgosfareContext context, IEnumerable<string>? groups = null) where TCommand : ICommand<TResult>
+ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, ErgosfareContext context, GroupSet? groups = null) where TCommand : ICommand<TResult>
 ```
 
-Typed counterpart of the context send.
+Sends `command` under a caller-owned context, naming both types.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` |  |
-| `TResult` |  |
+| `TCommand` | The command's own type. |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` |  |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
-| `groups` | `IEnumerable<string>` |  |
+| `command` | `TCommand` | The command to send. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
 ### `SendAsync<TCommand, TResult>(TCommand, GroupSet, CancellationToken)`
 
@@ -195,94 +146,38 @@ Typed counterpart of the context send.
 ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, GroupSet groups, CancellationToken cancellationToken = default) where TCommand : ICommand<TResult>
 ```
 
-Typed counterpart of the canonical group-filter send.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TCommand` |  |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | `TCommand` |  |
-| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
-
-### `SendAsync<TCommand, TResult>(TCommand, IEnumerable<string>?, CancellationToken)`
-
-```csharp
-ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, IEnumerable<string>? groups, CancellationToken cancellationToken) where TCommand : ICommand<TResult>
-```
-
-Sends a command whose own type is named alongside its result, so the dispatch
-reaches its pipeline through a compile-time constant pair rather than reading the
-command's type back at run time.
+Sends `command` naming its own type alongside its result, so the
+pipeline is reached through a pair of compile-time constants instead of the command's
+type being read back at run time.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
 | `TCommand` | The command's own type. |
-| `TResult` | The result the command declares. |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` |  |
-| `groups` | `IEnumerable<string>` |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `command` | `TCommand` | The command to send. |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
-Every other lane already takes the message as its type argument; this one could
-    not, because `TResult` has to be a type parameter for the
-    return type and C# does not infer type arguments through constraints. Naming
-    both is the price, and it is why these are additions rather than replacements:
-    `SendAsync<TResult>(ICommand<TResult>)` stays the terse form,
-    and dispatching a command read off a queue is a legitimate shape whose concrete
-    type genuinely is a run-time fact.
+Both type arguments have to be named: `TResult` must be a type
+parameter for the return type, and C# will not infer type arguments through a
+constraint. That is why these overloads are additions rather than replacements —
+`SendAsync<TResult>(ICommand<TResult>)` stays the short form, and a
+command read off a queue genuinely does not know its type until run time.
 
-    Default implementations over the untyped calls, so an existing implementation
-    keeps compiling and simply forwards. What is gained is gained by overriding
-    them — `CommandMediator` does.
-
-### `SendAsync<TCommand, TResult>(TCommand, string[], CancellationToken)`
-
-```csharp
-ValueTask<TResult> SendAsync<TCommand, TResult>(TCommand command, string[] groups, CancellationToken cancellationToken = default) where TCommand : ICommand<TResult>
-```
-
-Typed counterpart of the array group-filter send.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TCommand` |  |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | `TCommand` |  |
-| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
+The default implementation simply forwards to the untyped call, so an existing
+implementation keeps working; the benefit comes from overriding it, as
+`CommandMediator` does.
 
 ### `SendAsync<TResult>(ICommand<TResult>, CancellationToken)`
 
@@ -290,50 +185,51 @@ Typed counterpart of the array group-filter send.
 ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
 ```
 
-Result-producing counterpart of [`ICommandMediator.SendAsync(ICommand, CancellationToken)`](/ergosfare.docs/preview/api/commands-abstractions/icommandmediator#sendasyncicommand-cancellationtoken).
+Sends `command` through its default pipeline and returns its result.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` |  |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `ICommand<TResult>` |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `command` | `ICommand<TResult>` | The command to send. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
-### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, IEnumerable<string>?)`
+### `SendAsync<TResult>(ICommand<TResult>, ErgosfareContext, GroupSet?)`
 
 ```csharp
-ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, ErgosfareContext context, IEnumerable<string>? groups = null)
+ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, ErgosfareContext context, GroupSet? groups = null)
 ```
 
-Result-producing counterpart of the context send.
+Sends `command` under a caller-owned execution context and returns
+its result.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` |  |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `ICommand<TResult>` |  |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) |  |
-| `groups` | `IEnumerable<string>` |  |
+| `command` | `ICommand<TResult>` | The command to send. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The context to run under; the caller owns its lifetime. |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
 
 **Returns**
 
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.
 
 ### `SendAsync<TResult>(ICommand<TResult>, GroupSet, CancellationToken)`
 
@@ -341,74 +237,22 @@ Result-producing counterpart of the context send.
 ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, GroupSet groups, CancellationToken cancellationToken = default)
 ```
 
-Result-producing counterpart of the canonical group-filter send.
+Sends `command` and returns the result its handler produced.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TResult` |  |
+| `TResult` | The result type the command declares. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `ICommand<TResult>` |  |
-| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
+| `command` | `ICommand<TResult>` | The command to send. |
+| `groups` | [`GroupSet`](/ergosfare.docs/preview/api/core-abstractions/groupset) | The groups to run; an empty set runs the default group. |
+| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) | Token exposed on the execution context. |
 
 **Returns**
 
-`ValueTask<TResult>`
-
-### `SendAsync<TResult>(ICommand<TResult>, IEnumerable<string>?, CancellationToken)`
-
-```csharp
-ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, IEnumerable<string>? groups, CancellationToken cancellationToken)
-```
-
-Result-producing counterpart of the full void send.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | `ICommand<TResult>` |  |
-| `groups` | `IEnumerable<string>` |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
-
-### `SendAsync<TResult>(ICommand<TResult>, string[], CancellationToken)`
-
-```csharp
-ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, string[] groups, CancellationToken cancellationToken = default)
-```
-
-Result-producing counterpart of the array group-filter send.
-
-**Type parameters**
-
-| Name | Description |
-| --- | --- |
-| `TResult` |  |
-
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `command` | `ICommand<TResult>` |  |
-| `groups` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
-| `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
-
-**Returns**
-
-`ValueTask<TResult>`
+`ValueTask<TResult>` — The result the handler produced.

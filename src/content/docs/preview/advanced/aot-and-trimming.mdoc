@@ -9,7 +9,7 @@ compile, there is nothing left for it to construct reflectively.
 
 ## What makes it work
 
-**No assembly scan.** Discovery happens at compile time, and `RegisterGenerated()` names every
+**No assembly scan.** Discovery happens at compile time, and `AddGenerated()` names every
 construct through `typeof` — which is exactly what the trimming analyzers want to see.
 
 **Generic instantiations are closed in generated code.** A dispatch would otherwise have to

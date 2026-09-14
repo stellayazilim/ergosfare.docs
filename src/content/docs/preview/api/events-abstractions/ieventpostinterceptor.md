@@ -1,6 +1,6 @@
 ---
 title: "IEventPostInterceptor"
-description: "Represents a non-generic post-interceptor for events, allowing custom logic to execute after any event handlers have been invoked."
+description: "Runs after every handler of an event that implements IEvent has been delivered to."
 sidebar:
   label: "IEventPostInterceptor"
   order: 10
@@ -9,25 +9,19 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents a non-generic post-interceptor for events, allowing custom logic
-to execute after any event handlers have been invoked.
+Runs after every handler of an event that implements [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) has been
+delivered to.
 
 ```csharp
 public interface IEventPostInterceptor : IEvent, IMessage, IAsyncPostInterceptor<IEvent>, IPostInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PostInterceptors/IEventPostInterceptor.cs#L26)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Events.Abstractions/PostInterceptors/IEventPostInterceptor.cs#L14)
 
 ## Remarks
 
-This interface is a non-generic version of [`IEventPostInterceptor<TEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventpostinterceptor-1),
-applying to all events implementing [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent).
-
-It inherits from [`IAsyncPostInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncpostinterceptor-1), enabling asynchronous
-post-processing of events after they are dispatched to their handlers.
-
-Event handlers and messages that implement [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) will recognize
-this interceptor automatically in the event mediation pipeline.
+A publish produces no result, so there is nothing here to read or replace — this stage
+exists to act on the fact that delivery finished.
 
 ## Methods
 
@@ -37,16 +31,16 @@ this interceptor automatically in the event mediation pipeline.
 ValueTask HandleAsync(IEvent @event, ValueTask result, ErgosfareContext executionContext)
 ```
 
-Handles the event asynchronously after the main handlers have executed.
+Runs once the event has been delivered to every handler.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event being processed. |
-| `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | The result returned by the main handlers, or `null` if the event does not produce a result. |
-| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context for the current mediation pipeline. |
+| `event` | [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent) | The event that was delivered. |
+| `result` | [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) | A completed task, standing in for a result a publish does not have. It carries no information. |
+| `executionContext` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous post-processing operation.
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

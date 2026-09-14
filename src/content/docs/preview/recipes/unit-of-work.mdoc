@@ -156,8 +156,8 @@ Nothing extra. Both interceptors are discovered like any other participant:
 services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 Order the pre stage explicitly if anything else must run before the transaction opens:

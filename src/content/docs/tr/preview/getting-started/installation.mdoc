@@ -64,7 +64,7 @@ SDK'larla birlikte geliyor, yani `<LangVersion>` elle ayarlamanız gerekmiyor.
 **Handler bildiren bir projede** onları bulur ve o assembly'nin neyi dispatch ettiğini kaydeder;
 böylece bir kütüphane, tüketicilerinin okuyacağı kendi manifest'ini taşır.
 
-**Composition root'ta** `RegisterGenerated()`'ı ve derlenmiş planları yazar, ve — yalnız burada,
+**Composition root'ta** `AddGenerated()`'ı ve derlenmiş planları yazar, ve — yalnız burada,
 bütün uygulamanın göründüğü yerde — erişilebilirliği yargılar. `ERGO005` ve `ERGO007`'nin,
 handler'ı bildiren kütüphaneyi değil çalıştırılabiliri derlerken çıkmasının sebebi bu.
 

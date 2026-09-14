@@ -1,36 +1,35 @@
 ---
 title: "Result"
-description: "The framework's default value-carried outcome for pipelines without a payload: success, or a failure wrapping the Result.Exception that describes it — withou…"
+description: "The outcome of a pipeline that produces no payload: either success, or a failure carrying the Result.Exception that describes it."
 sidebar:
   label: "Result"
-  order: 2
+  order: 1
 ---
 
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Results`](/ergosfare.docs/preview/api/core-abstractions-results)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The framework's default value-carried outcome for pipelines without a payload: success,
-or a failure wrapping the [`Result.Exception`](/ergosfare.docs/preview/api/core-abstractions-results/result#exception) that describes it — without throwing.
+The outcome of a pipeline that produces no payload: either success, or a failure
+carrying the [`Result.Exception`](/ergosfare.docs/preview/api/core-abstractions-results/result#exception) that describes it.
 
 ```csharp
 public readonly record struct Result : IEquatable<Result>
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Results/Result.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Results/Result.cs#L19)
 
 **Implements:** `IEquatable<Result>`
 
 ## Remarks
 
-A `readonly record struct` by design: constructing and returning one allocates
-nothing, and — because .NET captures an exception's stack trace at `throw` time,
-not at construction — a handler that returns [`Result.Fail(Exception)`](/ergosfare.docs/preview/api/core-abstractions-results/result#failexception) instead of throwing
-skips the stack capture and the two-pass unwind entirely. The success path costs a
-single field read to check.
+Returning a failure is not the same as throwing one. The exception is carried as data,
+so no stack trace is captured and no unwind runs, and the type is a
+`readonly record struct`, so neither outcome allocates.
 
-The framework recognizes this type natively: a pipeline whose result carries a failure
-routes it to the exception-interceptor stage exactly as a thrown exception would be,
-via [`ResultExceptionAdapter`](/ergosfare.docs/preview/api/core-abstractions-results/resultexceptionadapter) — no user adapter registration needed.
+The framework recognizes this type without any registration: a pipeline whose result
+carries a failure enters the exception-interceptor stage exactly as a thrown failure
+would, and an unhandled one is returned to the caller as a failed result rather than
+being thrown.
 
 ## Properties
 
@@ -52,7 +51,7 @@ The carried failure, or `null` on success.
 public bool IsSuccess { get; }
 ```
 
-Whether the outcome is a success.
+Whether this outcome is a success.
 
 **Returns**
 
@@ -66,18 +65,23 @@ Whether the outcome is a success.
 public static Result Fail(Exception exception)
 ```
 
-A failed outcome carrying `exception` — without throwing it, so no
-stack trace is captured and no unwind runs.
+Returns a failed outcome carrying `exception`, without throwing it.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure to carry. Must not be null. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure to carry. Cannot be `null`. |
 
 **Returns**
 
-[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) — The failed outcome.
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `exception` is `null`. |
 
 ### `Ok()`
 
@@ -85,7 +89,7 @@ stack trace is captured and no unwind runs.
 public static Result Ok()
 ```
 
-The successful outcome. Allocation-free.
+Returns a successful outcome.
 
 **Returns**
 
@@ -97,8 +101,8 @@ The successful outcome. Allocation-free.
 public override string ToString()
 ```
 
-Returns the fully qualified type name of this instance.
+Returns `Ok`, or `Fail` with the carried exception's type name.
 
 **Returns**
 
-[`string`](https://learn.microsoft.com/dotnet/api/system.string) — The fully qualified type name.
+[`string`](https://learn.microsoft.com/dotnet/api/system.string)

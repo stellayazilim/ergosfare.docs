@@ -7,9 +7,9 @@ Registration is one call at the composition root, with a module per message fami
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 ## `AddErgosfare`
@@ -24,19 +24,19 @@ during configuration is in place before the container is built.
 
 Each module builder offers three ways to select what it registers.
 
-### `RegisterGenerated()`
+### `AddGenerated()`
 
 The bulk path, written by the generator. It names every construct that takes part in default
 discovery — everything without a `[DiscoveryKey]`.
 
-### `RegisterGenerated(pattern)`
+### `AddGenerated(pattern)`
 
 Selects by discovery key: an exact key, or a prefix glob ending in `*`.
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("reporting.*"))
+    .AddGenerated()
+    .AddGenerated("reporting.*"))
 ```
 
 Selections are a union, so overlapping patterns are safe.
@@ -47,7 +47,7 @@ Names one construct:
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
+    .AddGenerated()
     .Register<AuditEverything>())
 ```
 
@@ -80,11 +80,13 @@ Register only what you use. An application with no events adds no event module.
 services.AddErgosfare(registry => registry
     .UseDefaultResultAdapter(typeof(ResultAdapter<>))
     .ForceMemoizedHandlers()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 **`UseDefaultResultAdapter`** makes failures travel as values for every result slot the adapter
-serves. An open generic is closed per slot it fits. Experimental — `ERGOEXP001`.
+serves. An open generic is closed per slot it fits, at compile time — so the argument must be a
+literal `typeof` (`ERGO019`) and a compilation names one adapter (`ERGO020`). Experimental —
+`ERGOEXP001`.
 
 **`ForceMemoizedHandlers`** keeps resolved participants instead of resolving one per dispatch.
 For applications whose handlers are stateless and whose dependencies are singletons; wrong

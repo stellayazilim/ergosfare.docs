@@ -1,6 +1,6 @@
 ---
 title: "IModuleRegistry"
-description: "Represents a registry that holds and manages modules, allowing registration and configuration."
+description: "What AddErgosfare hands the caller: the place modules are registered and the framework configured."
 sidebar:
   label: "IModuleRegistry"
   order: 3
@@ -9,13 +9,14 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection.dll`
 
-Represents a registry that holds and manages modules, allowing registration and configuration.
+What `AddErgosfare` hands the caller: the place modules are registered and the
+framework configured.
 
 ```csharp
 public interface IModuleRegistry
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleRegistry.cs#L8)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Extensions.MicrosoftDependencyInjection/IModuleRegistry.cs#L9)
 
 ## Methods
 
@@ -25,7 +26,7 @@ public interface IModuleRegistry
 IModuleRegistry Register(IModule module)
 ```
 
-Registers a module with the module registry.
+Registers a module.
 
 **Parameters**
 
@@ -35,7 +36,7 @@ Registers a module with the module registry.
 
 **Returns**
 
-[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The instance of the module registry for method chaining.
+[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same registry, so calls can be chained.
 
 ### `UseDefaultResultAdapter(Type)`
 
@@ -43,20 +44,29 @@ Registers a module with the module registry.
 IModuleRegistry UseDefaultResultAdapter(Type adapterType)
 ```
 
-Configures the application-wide default result adapter: the fallback consulted for
-any result slot that binds nothing more specific — no
-`[ResultAdapter]` annotation on the message and not a native
-`Result`/`Result<T>` carrier. A slot the adapter cannot serve, a
-message opting out via `[IgnoreResultAdapter]`, and an application that never
-calls this all keep the classic try/catch semantics — adapters are a recommended
-win, never a requirement.
+Sets the adapter that result types fall back to when nothing more specific binds
+them.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `adapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The adapter type: a closed type implementing `IResultAdapter<TResult>`, or an open generic definition closed over each served result type (e.g. an adapter family for a foreign `Result<T>`). A public parameterless constructor is required; instances are created per served result type and cached. |
+| `adapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The adapter type: closed and implementing `IResultAdapter<TResult>`, or an open generic definition covering a family of result types. It must be concrete and have a public parameterless constructor; one instance is created per result type served and kept. |
 
 **Returns**
 
-[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The instance of the module registry for method chaining.
+[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same registry, so calls can be chained.
+
+The fallback applies only after the message's own `[ResultAdapter]` annotation
+and the built-in `Result` and `Result<T>` carriers. A result type the
+adapter cannot serve, a message carrying `[IgnoreResultAdapter]`, and an
+application that never calls this all keep the default behavior of throwing failures
+rather than returning them.
+
+This is the call the generator reads, and it reads it at compile time: the argument
+must be a literal `typeof` it can resolve (`ERGO019`), a compilation names
+one fallback adapter (`ERGO020`), and the adapter must be one generated code can
+name and construct (`ERGO021`). Which result types it serves — and what closes an
+open definition over each of them — is answered there and written into the generated
+adapter table and the compiled plan. This declaration does not register an adapter
+service in DI, and dispatch does not read it again.

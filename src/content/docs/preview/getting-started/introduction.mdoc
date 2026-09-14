@@ -39,9 +39,9 @@ Register once, at your composition root:
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 And dispatch:
@@ -50,7 +50,7 @@ And dispatch:
 var id = await mediator.SendAsync(new CreateProduct("Bench"));
 ```
 
-`RegisterGenerated()` is written by the generator. It names every construct it found, so
+`AddGenerated()` is written by the generator. It names every construct it found, so
 nothing here scans an assembly at start-up and nothing depends on a naming convention.
 
 ## What the compiler already knows

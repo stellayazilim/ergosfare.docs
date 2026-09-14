@@ -1,6 +1,6 @@
 ---
 title: "ModuleRegistryExtensions"
-description: "Provides extension methods for the ModuleRegistry type to simplify module registration."
+description: "Adds the command module to a registry."
 sidebar:
   label: "ModuleRegistryExtensions"
   order: 2
@@ -9,7 +9,7 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Commands.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides extension methods for the [`ModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/moduleregistry) type to simplify module registration.
+Adds the command module to a registry.
 
 ```csharp
 public static class ModuleRegistryExtensions
@@ -27,15 +27,16 @@ public static class ModuleRegistryExtensions
 public static IModuleRegistry AddCommandModule(this IModuleRegistry moduleRegistry, Action<CommandModuleBuilder> builderAction)
 ```
 
-Adds a command module to the module registry using the provided builder action.
+Adds the command module, registering the commands
+`builderAction` selects.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `moduleRegistry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The module registry to which the command module will be added. |
-| `builderAction` | `Action<CommandModuleBuilder>` | An action that configures the command module using a [`CommandModuleBuilder`](/ergosfare.docs/preview/api/commands-extensions-microsoftdependencyinjection/commandmodulebuilder). |
+| `moduleRegistry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The registry being configured. |
+| `builderAction` | `Action<CommandModuleBuilder>` | Selects which command constructs this container runs. |
 
 **Returns**
 
-[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The `moduleRegistry` with the command module added.
+[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same registry, so calls can be chained.

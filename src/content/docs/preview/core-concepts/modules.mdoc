@@ -8,9 +8,9 @@ and its half of the composition table — and you add the ones your application 
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 An application with no events adds no event module, and pays for nothing it did not add.
@@ -41,7 +41,7 @@ Adding a module registers three things:
 **Its mediator** — `ICommandMediator`, `IQueryMediator`, `IEventMediator` — so you can inject
 it.
 
-**Its participants**, from whatever the builder selected. `RegisterGenerated()` names them in
+**Its participants**, from whatever the builder selected. `AddGenerated()` names them in
 bulk; `Register<T>()` names one; a discovery-key pattern names a subset.
 
 **Its view of the composition table.** The table itself is compiled into the assembly and
@@ -100,7 +100,7 @@ public sealed class ReportingModule : IModule
 ```csharp
 services.AddErgosfare(registry => registry
     .Register(new ReportingModule())
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 {% aside type="note" %}
@@ -115,7 +115,7 @@ call. See [Plugins](/ergosfare.docs/preview/advanced/plugins).
 ## Registering across assemblies
 
 A handler in a referenced library is found by the reference scan and registered through the
-consuming application's `RegisterGenerated()`. Nothing extra is needed, and the library ships
+consuming application's `AddGenerated()`. Nothing extra is needed, and the library ships
 no registration code of its own.
 
 Two things are worth knowing:

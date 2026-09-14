@@ -64,7 +64,7 @@ The generator does two separate jobs, and it needs to be referenced in both plac
 **In a project that declares handlers**, it finds them and records what that assembly
 dispatches, so a library carries its own manifest for consumers to read.
 
-**In the composition root**, it writes `RegisterGenerated()` and the compiled plans, and — only
+**In the composition root**, it writes `AddGenerated()` and the compiled plans, and — only
 here, where the whole application is visible — it judges reachability. That is why ERGO005 and
 ERGO007 appear when you build the executable rather than the library that declared the handler.
 

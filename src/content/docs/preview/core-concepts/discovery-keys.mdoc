@@ -3,7 +3,7 @@ title: Discovery keys
 description: Keeping a construct out of bulk registration, and selecting it deliberately by key or pattern.
 ---
 
-By default `RegisterGenerated()` registers everything the generator found. A discovery key
+By default `AddGenerated()` registers everything the generator found. A discovery key
 takes a construct out of that default and puts it behind a name you ask for explicitly.
 
 ## Declaring a key
@@ -18,13 +18,13 @@ public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports>
 }
 ```
 
-That handler is now invisible to a plain `RegisterGenerated()`. It registers only when
+That handler is now invisible to a plain `AddGenerated()`. It registers only when
 something asks for `reporting`:
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()             // everything with no key
-    .RegisterGenerated("reporting")) // and this one too
+    .AddGenerated()             // everything with no key
+    .AddGenerated("reporting")) // and this one too
 ```
 
 A type can carry several keys, and it registers when a selection matches any of them:
@@ -50,9 +50,9 @@ out of the assembly-wide grouping by naming its own.
 A selection is an exact key, or a prefix glob ending in `*`:
 
 ```csharp
-.RegisterGenerated("reporting.nightly")   // exactly this key
-.RegisterGenerated("reporting.*")         // every key starting with "reporting."
-.RegisterGenerated("*")                   // every keyed construct
+.AddGenerated("reporting.nightly")   // exactly this key
+.AddGenerated("reporting.*")         // every key starting with "reporting."
+.AddGenerated("*")                   // every keyed construct
 ```
 
 Selections are a union, so chaining overlapping patterns is safe — a construct matched twice is
@@ -60,9 +60,9 @@ registered once.
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("reporting.*")
-    .RegisterGenerated("import.*"))
+    .AddGenerated()
+    .AddGenerated("reporting.*")
+    .AddGenerated("import.*"))
 ```
 
 ## What this is for
@@ -72,12 +72,12 @@ slice it needs:
 
 ```csharp
 // the API
-.AddCommandModule(module => module.RegisterGenerated())
+.AddCommandModule(module => module.AddGenerated())
 
 // the nightly worker
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("nightly.*"))
+    .AddGenerated()
+    .AddGenerated("nightly.*"))
 ```
 
 **A library shipping optional handlers.** Give them a key, and a consumer opts in by naming it
@@ -98,7 +98,7 @@ the call site, and can differ from one dispatch to the next.
 
 ```csharp
 // registration time: is this thing in the container?
-.RegisterGenerated("reporting.*")
+.AddGenerated("reporting.*")
 
 // dispatch time: which of the registered interceptors run now?
 await mediator.SendAsync(command, GroupSet.Of("audit"));

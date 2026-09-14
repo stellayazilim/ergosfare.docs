@@ -1,16 +1,16 @@
 ---
 title: "IEventPreInterceptor<TEvent>"
-description: "Represents a type-safe pre-interceptor for events."
+description: "Runs before the handlers of a TEvent and decides which event they receive."
 sidebar:
   label: "IEventPreInterceptor<TEvent>"
-  order: 14
+  order: 13
 ---
 
 **Namespace:** [`Stella.Ergosfare.Events.Abstractions`](/ergosfare.docs/preview/api/events-abstractions)  
 **Assembly:** `Stella.Ergosfare.Events.Abstractions.dll`
 
-Represents a type-safe pre-interceptor for events. It runs before the event handlers and
-returns the event that continues through the pipeline — the original, or a rewritten one.
+Runs before the handlers of a `TEvent` and decides which event they
+receive.
 
 ```csharp
 public interface IEventPreInterceptor<TEvent> : IEvent, IMessage, IAsyncPreInterceptor<TEvent>, IPreInterceptor where TEvent : notnull
@@ -22,15 +22,12 @@ public interface IEventPreInterceptor<TEvent> : IEvent, IMessage, IAsyncPreInter
 
 | Name | Description |
 | --- | --- |
-| `TEvent` | The type of event being intercepted. |
+| `TEvent` | The event type this interceptor accepts. Any non-null type will do — an event need not implement [`IEvent`](/ergosfare.docs/preview/api/events-abstractions/ievent). |
 
 ## Remarks
 
-A pre-interceptor carries no result, so the single-parameter form returns the event type
-directly rather than [`object`](https://learn.microsoft.com/dotnet/api/system.object). Use the non-generic
-[`IEventPreInterceptor`](/ergosfare.docs/preview/api/events-abstractions/ieventpreinterceptor) to intercept any event, or
-[`IEventPreInterceptor<TEvent, TModifiedEvent>`](/ergosfare.docs/preview/api/events-abstractions/ieventpreinterceptor-2) to return a different, derived
-event type. `TEvent` is invariant because it is returned.
+The event returned is delivered to every handler, so replacing it here replaces it for
+all of them. `TEvent` is invariant because it is returned.
 
 ## Methods
 
@@ -40,16 +37,15 @@ event type. `TEvent` is invariant because it is returned.
 ValueTask<TEvent> HandleAsync(TEvent @event, ErgosfareContext context)
 ```
 
-Handles the event before its handlers run and returns the event that continues through
-the pipeline (the original, or a rewritten instance).
+Processes `event` before its handlers run.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `event` | `TEvent` | The event to intercept. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `event` | `TEvent` | The event as the previous stage left it. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this publish. |
 
 **Returns**
 
-`ValueTask<TEvent>`
+`ValueTask<TEvent>` — The event the handlers receive — either the one passed in or a replacement.

@@ -1,6 +1,6 @@
 ---
 title: "ICommandExceptionInterceptor<TCommand, TResult>"
-description: "Represents a type-safe exception interceptor for commands with a strongly-typed result."
+description: "Handles failures raised while dispatching a TCommand and supplies the result the caller receives instead."
 sidebar:
   label: "ICommandExceptionInterceptor<TCommand, TResult>"
   order: 4
@@ -9,28 +9,30 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a type-safe exception interceptor for commands with a strongly-typed result.
-The interceptor can inspect the exception and modify or replace the command result.
+Handles failures raised while dispatching a `TCommand` and supplies
+the result the caller receives instead.
 
 ```csharp
 public interface ICommandExceptionInterceptor<in TCommand, TResult> : ICommand, IMessage, IAsyncExceptionInterceptor<TCommand, TResult>, IExceptionInterceptor where TCommand : ICommand<TResult> where TResult : notnull
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%2CTResult%5D.cs#L24)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/ExceptionInterceptors/ICommandExceptionInterceptor%5BTCommand%2CTResult%5D.cs#L21)
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The command type being intercepted. Must implement [`ICommand<TResult>`](/ergosfare.docs/preview/api/commands-abstractions/icommand-1). |
-| `TResult` | The result type of the command. Also, the type returned by the interceptor — for a narrower return type there is no third parameter anymore; return the base result type. |
+| `TCommand` | The command type this interceptor accepts. |
+| `TResult` | The result type the command declares. |
 
 ## Remarks
 
-`TCommand` is contravariant, matching the core
-[`IAsyncExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-2) contract the typed dispatch
-matches against. `TResult` must stay invariant: the typed member
-returns it.
+`TCommand` is contravariant, so an interceptor written against a
+base command type also runs for the commands derived from it;
+`TResult` stays invariant because it is returned. Add
+[`IExceptionInterceptorFilter<TException>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iexceptioninterceptorfilter-1) — or implement
+[`ICommandExceptionInterceptorFor<TCommand, TResult, TException>`](/ergosfare.docs/preview/api/commands-abstractions/icommandexceptioninterceptorfor-3) — to accept
+only certain failures.
 
 ## Methods
 
@@ -40,22 +42,23 @@ returns it.
 ValueTask<TResult> HandleAsync(TCommand command, TResult? result, Exception exception, ErgosfareContext context)
 ```
 
-Handles the exception asynchronously, potentially modifying the command result.
+Handles `exception` and produces the result to continue with.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `command` | `TCommand` | The command being processed when the exception occurred. |
-| `result` | `TResult` | The result produced before the exception occurred, if any. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception thrown during pipeline execution. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `command` | `TCommand` | The command whose dispatch failed. |
+| `result` | `TResult` | The result produced before the failure, which is the result type's default when the handler itself failed. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure being handled. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-`ValueTask<TResult>` — A [`ValueTask<TResult>`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask-1) producing the (possibly modified) result that continues through the pipeline.
+`ValueTask<TResult>` — The result the caller receives.
 
-The stage owes a result. A dispatch of this message locked its result type at the call
-site, so nothing downstream may answer with null — to leave the failure unhandled,
-do not claim it: an unmatched stage lets the exception surface to the caller. Model
-absence in the value instead, the way `Result<T>` does.
+Running this method is what marks the failure handled, and a handled failure has to
+leave a result behind: the call site locked the result type when it dispatched, so
+nothing may answer it with nothing. To leave a failure for the caller, do not accept
+it — a failure no interceptor accepts reaches the caller unchanged. Where absence is
+a legitimate answer, express it in the result type, as `Result<T>` does.

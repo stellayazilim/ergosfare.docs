@@ -1,6 +1,6 @@
 ---
 title: "IAsyncFinalInterceptor<TMessage>"
-description: "Asynchronous final-interceptor contract for messages of type TMessage that is agnostic of the result type."
+description: "Runs asynchronously once a TMessage pipeline has settled, without naming the result type."
 sidebar:
   label: "IAsyncFinalInterceptor<TMessage>"
   order: 4
@@ -9,9 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Asynchronous final-interceptor contract for messages of type `TMessage`
-that is agnostic of the result type. Always executed at the end of the pipeline,
-regardless of success or failure — for cleanup, auditing, or logging.
+Runs asynchronously once a `TMessage` pipeline has settled,
+without naming the result type.
 
 ```csharp
 public interface IAsyncFinalInterceptor<in TMessage> : IFinalInterceptor
@@ -23,13 +22,14 @@ public interface IAsyncFinalInterceptor<in TMessage> : IFinalInterceptor
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of message this interceptor handles. |
+| `TMessage` | The message type this interceptor accepts. |
 
 ## Remarks
 
-This is a standalone asynchronous contract — it does not inherit the synchronous
-[`IFinalInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ifinalinterceptor-2), and there is no object-typed default
-implementation: the pipeline invokes [`IAsyncFinalInterceptor<TMessage>.HandleAsync(TMessage, object?, Exception?, ErgosfareContext)`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-1#handleasynctmessage-object-exception-ergosfarecontext) directly.
+Use this when the work applies to any result. A final interceptor observes the outcome
+and cannot change it, and a pipeline stopped by [`ErgosfareContext.Abort()`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#abort)
+runs none. To read a typed result, implement
+[`IAsyncFinalInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncfinalinterceptor-2) instead.
 
 ## Methods
 
@@ -39,17 +39,17 @@ implementation: the pipeline invokes [`IAsyncFinalInterceptor<TMessage>.HandleAs
 ValueTask HandleAsync(TMessage message, object? result, Exception? exception, ErgosfareContext context)
 ```
 
-Handles the end of the pipeline for the given message.
+Observes how the pipeline for `message` settled.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | `TMessage` | The message that was processed. |
-| `result` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The final result, if any. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that terminated the pipeline, if any. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `message` | `TMessage` | The message that was dispatched. |
+| `result` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The result, or `null` when the pipeline failed. Void pipelines pass a completed task here, which carries no meaning. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure that ended the pipeline, or `null` when it succeeded. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A [`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) representing the asynchronous operation.
+[`ValueTask`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.valuetask) — A task that completes when the interceptor is done.

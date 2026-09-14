@@ -13,7 +13,7 @@ first.
 ## What went
 
 ```text
-RegisterFromAssembly(…)      → RegisterGenerated(), written by the source generator
+RegisterFromAssembly(…)      → AddGenerated(), written by the source generator
 RegisterDescriptors(…)       → no successor; descriptors are compiled, not assembled
 the Registry namespace       → no successor; there is no runtime registry to talk to
 ```
@@ -25,7 +25,7 @@ does.
 
 ## Reference the generator
 
-This is the step people miss. The generator is what writes `RegisterGenerated()`, so a project
+This is the step people miss. The generator is what writes `AddGenerated()`, so a project
 without it has nothing to call:
 
 ```xml
@@ -47,10 +47,10 @@ services.AddErgosfare(registry => registry
 
 // Now
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
-`RegisterGenerated()` names every discovered construct through `typeof`. It covers your own
+`AddGenerated()` names every discovered construct through `typeof`. It covers your own
 assembly and every referenced one that references Ergosfare, so the scan you used to configure
 by hand is now the default.
 
@@ -89,8 +89,8 @@ public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports> { �
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("reporting.*"))
+    .AddGenerated()
+    .AddGenerated("reporting.*"))
 ```
 
 Selections are a union, so chaining overlapping patterns is safe. See
@@ -133,7 +133,7 @@ prefix rename as well — see
 ## Checklist
 
 1. Add the source generator reference to every project that declares handlers, and to the root.
-2. Replace `RegisterFromAssembly` with `RegisterGenerated()`.
+2. Replace `RegisterFromAssembly` with `AddGenerated()`.
 3. Remove `RegisterDescriptors` calls and any `using` of the Registry namespace.
 4. Make every `Register` name its type outright.
 5. Move conditional registration to `[DiscoveryKey]` plus a pattern selection.

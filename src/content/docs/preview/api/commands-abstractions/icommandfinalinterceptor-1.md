@@ -1,6 +1,6 @@
 ---
 title: "ICommandFinalInterceptor<TCommand>"
-description: "Represents a final interceptor for commands in the pipeline."
+description: "Runs once the pipeline of a TCommand has settled, whether it succeeded or failed."
 sidebar:
   label: "ICommandFinalInterceptor<TCommand>"
   order: 11
@@ -9,7 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a final interceptor for commands in the pipeline.
+Runs once the pipeline of a `TCommand` has settled, whether it
+succeeded or failed.
 
 ```csharp
 public interface ICommandFinalInterceptor<in TCommand> : ICommand, IMessage, IAsyncFinalInterceptor<TCommand>, IFinalInterceptor where TCommand : ICommand
@@ -21,11 +22,10 @@ public interface ICommandFinalInterceptor<in TCommand> : ICommand, IMessage, IAs
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The type of command this interceptor handles. Must implement [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand). |
+| `TCommand` | The command type this interceptor accepts. |
 
 ## Remarks
 
-A final interceptor is always executed at the end of the pipeline, after pre-, post-, and exception interceptors.
-It can observe the message, result, or exception, but should not modify the result directly.
-
-Use this interface to perform logging, cleanup, or any last-step operations in the command pipeline.
+It runs after the pre-, post- and exception stages and sees the command, the result and
+any failure, but cannot change the outcome. A pipeline stopped by `context.Abort()`
+runs no final interceptors. Use it for logging, cleanup and other last steps.

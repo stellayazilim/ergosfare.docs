@@ -14,9 +14,9 @@ handler.
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 If your root is a library rather than an executable — a test host, a plugin container, a
@@ -92,8 +92,8 @@ private static IServiceProvider BuildHost()
 
     services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
     services.AddErgosfare(registry => registry
-        .AddCommandModule(module => module.RegisterGenerated())
-        .AddEventModule(module => module.RegisterGenerated()));
+        .AddCommandModule(module => module.AddGenerated())
+        .AddEventModule(module => module.AddGenerated()));
 
     return services.BuildServiceProvider();
 }

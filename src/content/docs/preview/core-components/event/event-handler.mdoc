@@ -78,8 +78,9 @@ A publish returns when every subscriber has completed. It is not fire-and-forget
 that, put the work on a queue and let a consumer dispatch it.
 
 {% aside type="note" %}
-Reaching nobody is legal and returns. There is no flag to make it throw — that condition is
-`ERGO005` at build time instead, so the case a flag protected you from is caught earlier.
+Every publish requires at least one selected main handler. When the compiler can prove
+otherwise, `ERGO005` or `ERGO024` fails the build. Dynamic group sets selecting no handler
+throw `NoHandlerFoundException` before interceptors run.
 {% /aside %}
 
 ## Publishing from a handler
@@ -118,11 +119,11 @@ per subscriber rather than once per publish.
 
 ## Registering
 
-Nothing to write — `RegisterGenerated()` finds subscribers like any other participant:
+Nothing to write — `AddGenerated()` finds subscribers like any other participant:
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 ## Testing

@@ -1,6 +1,6 @@
 ---
 title: "QueryModuleBuilder"
-description: "Provides a builder for selecting the query constructs this container runs from the compiled composition table."
+description: "Selects which of the compiled query constructs this container runs."
 sidebar:
   label: "QueryModuleBuilder"
   order: 1
@@ -9,8 +9,7 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides a builder for selecting the query constructs this container runs from the
-compiled composition table.
+Selects which of the compiled query constructs this container runs.
 
 ```csharp
 public sealed class QueryModuleBuilder
@@ -22,22 +21,57 @@ public sealed class QueryModuleBuilder
 
 ## Constructors
 
-### `QueryModuleBuilder(FrozenCompositionCatalog)`
+### `QueryModuleBuilder(DispatchPlanCatalog)`
 
 ```csharp
-public QueryModuleBuilder(FrozenCompositionCatalog compositions)
+public QueryModuleBuilder(DispatchPlanCatalog compositions)
 ```
 
-Provides a builder for selecting the query constructs this container runs from the
-compiled composition table.
+Selects which of the compiled query constructs this container runs.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `compositions` | [`FrozenCompositionCatalog`](/ergosfare.docs/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog) | The container's composition catalog, told which constructs this registration selects. |
+| `compositions` | [`DispatchPlanCatalog`](/ergosfare.docs/preview/api/core-abstractions-planning/dispatchplancatalog) | The catalog this builder records the container's selection in. |
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`ArgumentNullException`](https://learn.microsoft.com/dotnet/api/system.argumentnullexception) | `compositions` is `null`. |
 
 ## Methods
+
+### `AddGenerated()`
+
+```csharp
+public QueryModuleBuilder AddGenerated()
+```
+
+Applies the compile-time default selection for this module.
+
+**Returns**
+
+[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder)
+
+### `AddGenerated(string)`
+
+```csharp
+public QueryModuleBuilder AddGenerated(string discoveryKeyPattern)
+```
+
+Applies the compile-time selection for a constant discovery-key pattern.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `discoveryKeyPattern` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | An exact key or trailing-star prefix. |
+
+**Returns**
+
+[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The same builder.
 
 ### `Register(Type)`
 
@@ -45,24 +79,23 @@ compiled composition table.
 public QueryModuleBuilder Register(Type queryType)
 ```
 
-Registers a query construct — a query, or one of the handlers and interceptors
-serving queries (their contracts carry the module marker too).
+Registers one query construct.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `queryType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The [`Type`](https://learn.microsoft.com/dotnet/api/system.type) to register. |
+| `queryType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The type to register: a query, or one of the handlers and interceptors that serve queries — their contracts carry the module's marker too. |
 
 **Returns**
 
-[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
+[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The same builder, so calls can be chained.
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | Thrown if the type is not a query construct. |
+| [`NotSupportedException`](https://learn.microsoft.com/dotnet/api/system.notsupportedexception) | The type does not belong to the query module. |
 
 ### `Register<TQuery>()`
 
@@ -70,17 +103,17 @@ serving queries (their contracts carry the module marker too).
 public QueryModuleBuilder Register<TQuery>() where TQuery : IQuery
 ```
 
-Registers a query construct.
+Registers one query construct.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TQuery` | The type to register. Must be a query construct. |
+| `TQuery` | The type to register: a query, or one of the handlers and interceptors that serve queries. |
 
 **Returns**
 
-[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
+[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The same builder, so calls can be chained.
 
 ### `RegisterParticipants(IEnumerable<Type>)`
 
@@ -88,8 +121,7 @@ Registers a query construct.
 public QueryModuleBuilder RegisterParticipants(IEnumerable<Type> participantTypes)
 ```
 
-Registers a batch of pipeline participants — the bulk path source-generated
-registration uses.
+Registers many participants at once — the path generated registration uses.
 
 **Parameters**
 
@@ -99,10 +131,8 @@ registration uses.
 
 **Returns**
 
-[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The current [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) instance for fluent chaining.
+[`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) — The same builder, so calls can be chained.
 
-No module assertion here: the generator has already partitioned its discoveries by
-module, and not every participant contract carries the module marker (the modifying
-interceptor shapes are declared purely over the core contracts).
-[`QueryModuleBuilder.Register(Type)`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder#registertype) keeps the assertion, since a hand-written registration
-is where a wrong-module type actually surfaces.
+Unlike [`QueryModuleBuilder.Register(Type)`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder#registertype) this does not check the module: the generator has
+already sorted its discoveries by module, and not every participant contract carries
+the marker.

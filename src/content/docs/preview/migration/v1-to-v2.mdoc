@@ -30,7 +30,7 @@ Nothing else works without it. It writes the registration, the composition table
 In every project that declares handlers, and in the composition root. The `Stella.Ergosfare`
 facade already references it.
 
-## 2. Replace assembly scanning with `RegisterGenerated()`
+## 2. Replace assembly scanning with `AddGenerated()`
 
 ```csharp
 // Before
@@ -39,7 +39,7 @@ services.AddErgosfare(registry => registry
 
 // Now
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 Discovery covers your assembly and every referenced one that references Ergosfare.
@@ -150,7 +150,7 @@ Worth knowing what the work buys, since most of it is mechanical:
 ## Checklist
 
 1. Add the source generator to handler projects and the composition root.
-2. Swap assembly scanning for `RegisterGenerated()`.
+2. Swap assembly scanning for `AddGenerated()`.
 3. Change handler signatures to take `ErgosfareContext`.
 4. Rewrite behaviours as interceptors in the right stage.
 5. Add `[Weight]` where order was implicit.

@@ -108,13 +108,12 @@ await mediator.PublishAsync(new OrderShipped(id, email, at));   // no subscriber
 
 ```
 error ERGO005: This dispatch of 'OrderShipped' can never reach a handler … so the publish is
-guaranteed to reach nobody.
+guaranteed to throw NoHandlerFoundException at runtime.
 ```
 
-Reaching zero subscribers *at run time* is legal — that is the container's selection, and the
-publish returns. What is not legal is a publish nothing in the compilation could ever serve,
-because writing the event and forgetting the subscriber is the ordinary way to get there and it
-used to compile in silence.
+A publish requires at least one main handler, including when groups are used. A known group
+set that selects none fails compilation with `ERGO024`. Dynamic groups selecting no handler
+throw `NoHandlerFoundException` before interceptors run.
 
 ## Excluding it from the cross-cutting pipeline
 

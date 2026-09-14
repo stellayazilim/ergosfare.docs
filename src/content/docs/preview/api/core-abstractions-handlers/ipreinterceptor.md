@@ -1,6 +1,6 @@
 ---
 title: "IPreInterceptor"
-description: "Non-generic marker root for pre-interceptors."
+description: "Marks a type as a pre-interceptor, for registration and storage."
 sidebar:
   label: "IPreInterceptor"
   order: 20
@@ -9,13 +9,16 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Non-generic marker root for pre-interceptors. Carries no members — the pipeline invokes
-pre-interceptors exclusively through their typed contracts
-([`IPreInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ipreinterceptor-1) / [`IAsyncPreInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncpreinterceptor-1));
-this root exists for storage typing and registration.
+Marks a type as a pre-interceptor, for registration and storage.
 
 ```csharp
 public interface IPreInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor.cs#L9)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Handlers/PreInterceptors/IPreInterceptor.cs#L11)
+
+## Remarks
+
+The interface declares no members. Pre-interceptors are invoked through the typed member
+of [`IPreInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/ipreinterceptor-1) or
+[`IAsyncPreInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncpreinterceptor-1).

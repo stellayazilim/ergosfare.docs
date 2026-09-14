@@ -1,6 +1,6 @@
 ---
 title: "ICommandPostInterceptor<TCommand>"
-description: "Represents a post-processing interceptor for commands."
+description: "Runs after the handler of a TCommand, without naming the result type."
 sidebar:
   label: "ICommandPostInterceptor<TCommand>"
   order: 17
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a post-processing interceptor for commands.
-This non-generic, non-type-safe version returns [`object`](https://learn.microsoft.com/dotnet/api/system.object) from the pipeline.
+Runs after the handler of a `TCommand`, without naming the result
+type.
 
 ```csharp
 public interface ICommandPostInterceptor<in TCommand> : ICommand, IMessage, IAsyncPostInterceptor<TCommand>, IPostInterceptor where TCommand : ICommand
@@ -22,10 +22,10 @@ public interface ICommandPostInterceptor<in TCommand> : ICommand, IMessage, IAsy
 
 | Name | Description |
 | --- | --- |
-| `TCommand` | The type of command this interceptor handles. Must implement [`ICommand`](/ergosfare.docs/preview/api/commands-abstractions/icommand). |
+| `TCommand` | The command type this interceptor accepts. |
 
 ## Remarks
 
-Use this interface to register post-interceptors in the command pipeline without specifying a strongly-typed result.
-For type-safe scenarios, prefer using the generic version:
+Use this where the work applies to any result — logging or metrics, say — and the result
+arrives as [`object`](https://learn.microsoft.com/dotnet/api/system.object). To read or replace a typed result, implement
 [`ICommandPostInterceptor<TCommand, TResult>`](/ergosfare.docs/preview/api/commands-abstractions/icommandpostinterceptor-2).

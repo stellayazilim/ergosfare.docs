@@ -147,7 +147,7 @@ per-dispatch resolution:
 ```csharp
 services.AddErgosfare(registry => registry
     .ForceMemoizedHandlers()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 {% aside type="caution" %}

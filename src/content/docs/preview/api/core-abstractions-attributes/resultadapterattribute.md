@@ -1,6 +1,6 @@
 ---
 title: "ResultAdapterAttribute"
-description: "Declares, on a message type, the IResultAdapter<TResult> that surfaces value-carried failures out of the message's pipeline result — the declarative, per-mes…"
+description: "Binds a message type to the IResultAdapter<TResult> that reads value-carried failures out of its pipeline result."
 sidebar:
   label: "ResultAdapterAttribute"
   order: 7
@@ -9,19 +9,15 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Declares, on a message type, the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that surfaces
-value-carried failures out of the message's pipeline result — the declarative,
-per-message binding: no runtime registration, no adapter list. The framework's own
-[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carriers need no annotation (they
-bind to their built-in adapters); an unannotated message with any other result type
-performs no probing at all.
+Binds a message type to the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that reads
+value-carried failures out of its pipeline result.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class ResultAdapterAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ResultAdapterAttribute.cs#L20)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/ResultAdapterAttribute.cs#L26)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 
@@ -29,9 +25,16 @@ public sealed class ResultAdapterAttribute : Attribute
 
 The adapter type must implement [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) for the message's
 declared result type and expose a public parameterless constructor; one instance is
-created per message type and cached. The source generator bakes the binding into the
-message's execution plan and fails the build when the adapter does not fit the declared
-result (planned diagnostic ERGO011).
+created per message type and reused. A message whose result is the built-in
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) or [`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) needs no annotation — those bind to
+their own adapters — and a message with any other result type and no annotation is never
+probed for failures.
+
+The attribute is inherited, so an annotation on a base message type covers the messages
+derived from it. An adapter that cannot serve the declared result type — or that the
+generated registration cannot name — fails the build with ERGO011. The binding itself is
+resolved at compile time and written into the generated adapter table, so this annotation
+is read by the generator rather than at run time.
 
 ## Constructors
 
@@ -41,12 +44,8 @@ result (planned diagnostic ERGO011).
 public ResultAdapterAttribute(Type adapterType)
 ```
 
-Declares, on a message type, the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that surfaces
-value-carried failures out of the message's pipeline result — the declarative,
-per-message binding: no runtime registration, no adapter list. The framework's own
-[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) carriers need no annotation (they
-bind to their built-in adapters); an unannotated message with any other result type
-performs no probing at all.
+Binds a message type to the [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) that reads
+value-carried failures out of its pipeline result.
 
 **Parameters**
 
@@ -56,9 +55,16 @@ performs no probing at all.
 
 The adapter type must implement [`IResultAdapter<TResult>`](/ergosfare.docs/preview/api/core-abstractions/iresultadapter-1) for the message's
 declared result type and expose a public parameterless constructor; one instance is
-created per message type and cached. The source generator bakes the binding into the
-message's execution plan and fails the build when the adapter does not fit the declared
-result (planned diagnostic ERGO011).
+created per message type and reused. A message whose result is the built-in
+[`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) or [`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) needs no annotation — those bind to
+their own adapters — and a message with any other result type and no annotation is never
+probed for failures.
+
+The attribute is inherited, so an annotation on a base message type covers the messages
+derived from it. An adapter that cannot serve the declared result type — or that the
+generated registration cannot name — fails the build with ERGO011. The binding itself is
+resolved at compile time and written into the generated adapter table, so this annotation
+is read by the generator rather than at run time.
 
 ## Properties
 
@@ -68,8 +74,12 @@ result (planned diagnostic ERGO011).
 public Type AdapterType { get; }
 ```
 
-The adapter type bound to the message's pipeline result.
+The adapter type bound to this message's pipeline result.
 
 **Returns**
 
 [`Type`](https://learn.microsoft.com/dotnet/api/system.type)
+
+Carried for what reads the annotation — the generator, and anything inspecting the
+declaration. Nothing constructs it from here, which is why it needs no trimming
+annotation to survive.

@@ -10,5 +10,5 @@ The `Stella.Ergosfare.Events.Extensions.MicrosoftDependencyInjection` namespace 
 
 | Type | Kind | Summary |
 | --- | --- | --- |
-| [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) | Class | Provides a builder for selecting the event constructs this container runs from the compiled composition table. |
-| [`ModuleRegistryExtensions`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/moduleregistryextensions) | Class | Provides extension methods for registering the event module in an [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry). |
+| [`EventModuleBuilder`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/eventmodulebuilder) | Class | Selects which of the compiled event constructs this container runs. |
+| [`ModuleRegistryExtensions`](/ergosfare.docs/preview/api/events-extensions-microsoftdependencyinjection/moduleregistryextensions) | Class | Adds the event module to a registry. |

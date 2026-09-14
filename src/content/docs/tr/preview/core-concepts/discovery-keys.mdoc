@@ -3,7 +3,7 @@ title: Keşif Anahtarları
 description: Bir yapıyı toplu kayıttan çıkarmak ve onu anahtar ya da desenle bilinçli olarak seçmek.
 ---
 
-Varsayılan olarak `RegisterGenerated()` üretecin bulduğu her şeyi kaydeder. Bir keşif anahtarı
+Varsayılan olarak `AddGenerated()` üretecin bulduğu her şeyi kaydeder. Bir keşif anahtarı
 bir yapıyı bu varsayılandan çıkarır ve açıkça istediğiniz bir adın arkasına koyar.
 
 ## Anahtar bildirmek
@@ -18,13 +18,13 @@ public sealed class RebuildReportsHandler : ICommandHandler<RebuildReports>
 }
 ```
 
-Bu handler artık düz bir `RegisterGenerated()` için görünmezdir. Yalnız bir şey `reporting`
+Bu handler artık düz bir `AddGenerated()` için görünmezdir. Yalnız bir şey `reporting`
 istediğinde kaydolur:
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()             // anahtarsız olan her şey
-    .RegisterGenerated("reporting")) // ve bu da
+    .AddGenerated()             // anahtarsız olan her şey
+    .AddGenerated("reporting")) // ve bu da
 ```
 
 Bir tip birden çok anahtar taşıyabilir ve bir seçim herhangi biriyle eşleştiğinde kaydolur.
@@ -45,9 +45,9 @@ tip kendi anahtarını adlandırarak assembly genelindeki gruplamadan çıkabili
 Bir seçim, tam bir anahtar ya da `*` ile biten bir önektir:
 
 ```csharp
-.RegisterGenerated("reporting.nightly")   // tam olarak bu anahtar
-.RegisterGenerated("reporting.*")         // "reporting." ile başlayan her anahtar
-.RegisterGenerated("*")                   // anahtarlı her yapı
+.AddGenerated("reporting.nightly")   // tam olarak bu anahtar
+.AddGenerated("reporting.*")         // "reporting." ile başlayan her anahtar
+.AddGenerated("*")                   // anahtarlı her yapı
 ```
 
 Seçimler birleşimdir, dolayısıyla örtüşen desenleri zincirlemek güvenlidir — iki kez eşleşen bir
@@ -76,7 +76,7 @@ Bir **grup** kayıtlı bir interceptor'ın *bu dispatch'te çalışıp çalışm
 
 ```csharp
 // kayıt zamanı: bu şey container'da mı?
-.RegisterGenerated("reporting.*")
+.AddGenerated("reporting.*")
 
 // dispatch zamanı: kayıtlı interceptor'lardan hangileri şimdi çalışsın?
 await mediator.SendAsync(command, GroupSet.Of("audit"));

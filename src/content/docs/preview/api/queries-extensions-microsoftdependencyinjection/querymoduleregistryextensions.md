@@ -1,6 +1,6 @@
 ---
 title: "QueryModuleRegistryExtensions"
-description: "Provides extension methods for IModuleRegistry to add the query module."
+description: "Adds the query module to a registry."
 sidebar:
   label: "QueryModuleRegistryExtensions"
   order: 2
@@ -9,7 +9,7 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection)  
 **Assembly:** `Stella.Ergosfare.Queries.Extensions.MicrosoftDependencyInjection.dll`
 
-Provides extension methods for [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) to add the query module.
+Adds the query module to a registry.
 
 ```csharp
 public static class QueryModuleRegistryExtensions
@@ -27,16 +27,15 @@ public static class QueryModuleRegistryExtensions
 public static IModuleRegistry AddQueryModule(this IModuleRegistry registry, Action<QueryModuleBuilder> builder)
 ```
 
-Adds the query module to the specified module registry, allowing registration
-of query types and enabling the [`IQueryMediator`](/ergosfare.docs/preview/api/queries-abstractions/iquerymediator) for dispatching queries.
+Adds the query module, registering the queries `builder` selects.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `registry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The module registry to which the query module will be added. |
-| `builder` | `Action<QueryModuleBuilder>` | An action that configures the query module using a [`QueryModuleBuilder`](/ergosfare.docs/preview/api/queries-extensions-microsoftdependencyinjection/querymodulebuilder) to register query types. |
+| `registry` | [`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) | The registry being configured. |
+| `builder` | `Action<QueryModuleBuilder>` | Selects which query constructs this container runs. |
 
 **Returns**
 
-[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The `registry` with the query module added, enabling fluent chaining.
+[`IModuleRegistry`](/ergosfare.docs/preview/api/core-extensions-microsoftdependencyinjection/imoduleregistry) — The same registry, so calls can be chained.

@@ -18,7 +18,7 @@ of it you write yourself, and it is where the suppression goes. See
 ```csharp
 services.AddErgosfare(registry => registry
     .AddTiming()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 `AddTiming()` is generated into the plugin's own assembly, so the consumer calls an ordinary

@@ -8,9 +8,9 @@ tablosundaki payı — ve uygulamanızın kullandıklarını eklersiniz:
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 Event'i olmayan bir uygulama event modülü eklemez ve eklemediği hiçbir şeyin bedelini ödemez.
@@ -40,7 +40,7 @@ Modül eklemek üç şey kaydeder:
 **Mediator'ünü** — `ICommandMediator`, `IQueryMediator`, `IEventMediator` — böylece enjekte
 edebilirsiniz.
 
-**Katılımcılarını**, builder'ın seçtiği her neyse. `RegisterGenerated()` onları toplu adlandırır;
+**Katılımcılarını**, builder'ın seçtiği her neyse. `AddGenerated()` onları toplu adlandırır;
 `Register<T>()` tek birini; bir keşif anahtarı deseni bir altkümeyi.
 
 **Kompozisyon tablosuna bakışını.** Tablonun kendisi assembly'ye derlenmiştir ve süreç
@@ -99,7 +99,7 @@ public sealed class ReportingModule : IModule
 ```csharp
 services.AddErgosfare(registry => registry
     .Register(new ReportingModule())
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 {% aside type="note" %}
@@ -114,7 +114,7 @@ Bir plugin paketi bunu, tüketicilerinin çağırdığı `Add<Ad>` uzantısıyla
 ## Assembly'ler arası kayıt
 
 Referans bir kütüphanedeki handler, referans taraması tarafından bulunur ve onu tüketen
-uygulamanın `RegisterGenerated()`'ı üzerinden kaydolur. Fazladan bir şey gerekmez ve kütüphane
+uygulamanın `AddGenerated()`'ı üzerinden kaydolur. Fazladan bir şey gerekmez ve kütüphane
 kendi kayıt kodunu yayınlamaz.
 
 İki şeyi bilmekte fayda var:

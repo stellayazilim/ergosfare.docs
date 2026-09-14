@@ -1,6 +1,6 @@
 ---
 title: "StagedPlanKey"
-description: "The pipeline composition a staged plan was baked against: the main handlers plus the four interceptor stages as ordered type lists — exactly the merged (dire…"
+description: "The pipeline a staged plan was compiled against: its main handlers and its four interceptor stages, each as an ordered list of types in the order the pipelin…"
 sidebar:
   label: "StagedPlanKey"
   order: 6
@@ -9,29 +9,27 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.StagedPlans`](/ergosfare.docs/preview/api/core-abstractions-stagedplans)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The pipeline composition a staged plan was baked against: the main handlers plus the four
-interceptor stages as ordered type lists — exactly the merged (direct-first, then
-indirect) order the runtime pipeline would execute them in.
+The pipeline a staged plan was compiled against: its main handlers and its four
+interceptor stages, each as an ordered list of types in the order the pipeline would run
+them.
 
 ```csharp
 public sealed class StagedPlanKey
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/StagedPlans/StagedPlanKey.cs#L22)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/StagedPlans/StagedPlanKey.cs#L20)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
 ## Remarks
 
-The composition is the advisory contract's comparison key: on every registry-version
-rebuild the executor compares it against the live pipeline, and any difference —
-a runtime-registered interceptor, a different handler, reordered stages — routes the
-dispatch back through the runtime strategy. The arrays are captured as given (no
-defensive copy); plans are compile-time singletons whose compositions never change.
+Registration is compared with this descriptor when the engine is initialized. Runtime
+dispatch never rebuilds a pipeline; a mismatch is rejected.
 
-Handlers are a list because a broadcast serves all of them. A single-handler pipeline —
-every command and query plan — is the same shape with one direct handler and an empty
-indirect segment, so the comparison has one implementation rather than one per family.
+The arrays are kept as given rather than copied: a plan is a compile-time singleton
+whose pipeline never changes. Handlers are a list because a broadcast runs all of them;
+commands and queries keep both segments as metadata while executing the winning
+handler according to direct-then-covariant priority.
 
 ## Constructors
 
@@ -41,18 +39,19 @@ indirect segment, so the comparison has one implementation rather than one per f
 public StagedPlanKey(Type handlerType, Type[] preInterceptorTypes, Type[] postInterceptorTypes, Type[] exceptionInterceptorTypes, Type[] finalInterceptorTypes, Type? resultAdapterType = null)
 ```
 
-The single-handler composition: one directly registered handler, no covariant ones.
+Initializes the key of a single-handler pipeline: one handler registered for the
+message type itself, and none registered for a base type.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `handlerType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `preInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `postInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `exceptionInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `finalInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `resultAdapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `handlerType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The pipeline's only main handler. |
+| `preInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The pre-interceptors, in execution order. |
+| `postInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The post-interceptors, in execution order. |
+| `exceptionInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The exception interceptors, in execution order. |
+| `finalInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The final interceptors, in execution order. |
+| `resultAdapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The result adapter the plan assumed, if any. |
 
 ### `StagedPlanKey(Type[], Type[], Type[], Type[], Type[], Type[], Type?)`
 
@@ -60,21 +59,19 @@ The single-handler composition: one directly registered handler, no covariant on
 public StagedPlanKey(Type[] handlerTypes, Type[] indirectHandlerTypes, Type[] preInterceptorTypes, Type[] postInterceptorTypes, Type[] exceptionInterceptorTypes, Type[] finalInterceptorTypes, Type? resultAdapterType = null)
 ```
 
-The general composition, carrying both handler segments. The split mirrors the
-runtime's own: directly registered handlers first, then the covariantly matched ones,
-each segment in its baked execution order.
+Initializes the key of any pipeline, carrying both handler segments.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `handlerTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `indirectHandlerTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `preInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `postInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `exceptionInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `finalInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) |  |
-| `resultAdapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) |  |
+| `handlerTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The handlers registered for the message type itself, in execution order. |
+| `indirectHandlerTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The handlers registered for a base type, in execution order. |
+| `preInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The pre-interceptors, in execution order. |
+| `postInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The post-interceptors, in execution order. |
+| `exceptionInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The exception interceptors, in execution order. |
+| `finalInterceptorTypes` | [`Type[]`](https://learn.microsoft.com/dotnet/api/system.type) | The final interceptors, in execution order. |
+| `resultAdapterType` | [`Type`](https://learn.microsoft.com/dotnet/api/system.type) | The result adapter the plan assumed, if any. |
 
 ## Properties
 
@@ -84,7 +81,7 @@ each segment in its baked execution order.
 public IReadOnlyList<Type> ExceptionInterceptorTypes { get; }
 ```
 
-The exception-interceptor types, in execution order.
+The exception interceptors, in execution order.
 
 **Returns**
 
@@ -96,7 +93,7 @@ The exception-interceptor types, in execution order.
 public IReadOnlyList<Type> FinalInterceptorTypes { get; }
 ```
 
-The final-interceptor types, in execution order.
+The final interceptors, in execution order.
 
 **Returns**
 
@@ -108,8 +105,8 @@ The final-interceptor types, in execution order.
 public Type? HandlerType { get; }
 ```
 
-The concrete type of the pipeline's sole main handler, or `null` when the plan
-was baked against a handler list — a broadcast, where "the" handler does not exist.
+The pipeline's only main handler, or `null` when the plan was compiled against
+a list of them — a broadcast, where there is no single handler.
 
 **Returns**
 
@@ -121,7 +118,7 @@ was baked against a handler list — a broadcast, where "the" handler does not e
 public IReadOnlyList<Type> HandlerTypes { get; }
 ```
 
-The directly registered main handlers, in execution order.
+The main handlers registered for the message type itself, in execution order.
 
 **Returns**
 
@@ -133,9 +130,8 @@ The directly registered main handlers, in execution order.
 public IReadOnlyList<Type> IndirectHandlerTypes { get; }
 ```
 
-The covariantly matched main handlers, in execution order — handlers registered
-against a base type or interface of the message. Empty for every single-handler
-pipeline: a covariant main handler disqualifies those plans outright.
+The main handlers registered for a base type of the message, in execution order.
+Commands and queries execute this segment only when no direct handler wins.
 
 **Returns**
 
@@ -147,7 +143,7 @@ pipeline: a covariant main handler disqualifies those plans outright.
 public IReadOnlyList<Type> PostInterceptorTypes { get; }
 ```
 
-The post-interceptor types, in execution order.
+The post-interceptors, in execution order.
 
 **Returns**
 
@@ -159,7 +155,7 @@ The post-interceptor types, in execution order.
 public IReadOnlyList<Type> PreInterceptorTypes { get; }
 ```
 
-The pre-interceptor types, in execution order.
+The pre-interceptors, in execution order.
 
 **Returns**
 
@@ -171,13 +167,12 @@ The pre-interceptor types, in execution order.
 public Type? ResultAdapterType { get; }
 ```
 
-The result-adapter type the plan's value-path branches were baked against, or
-`null` when the plan models no adapter. Part of the comparison key: the
-hosting executor only trusts the plan while the runtime-bound adapter of the
-(message, result) slot is exactly this type — a plan emitted before an annotation
-was added (or by an older generator) then falls back to the runtime strategy
-instead of silently skipping the value path.
+The result adapter the plan's value-path branches were compiled against, or
+`null` when the plan assumed none.
 
 **Returns**
 
 [`Type`](https://learn.microsoft.com/dotnet/api/system.type)
+
+Describes the adapter embedded in the generated body. Adapter selection and
+validation happen at compile time; dispatch does not resolve an adapter service.

@@ -934,24 +934,8 @@
             "link": "/preview/api/core-abstractions/groupset"
           },
           {
-            "label": "IHandlerReference<THandler>",
-            "link": "/preview/api/core-abstractions/ihandlerreference-1"
-          },
-          {
             "label": "IMessage",
             "link": "/preview/api/core-abstractions/imessage"
-          },
-          {
-            "label": "IMessageDependencies",
-            "link": "/preview/api/core-abstractions/imessagedependencies"
-          },
-          {
-            "label": "IMessageMediationStrategy<TMessage, TMessageResult>",
-            "link": "/preview/api/core-abstractions/imessagemediationstrategy-2"
-          },
-          {
-            "label": "IMessageMediator",
-            "link": "/preview/api/core-abstractions/imessagemediator"
           },
           {
             "label": "IPipelineExecutor",
@@ -1098,10 +1082,6 @@
             "link": "/preview/api/commands-abstractions/icommandpreinterceptor"
           },
           {
-            "label": "ICommandPreInterceptor<TCommand, TModifiedCommand>",
-            "link": "/preview/api/commands-abstractions/icommandpreinterceptor-2"
-          },
-          {
             "label": "ICommandPreInterceptor<TCommand>",
             "link": "/preview/api/commands-abstractions/icommandpreinterceptor-1"
           }
@@ -1174,10 +1154,6 @@
           {
             "label": "IQueryPreInterceptor",
             "link": "/preview/api/queries-abstractions/iquerypreinterceptor"
-          },
-          {
-            "label": "IQueryPreInterceptor<TQuery, TModifiedQuery>",
-            "link": "/preview/api/queries-abstractions/iquerypreinterceptor-2"
           },
           {
             "label": "IQueryPreInterceptor<TQuery>",
@@ -1254,10 +1230,6 @@
             "link": "/preview/api/events-abstractions/ieventpreinterceptor"
           },
           {
-            "label": "IEventPreInterceptor<TEvent, TModifiedEvent>",
-            "link": "/preview/api/events-abstractions/ieventpreinterceptor-2"
-          },
-          {
             "label": "IEventPreInterceptor<TEvent>",
             "link": "/preview/api/events-abstractions/ieventpreinterceptor-1"
           },
@@ -1282,6 +1254,24 @@
         ]
       },
       {
+        "label": "Commands.Abstractions.Streaming",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/commands-abstractions-streaming"
+          },
+          {
+            "label": "ErgosfareCommandStream<TChunk, TMeta, TResult>",
+            "link": "/preview/api/commands-abstractions-streaming/ergosfarecommandstream-3"
+          },
+          {
+            "label": "ErgosfareCommandStream<TChunk, TMeta>",
+            "link": "/preview/api/commands-abstractions-streaming/ergosfarecommandstream-2"
+          }
+        ]
+      },
+      {
         "label": "Commands.Extensions.MicrosoftDependencyInjection",
         "collapsed": true,
         "items": [
@@ -1296,98 +1286,6 @@
           {
             "label": "ModuleRegistryExtensions",
             "link": "/preview/api/commands-extensions-microsoftdependencyinjection/moduleregistryextensions"
-          }
-        ]
-      },
-      {
-        "label": "Core",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core"
-          },
-          {
-            "label": "MessageDispatchEngine",
-            "link": "/preview/api/core/messagedispatchengine"
-          }
-        ]
-      },
-      {
-        "label": "Core.Abstractions.DispatchRoots",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core-abstractions-dispatchroots"
-          },
-          {
-            "label": "FrozenComposition",
-            "link": "/preview/api/core-abstractions-dispatchroots/frozencomposition"
-          },
-          {
-            "label": "FrozenCompositionCatalog",
-            "link": "/preview/api/core-abstractions-dispatchroots/frozencompositioncatalog"
-          },
-          {
-            "label": "FrozenParticipant",
-            "link": "/preview/api/core-abstractions-dispatchroots/frozenparticipant"
-          },
-          {
-            "label": "FrozenPipelineShape",
-            "link": "/preview/api/core-abstractions-dispatchroots/frozenpipelineshape"
-          },
-          {
-            "label": "GeneratedDispatchRoots",
-            "link": "/preview/api/core-abstractions-dispatchroots/generateddispatchroots"
-          },
-          {
-            "label": "IMessageResultRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/imessageresultrootvisitor-2"
-          },
-          {
-            "label": "IMessageRootVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/imessagerootvisitor-2"
-          },
-          {
-            "label": "IResultHandlerPlanVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/iresulthandlerplanvisitor-2"
-          },
-          {
-            "label": "IVoidHandlerPlanVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-dispatchroots/ivoidhandlerplanvisitor-2"
-          },
-          {
-            "label": "MessageResultRoot",
-            "link": "/preview/api/core-abstractions-dispatchroots/messageresultroot"
-          },
-          {
-            "label": "MessageResultRoot<TMessage, TResult>",
-            "link": "/preview/api/core-abstractions-dispatchroots/messageresultroot-2"
-          },
-          {
-            "label": "MessageRoot",
-            "link": "/preview/api/core-abstractions-dispatchroots/messageroot"
-          },
-          {
-            "label": "MessageRoot<TMessage>",
-            "link": "/preview/api/core-abstractions-dispatchroots/messageroot-1"
-          },
-          {
-            "label": "ResultHandlerPlan",
-            "link": "/preview/api/core-abstractions-dispatchroots/resulthandlerplan"
-          },
-          {
-            "label": "ResultHandlerPlan<TMessage, TResult, THandler>",
-            "link": "/preview/api/core-abstractions-dispatchroots/resulthandlerplan-3"
-          },
-          {
-            "label": "VoidHandlerPlan",
-            "link": "/preview/api/core-abstractions-dispatchroots/voidhandlerplan"
-          },
-          {
-            "label": "VoidHandlerPlan<TMessage, THandler>",
-            "link": "/preview/api/core-abstractions-dispatchroots/voidhandlerplan-2"
           }
         ]
       },
@@ -1410,10 +1308,6 @@
           {
             "label": "DispatchSiteAttribute",
             "link": "/preview/api/core-abstractions-dispatchsites/dispatchsiteattribute"
-          },
-          {
-            "label": "ManualRegistrationAttribute",
-            "link": "/preview/api/core-abstractions-dispatchsites/manualregistrationattribute"
           }
         ]
       },
@@ -1450,22 +1344,16 @@
             "link": "/preview/api/core-abstractions-exceptions/nohandlerfoundexception"
           },
           {
-            "label": "UnresolvableParticipantException",
-            "link": "/preview/api/core-abstractions-exceptions/unresolvableparticipantexception"
-          }
-        ]
-      },
-      {
-        "label": "Core.Abstractions.Factories",
-        "collapsed": true,
-        "items": [
-          {
-            "label": "Overview",
-            "link": "/preview/api/core-abstractions-factories"
+            "label": "UnplannedDispatchException",
+            "link": "/preview/api/core-abstractions-exceptions/unplanneddispatchexception"
           },
           {
-            "label": "IMessageDependenciesFactory",
-            "link": "/preview/api/core-abstractions-factories/imessagedependenciesfactory"
+            "label": "UnplannedDispatchReason",
+            "link": "/preview/api/core-abstractions-exceptions/unplanneddispatchreason"
+          },
+          {
+            "label": "UnresolvableParticipantException",
+            "link": "/preview/api/core-abstractions-exceptions/unresolvableparticipantexception"
           }
         ]
       },
@@ -1568,6 +1456,40 @@
         ]
       },
       {
+        "label": "Core.Abstractions.Planning",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/core-abstractions-planning"
+          },
+          {
+            "label": "DispatchPlanCatalog",
+            "link": "/preview/api/core-abstractions-planning/dispatchplancatalog"
+          },
+          {
+            "label": "FrozenParticipant",
+            "link": "/preview/api/core-abstractions-planning/frozenparticipant"
+          },
+          {
+            "label": "GeneratedPlanRegistry",
+            "link": "/preview/api/core-abstractions-planning/generatedplanregistry"
+          },
+          {
+            "label": "GeneratedSelectionAttribute",
+            "link": "/preview/api/core-abstractions-planning/generatedselectionattribute"
+          },
+          {
+            "label": "GeneratedSelectionCallAttribute",
+            "link": "/preview/api/core-abstractions-planning/generatedselectioncallattribute"
+          },
+          {
+            "label": "PipelineDescriptor",
+            "link": "/preview/api/core-abstractions-planning/pipelinedescriptor"
+          }
+        ]
+      },
+      {
         "label": "Core.Abstractions.Results",
         "collapsed": true,
         "items": [
@@ -1576,20 +1498,12 @@
             "link": "/preview/api/core-abstractions-results"
           },
           {
-            "label": "DefaultResultAdapter",
-            "link": "/preview/api/core-abstractions-results/defaultresultadapter"
-          },
-          {
             "label": "Result",
             "link": "/preview/api/core-abstractions-results/result"
           },
           {
             "label": "Result<TValue>",
             "link": "/preview/api/core-abstractions-results/result-1"
-          },
-          {
-            "label": "ResultAdapterBinding",
-            "link": "/preview/api/core-abstractions-results/resultadapterbinding"
           },
           {
             "label": "ResultExceptionAdapter",
@@ -1610,12 +1524,12 @@
             "link": "/preview/api/core-abstractions-stagedplans"
           },
           {
-            "label": "IStagedResultPlanVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-stagedplans/istagedresultplanvisitor-2"
+            "label": "ICompiledPlan",
+            "link": "/preview/api/core-abstractions-stagedplans/icompiledplan"
           },
           {
-            "label": "IStagedVoidPlanVisitor<TReturn, TState>",
-            "link": "/preview/api/core-abstractions-stagedplans/istagedvoidplanvisitor-2"
+            "label": "ICompiledStreamPlan<TResult>",
+            "link": "/preview/api/core-abstractions-stagedplans/icompiledstreamplan-1"
           },
           {
             "label": "PlanGroups",
@@ -1642,6 +1556,14 @@
             "link": "/preview/api/core-abstractions-stagedplans/stagedresultplan-2"
           },
           {
+            "label": "StagedStreamPlan",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedstreamplan"
+          },
+          {
+            "label": "StagedStreamPlan<TQuery, TResult>",
+            "link": "/preview/api/core-abstractions-stagedplans/stagedstreamplan-2"
+          },
+          {
             "label": "StagedVoidPlan",
             "link": "/preview/api/core-abstractions-stagedplans/stagedvoidplan"
           },
@@ -1652,16 +1574,32 @@
         ]
       },
       {
-        "label": "Core.Abstractions.Strategies",
+        "label": "Core.Abstractions.Streaming",
         "collapsed": true,
         "items": [
           {
             "label": "Overview",
-            "link": "/preview/api/core-abstractions-strategies"
+            "link": "/preview/api/core-abstractions-streaming"
           },
           {
-            "label": "SingleStreamHandlerMediationStrategy<TMessage, TResult>",
-            "link": "/preview/api/core-abstractions-strategies/singlestreamhandlermediationstrategy-2"
+            "label": "ByteStreamExtensions",
+            "link": "/preview/api/core-abstractions-streaming/bytestreamextensions"
+          },
+          {
+            "label": "ErgosfareStream",
+            "link": "/preview/api/core-abstractions-streaming/ergosfarestream"
+          },
+          {
+            "label": "ErgosfareStream<TChunk>",
+            "link": "/preview/api/core-abstractions-streaming/ergosfarestream-1"
+          },
+          {
+            "label": "StreamCompletion",
+            "link": "/preview/api/core-abstractions-streaming/streamcompletion"
+          },
+          {
+            "label": "StreamInfo",
+            "link": "/preview/api/core-abstractions-streaming/streaminfo"
           }
         ]
       },
@@ -1688,10 +1626,6 @@
           {
             "label": "ModuleRegistry",
             "link": "/preview/api/core-extensions-microsoftdependencyinjection/moduleregistry"
-          },
-          {
-            "label": "ModuleRegistryExtensions",
-            "link": "/preview/api/core-extensions-microsoftdependencyinjection/moduleregistryextensions"
           },
           {
             "label": "ServiceCollectionExtensions",
@@ -1772,6 +1706,20 @@
           {
             "label": "QueryMediator",
             "link": "/preview/api/queries/querymediator"
+          }
+        ]
+      },
+      {
+        "label": "Queries.Abstractions.Streaming",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "Overview",
+            "link": "/preview/api/queries-abstractions-streaming"
+          },
+          {
+            "label": "ErgosfareQueryStream<TChunk, TMeta, TResult>",
+            "link": "/preview/api/queries-abstractions-streaming/ergosfarequerystream-3"
           }
         ]
       },

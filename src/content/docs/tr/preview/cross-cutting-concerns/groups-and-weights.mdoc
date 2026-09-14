@@ -51,43 +51,26 @@ Bir tip birden çok grupta olabilir ve herhangi biri istendiğinde çalışır.
 
 ## Çağrıda bir küme adlandırmak
 
-Üç şekil, hepsi eşdeğer:
+Tüm mediator'ler grup parametresinde yalnız `GroupSet` kullanır. String, tek grup içeren
+bir kümeye implicit dönüşür; collection expression ise belirtilen adlarla küme oluşturur:
 
 ```csharp
-await mediator.SendAsync(command, GroupSet.Of("audit"));
-await mediator.SendAsync(command, GroupSet.Of("audit", "metrics"));
-await mediator.SendAsync(command, GroupSet.Empty);              // varsayılan grup
+await mediator.SendAsync(command, "audit");
+await mediator.SendAsync(command, ["audit", "metrics"]);
+await mediator.SendAsync(command, []);                         // default grup
+await mediator.SendAsync(command, "");                         // adı "" olan grup
+
+GroupSet reporting = ["audit", "metrics"];
+await mediator.SendAsync(command, reporting);                  // aynı kümeyi tekrar kullan
 ```
 
-`GroupSet.Empty` ile hiçbir şey geçirmemek aynı şeydir. Boş bir `string[]` geçirmek değildir — o,
-hiçbir grup adlandırmayan bir kümedir ve hiçbir şey seçmez.
+`[]`, `GroupSet.Empty` ve grup belirtmemek default grubu seçer. `""` ve `[""]` ise adı
+boş string olan grubu seçer. Ana handler eşleşmesi yoksa kesin bilinen seçim derleme hatası,
+dinamik seçim `NoHandlerFoundException` üretir.
 
-### `GroupSet` aynı zamanda bir listedir
-
-`IReadOnlyList<string>` implemente eder, dolayısıyla hem adlandırılmış bir tip hem dizinin
-kendisidir — sayabilir, indeksleyebilir, üzerinde gezinebilir ve `IEnumerable<string>` bekleyen
-her şeye verebilirsiniz:
-
-```csharp
-var groups = GroupSet.Of("audit", "metrics");
-
-groups.Count;                      // 2
-groups[0];                         // "audit"
-foreach (var name in groups) { … }
-
-await mediator.SendAsync(command, groups, ct);
-```
-
-Grup parametresinin birbirine dolaşmadan birkaç yazımla gelebilmesinin sebebi budur. Bir
-koleksiyon ifadesi `GroupSet`'i hedefleyemez — koleksiyon kurucusu yoktur — dolayısıyla
-`["audit"]` dizi aşırı yüklemelerine, `GroupSet.Of("audit")` ise adlandırılmış olana çözülür.
-İkisi de aynı yere varır.
-
-{% aside type="note" %}
-Yazımlar mediator'ler arasında tam simetrik değil: `SendAsync` ve `QueryAsync`, `PublishAsync`'te
-olmayan bir `string[]` aşırı yüklemesi taşıyor. `["audit"]` yine de üçünde de derleniyor —
-publish'te sadece `IEnumerable<string>?` aşırı yüklemesine bağlanıyor.
-{% /aside %}
+Ayrı string, array, liste veya enumerable dispatch overload'ı yoktur. Dinamik bir diziyi
+`GroupSet.Of(array)` ile, başka bir koleksiyonu `GroupSet groups = [.. names]` ile dönüştürün.
+Tekrarlanan dispatch'lerde aynı kümeyi kullanabilirsiniz.
 
 ## Gruplar handler'lara dokunmaz
 

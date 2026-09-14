@@ -1,6 +1,6 @@
 ---
 title: "IExceptionInterceptorFilter<TException>"
-description: "Declares the exception type an interceptor accepts."
+description: "Narrows an exception interceptor to TException and the types derived from it, the way a catch clause does."
 sidebar:
   label: "IExceptionInterceptorFilter<TException>"
   order: 13
@@ -9,8 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Declares the exception type an interceptor accepts. Matching follows `catch`
-semantics: `TException` and every type derived from it.
+Narrows an exception interceptor to `TException` and the types
+derived from it, the way a `catch` clause does.
 
 ```csharp
 public interface IExceptionInterceptorFilter<TException> : IExceptionInterceptorFilter where TException : Exception
@@ -26,7 +26,7 @@ public interface IExceptionInterceptorFilter<TException> : IExceptionInterceptor
 
 ## Remarks
 
-This contract carries the exception type into the generated pipelines: the source
-generator reads `TException` off it and bakes the same test into
-the emitted plan as a compile-time `is` check, so both registration axes filter
-identically.
+Implement this alongside an exception-interceptor contract; the test is supplied here,
+so there is nothing to write. Generated pipelines read
+`TException` off this contract and emit the same test, so filtering
+behaves identically however the interceptor was registered.

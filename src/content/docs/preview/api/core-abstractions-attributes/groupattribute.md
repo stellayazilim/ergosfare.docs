@@ -1,6 +1,6 @@
 ---
 title: "GroupAttribute"
-description: "Specifies one or more group names for a class, typically used to categorize handlers, messages, or modules."
+description: "Assigns a participant to one or more pipeline groups, so a dispatch can select which participants run."
 sidebar:
   label: "GroupAttribute"
   order: 5
@@ -9,16 +9,25 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Specifies one or more group names for a class, typically used to categorize handlers, messages, or modules.
+Assigns a participant to one or more pipeline groups, so a dispatch can select which
+participants run.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public class GroupAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/GroupAttribute.cs#L7)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/GroupAttribute.cs#L15)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
+
+## Remarks
+
+A participant without this attribute belongs to [`GroupAttribute.DefaultGroupName`](/ergosfare.docs/preview/api/core-abstractions-attributes/groupattribute#defaultgroupname) alone.
+A dispatch that requests no groups runs the default group; a dispatch that requests
+group names runs every participant declaring at least one of them, compared ordinally.
+Declaring groups therefore takes a participant out of the default group unless it
+lists [`GroupAttribute.DefaultGroupName`](/ergosfare.docs/preview/api/core-abstractions-attributes/groupattribute#defaultgroupname) explicitly.
 
 ## Fields
 
@@ -28,7 +37,8 @@ public class GroupAttribute : Attribute
 public const string DefaultGroupName = "default"
 ```
 
-The default group name used when no group is explicitly specified.
+The group a participant belongs to when it declares none, and the group a dispatch
+runs when it requests none.
 
 **Returns**
 
@@ -42,13 +52,20 @@ The default group name used when no group is explicitly specified.
 public GroupAttribute(params string[] groupNames)
 ```
 
-Specifies one or more group names for a class, typically used to categorize handlers, messages, or modules.
+Assigns a participant to one or more pipeline groups, so a dispatch can select which
+participants run.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `groupNames` | [`string[]`](https://learn.microsoft.com/dotnet/api/system.string) |  |
+
+A participant without this attribute belongs to [`GroupAttribute.DefaultGroupName`](/ergosfare.docs/preview/api/core-abstractions-attributes/groupattribute#defaultgroupname) alone.
+A dispatch that requests no groups runs the default group; a dispatch that requests
+group names runs every participant declaring at least one of them, compared ordinally.
+Declaring groups therefore takes a participant out of the default group unless it
+lists [`GroupAttribute.DefaultGroupName`](/ergosfare.docs/preview/api/core-abstractions-attributes/groupattribute#defaultgroupname) explicitly.
 
 ## Properties
 
@@ -58,7 +75,7 @@ Specifies one or more group names for a class, typically used to categorize hand
 public string[] GroupNames { get; }
 ```
 
-Gets the group names assigned to this class.
+The group names declared for this participant.
 
 **Returns**
 

@@ -9,29 +9,35 @@ to an application rather than to a type.
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
-`AddErgosfare` registers the dispatch machinery — the mediators, the executors, the
-dependencies factory — along with this container's view of the compiled composition table.
-Each module adds its own mediator and the participants it selected.
+`AddErgosfare` wires the module mediators, dispatch engine and selected participants into DI.
+Assembly scanning finds candidates; only types selected by `AddGenerated` and explicit
+`Register<T>()` declarations enter validation and generated plans. These declarations are a
+compile-time union, not runtime branches selecting different pipeline definitions.
+
+`ExcludeFromDiscovery` excludes automatic selection. Explicit `Register<T>()` still selects
+the full participant, with the same group, constructor and adapter validation. A referenced library selects participants only when its configuration method is called;
+its generated selection manifest carries those declarations to the composition root.
+After initialization the catalog rejects registration and descriptor changes.
 
 ## Choosing what a module registers
 
 Inside a module builder, three shapes are available.
 
-**`RegisterGenerated()`** is the bulk path and what most applications call. It is written by
-the generator and names every construct that takes part in default discovery.
+**`AddGenerated()`** is the bulk path and what most applications call. It is a public builder method, owned by Ergosfare. The generator supplies
+the selected types; no generated namespace is required for these calls.
 
-**`RegisterGenerated(pattern)`** selects by discovery key instead — an exact key, or a prefix
+**`AddGenerated(pattern)`** selects by discovery key instead — an exact key, or a prefix
 glob ending in `*`:
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
-    .RegisterGenerated("reporting.*"))
+    .AddGenerated()
+    .AddGenerated("reporting.*"))
 ```
 
 Selections are a union, so chaining overlapping patterns is safe. See
@@ -42,7 +48,7 @@ deliberately kept out of bulk discovery.
 
 ```csharp
 .AddCommandModule(module => module
-    .RegisterGenerated()
+    .AddGenerated()
     .Register<AuditEverything>())
 ```
 
@@ -62,10 +68,16 @@ adapter serves stops throwing:
 ```csharp
 services.AddErgosfare(registry => registry
     .UseDefaultResultAdapter(typeof(ResultAdapter<>))
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 An open generic is closed per result slot it fits. Naming a closed type binds that one slot.
+
+The closing happens at compile time, which puts two rules on the call. The argument must be a
+literal `typeof` the compilation can resolve — a variable or a computed type is `ERGO019` —
+and a compilation names one default adapter, a second one naming something else being
+`ERGO020`. An adapter that serves several result families does so through several
+`IResultAdapter<TResult>` implementations, not through a second call.
 
 Configuring a default makes value-carried failure the application's contract, and the compiler
 holds you to it: a result-bearing message whose result no adapter serves is `ERGO013`, because
@@ -87,7 +99,7 @@ instead:
 ```csharp
 services.AddErgosfare(registry => registry
     .ForceMemoizedHandlers()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 This is for applications whose handlers are genuinely stateless and whose dependencies are
@@ -102,7 +114,7 @@ A plugin package generates its own `Add<Name>` extension on the registry:
 ```csharp
 services.AddErgosfare(registry => registry
     .AddTiming()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 When the plugin declares options, that call takes them. Plugins are experimental —
@@ -119,9 +131,9 @@ exception on the first dispatch.
 **Interceptor order.** `[Weight]` on the type, direct registrations before covariant ones.
 Ordering is part of what gets compiled, so it cannot be rearranged per call.
 
-**Whether a dispatch with no handler throws.** It does, and a publish with no subscriber
-returns — but neither is a switch, because reaching nobody at all is `ERGO005` at build time.
-What remains at run time is the selection your container made, which is what you asked for.
+**Whether a dispatch with no handler throws.** Every lane, including events, requires a
+selected main handler. Provable failures are `ERGO005` or `ERGO024` at build time; dynamic
+group selections without a handler throw `NoHandlerFoundException`. This is not configurable.
 
 **Per-dispatch pipeline options.** A dispatch takes the message, a group set, a context and a
 cancellation token. Anything that would change the pipeline's shape is part of what keys the

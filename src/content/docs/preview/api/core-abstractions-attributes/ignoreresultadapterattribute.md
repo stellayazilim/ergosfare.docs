@@ -1,6 +1,6 @@
 ---
 title: "IgnoreResultAdapterAttribute"
-description: "Opts a message type out of result adaptation entirely: no annotation binding, no built-in Result/Result<TValue> adapter, no configured default adapter — the…"
+description: "Takes a message type out of result adaptation completely: no annotated adapter, no built-in Result or Result<TValue> adapter, and no application-wide default…"
 sidebar:
   label: "IgnoreResultAdapterAttribute"
   order: 6
@@ -9,25 +9,24 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Opts a message type out of result adaptation entirely: no annotation binding, no
-built-in [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result)/[`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) adapter, no configured
-default adapter — the message's pipelines keep the classic try/catch semantics, and
-the dispatch path performs no probing at all. The escape hatch for applications that
-configure a default adapter but want individual messages off the value channel.
+Takes a message type out of result adaptation completely: no annotated adapter, no
+built-in [`Result`](/ergosfare.docs/preview/api/core-abstractions-results/result) or [`Result<TValue>`](/ergosfare.docs/preview/api/core-abstractions-results/result-1) adapter, and no
+application-wide default adapter applies to it.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct|AttributeTargets.Interface)]
 public sealed class IgnoreResultAdapterAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/IgnoreResultAdapterAttribute.cs#L19)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/IgnoreResultAdapterAttribute.cs#L18)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
 
 ## Remarks
 
-Inherited like [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute): an annotation on a base message
-type covers its derived messages. Declaring both this attribute and
-[`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute) on the same message (own or inherited, in any
-combination) is contradictory and fails the build (ERGO012); against assemblies
-compiled before that rule, the runtime binding lets the opt-out win.
+Its pipelines keep the default behavior — a failure is thrown rather than returned —
+and the dispatch path never probes the result. Use it to keep individual messages off
+the value channel in an application that configures a default adapter.
+The attribute is inherited, like [`ResultAdapterAttribute`](/ergosfare.docs/preview/api/core-abstractions-attributes/resultadapterattribute). Carrying both on
+one message, whether declared or inherited, is contradictory and fails the build with
+ERGO012; where both reach the runtime, the opt-out wins.

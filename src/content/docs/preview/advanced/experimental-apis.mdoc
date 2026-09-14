@@ -26,7 +26,7 @@ carrier instead of throwing, and the exception interceptors still see the failur
 ```csharp
 services.AddErgosfare(registry => registry
     .UseDefaultResultAdapter(typeof(ResultAdapter<>))
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 ```
 
 Opt in for the project:
@@ -49,7 +49,7 @@ For a **consumer**, the surface is one line, and that is where the suppression g
 #pragma warning disable ERGOEXP002
 services.AddErgosfare(registry => registry
     .AddTiming()
-    .AddCommandModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated()));
 #pragma warning restore ERGOEXP002
 ```
 

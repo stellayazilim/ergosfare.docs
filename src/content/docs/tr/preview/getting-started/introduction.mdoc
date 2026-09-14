@@ -39,9 +39,9 @@ Composition root'unuzda bir kez kayıt:
 
 ```csharp
 services.AddErgosfare(registry => registry
-    .AddCommandModule(module => module.RegisterGenerated())
-    .AddQueryModule(module => module.RegisterGenerated())
-    .AddEventModule(module => module.RegisterGenerated()));
+    .AddCommandModule(module => module.AddGenerated())
+    .AddQueryModule(module => module.AddGenerated())
+    .AddEventModule(module => module.AddGenerated()));
 ```
 
 Ve dispatch:
@@ -50,7 +50,7 @@ Ve dispatch:
 var id = await mediator.SendAsync(new CreateProduct("Bench"));
 ```
 
-`RegisterGenerated()` üreteç tarafından yazılır. Bulduğu her yapıyı adıyla sayar; dolayısıyla
+`AddGenerated()` üreteç tarafından yazılır. Bulduğu her yapıyı adıyla sayar; dolayısıyla
 burada başlangıçta assembly taranmaz ve hiçbir şey isimlendirme kuralına bağlı değildir.
 
 ## Derleyicinin zaten bildikleri

@@ -1,6 +1,6 @@
 ---
 title: "ErgosfareContext"
-description: "The execution context for message handling and mediation: contextual information such as the cancellation token and per-dispatch items, plus control over pip…"
+description: "The execution context of one dispatch: the cancellation token, the items participants share with each other, and the means to open a nested scope or stop the…"
 sidebar:
   label: "ErgosfareContext"
   order: 1
@@ -9,32 +9,28 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions`](/ergosfare.docs/preview/api/core-abstractions)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-The execution context for message handling and mediation: contextual information such as
-the cancellation token and per-dispatch items, plus control over pipeline execution
-(scoping and abort). Handlers and interceptors receive it as their last parameter.
+The execution context of one dispatch: the cancellation token, the items participants
+share with each other, and the means to open a nested scope or stop the pipeline. Every
+handler and interceptor receives it as its last parameter.
 
 ```csharp
 public sealed class ErgosfareContext
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Context/ErgosfareContext.cs#L27)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Context/ErgosfareContext.cs#L22)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object)
 
 ## Remarks
 
-The type is sealed and taken concretely by every handler and interceptor contract, so member
-access is a direct call — there is no interface to dispatch through.
+A context is valid only for the dispatch it belongs to. Dispatches rent contexts from a
+pool and return them once the pipeline completes, so holding a reference past the
+handler's completion observes another dispatch's state. A context constructed directly
+is never pooled, which is how a caller that wants to keep the items dictionary builds
+one.
 
-Instances are pooled: a dispatch rents one from `ErgosfareContextPool` and returns
-it when the pipeline completes, so a context is only valid for the duration of its dispatch —
-user code must not hold a reference past the handler's completion. The items dictionary is
-created lazily on first write and kept (cleared) across reuses; the read paths never allocate
-it.
-
-A context constructed directly (rather than rented) is never pooled and costs exactly what an
-unpooled context did; this is how tests and callers that want to own the items dictionary
-build one.
+The items dictionary is allocated on first write. Every read path — [`ErgosfareContext.Has(string)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#hasstring),
+[`ErgosfareContext.Get<TType>(string)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#getttypestring), [`ErgosfareContext.TryGet<TType>(string, out TType)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#trygetttypestring-out-ttype) — leaves it unallocated.
 
 ## Constructors
 
@@ -44,9 +40,9 @@ build one.
 public ErgosfareContext(IDictionary<object, object?>? items = null, CancellationToken cancellationToken = default)
 ```
 
-The execution context for message handling and mediation: contextual information such as
-the cancellation token and per-dispatch items, plus control over pipeline execution
-(scoping and abort). Handlers and interceptors receive it as their last parameter.
+The execution context of one dispatch: the cancellation token, the items participants
+share with each other, and the means to open a nested scope or stop the pipeline. Every
+handler and interceptor receives it as its last parameter.
 
 **Parameters**
 
@@ -55,18 +51,14 @@ the cancellation token and per-dispatch items, plus control over pipeline execut
 | `items` | `IDictionary<object, object>` |  |
 | `cancellationToken` | [`CancellationToken`](https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken) |  |
 
-The type is sealed and taken concretely by every handler and interceptor contract, so member
-access is a direct call — there is no interface to dispatch through.
+A context is valid only for the dispatch it belongs to. Dispatches rent contexts from a
+pool and return them once the pipeline completes, so holding a reference past the
+handler's completion observes another dispatch's state. A context constructed directly
+is never pooled, which is how a caller that wants to keep the items dictionary builds
+one.
 
-Instances are pooled: a dispatch rents one from `ErgosfareContextPool` and returns
-it when the pipeline completes, so a context is only valid for the duration of its dispatch —
-user code must not hold a reference past the handler's completion. The items dictionary is
-created lazily on first write and kept (cleared) across reuses; the read paths never allocate
-it.
-
-A context constructed directly (rather than rented) is never pooled and costs exactly what an
-unpooled context did; this is how tests and callers that want to own the items dictionary
-build one.
+The items dictionary is allocated on first write. Every read path — [`ErgosfareContext.Has(string)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#hasstring),
+[`ErgosfareContext.Get<TType>(string)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#getttypestring), [`ErgosfareContext.TryGet<TType>(string, out TType)`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#trygetttypestring-out-ttype) — leaves it unallocated.
 
 ## Properties
 
@@ -76,9 +68,8 @@ build one.
 public CancellationToken CancellationToken { get; }
 ```
 
-Gets the cancellation token associated with the execution context.
-Handlers should periodically check this token and abort execution if cancellation is
-requested, and propagate it to any work they start.
+The cancellation token for this dispatch. Handlers should observe it and pass it to
+any work they start.
 
 **Returns**
 
@@ -90,10 +81,8 @@ requested, and propagate it to any work they start.
 public IDictionary<object, object?> Items { get; }
 ```
 
-Gets a key/value collection for sharing data within the scope of this execution.
-Data is scoped to the current execution and is not shared across different mediation
-operations. The backing dictionary is created lazily on first access so dispatches that
-never touch shared items pay no allocation for it.
+The items shared between the participants of this dispatch. The dictionary is
+allocated on first access and belongs to this dispatch alone.
 
 **Returns**
 
@@ -107,29 +96,24 @@ never touch shared items pay no allocation for it.
 public void Abort()
 ```
 
-Ends the current mediation: nothing after the calling participant runs, and the
-caller is told, by [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception).
+Ends the dispatch: nothing after the calling participant runs, and the caller is
+told by [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception).
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always — this is how the abort travels. |
+| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always; this is how the abort travels. |
 
-The dispatch was asked for by the call site, so the call site is who hears that it
-did not happen — a pipeline whose participants can abort is one the caller wraps in
-a `try`. The alternative, returning the result type's default, is
-indistinguishable from a handler that legitimately produced nothing.
+Stopping stops everything downstream — the rest of the current stage, the exception
+stage, and the final stage alike. An abort is not a failure, so the exception
+interceptors do not see it, and there is no result for the pipeline to produce,
+which is why the signal carries none.
 
-Stopping means stopping: nothing downstream runs. Not the rest of the current stage,
-not the exception stage — an abort is not a failure and exception interceptors exist
-to handle failures — and not the final stage either. There is no result to expect
-from a pipeline that was cut, which is why the signal carries none.
-
-Nothing catches this on the way out. The stages that do have exception handling —
-the strategies and the emitted plans — filter it through untouched and skip their
-own remaining work, so what the caller receives is the participant's own signal with
-its stack intact.
+Nothing swallows the signal on its way out: the strategies and generated plans let
+it pass through their own exception handling untouched, so the caller receives the
+participant's signal with its original stack. Callers that dispatch abortable
+pipelines should expect it.
 
 ### `Abort(string?, object?)`
 
@@ -137,36 +121,31 @@ its stack intact.
 public void Abort(string? reason, object? value)
 ```
 
-Stops the pipeline, saying why and handing the caller something to act on. See
+Ends the dispatch, recording why and handing the caller a value to act on. See
 [`ErgosfareContext.Abort()`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#abort).
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the pipeline is being stopped; arrives on [`ExecutionAbortedException.Reason`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#reason). |
-| `value` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | What the caller should act on; arrives on [`ExecutionAbortedException.Value`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#value). |
+| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the dispatch is ending; arrives on [`ExecutionAbortedException.Reason`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#reason). |
+| `value` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The value for the caller to act on; arrives on [`ExecutionAbortedException.Value`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#value). |
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always — this is how the abort travels. |
+| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always; this is how the abort travels. |
 
-The dispatch was asked for by the call site, so the call site is who hears that it
-    did not happen — a pipeline whose participants can abort is one the caller wraps in
-    a `try`. The alternative, returning the result type's default, is
-    indistinguishable from a handler that legitimately produced nothing.
+Stopping stops everything downstream — the rest of the current stage, the exception
+    stage, and the final stage alike. An abort is not a failure, so the exception
+    interceptors do not see it, and there is no result for the pipeline to produce,
+    which is why the signal carries none.
 
-    Stopping means stopping: nothing downstream runs. Not the rest of the current stage,
-    not the exception stage — an abort is not a failure and exception interceptors exist
-    to handle failures — and not the final stage either. There is no result to expect
-    from a pipeline that was cut, which is why the signal carries none.
-
-    Nothing catches this on the way out. The stages that do have exception handling —
-    the strategies and the emitted plans — filter it through untouched and skip their
-    own remaining work, so what the caller receives is the participant's own signal with
-    its stack intact.
+    Nothing swallows the signal on its way out: the strategies and generated plans let
+    it pass through their own exception handling untouched, so the caller receives the
+    participant's signal with its original stack. Callers that dispatch abortable
+    pipelines should expect it.
 
 ### `Abort(string?)`
 
@@ -174,34 +153,29 @@ The dispatch was asked for by the call site, so the call site is who hears that 
 public void Abort(string? reason)
 ```
 
-Stops the pipeline, saying why. See [`ErgosfareContext.Abort()`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#abort).
+Ends the dispatch, recording why. See [`ErgosfareContext.Abort()`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext#abort).
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the pipeline is being stopped; arrives on [`ExecutionAbortedException.Reason`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#reason). |
+| `reason` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | Why the dispatch is ending; arrives on [`ExecutionAbortedException.Reason`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception#reason). |
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always — this is how the abort travels. |
+| [`ExecutionAbortedException`](/ergosfare.docs/preview/api/core-abstractions-exceptions/executionabortedexception) | Always; this is how the abort travels. |
 
-The dispatch was asked for by the call site, so the call site is who hears that it
-    did not happen — a pipeline whose participants can abort is one the caller wraps in
-    a `try`. The alternative, returning the result type's default, is
-    indistinguishable from a handler that legitimately produced nothing.
+Stopping stops everything downstream — the rest of the current stage, the exception
+    stage, and the final stage alike. An abort is not a failure, so the exception
+    interceptors do not see it, and there is no result for the pipeline to produce,
+    which is why the signal carries none.
 
-    Stopping means stopping: nothing downstream runs. Not the rest of the current stage,
-    not the exception stage — an abort is not a failure and exception interceptors exist
-    to handle failures — and not the final stage either. There is no result to expect
-    from a pipeline that was cut, which is why the signal carries none.
-
-    Nothing catches this on the way out. The stages that do have exception handling —
-    the strategies and the emitted plans — filter it through untouched and skip their
-    own remaining work, so what the caller receives is the participant's own signal with
-    its stack intact.
+    Nothing swallows the signal on its way out: the strategies and generated plans let
+    it pass through their own exception handling untouched, so the caller receives the
+    participant's signal with its original stack. Callers that dispatch abortable
+    pipelines should expect it.
 
 ### `CreateScope()`
 
@@ -209,13 +183,13 @@ The dispatch was asked for by the call site, so the call site is who hears that 
 public ErgosfareContextScope CreateScope()
 ```
 
-Opens a child execution-context scope for a nested mediator call: the child starts
-with clean items and inherits this context's cancellation token. Dispose the scope
-when the nested call completes; the child must not be used afterwards.
+Opens a child context for a nested dispatch. The child starts with no items and
+inherits this context's cancellation token, keeping nested work on the same
+cancellation chain.
 
 **Returns**
 
-[`ErgosfareContextScope`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontextscope)
+[`ErgosfareContextScope`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontextscope) — A scope holding the child context. Dispose it when the nested dispatch completes; the child must not be used afterwards.
 
 ### `Get<TType>(string)`
 
@@ -223,31 +197,31 @@ when the nested call completes; the child must not be used afterwards.
 public TType Get<TType>(string key) where TType : notnull
 ```
 
-Retrieves an item of the specified type from the context using the given key.
-Never allocates the backing dictionary.
+Returns the item stored under `key`, cast to
+`TType`.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TType` | The type of the item to retrieve. |
+| `TType` | The type to cast the stored item to. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key associated with the item. |
+| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key to read. |
 
 **Returns**
 
-`TType` — The item associated with the specified key.
+`TType` — The stored item.
 
 **Exceptions**
 
 | Type | Condition |
 | --- | --- |
-| [`KeyNotFoundException`](https://learn.microsoft.com/dotnet/api/system.collections.generic.keynotfoundexception) | Thrown if no item exists with the specified key. |
-| [`InvalidCastException`](https://learn.microsoft.com/dotnet/api/system.invalidcastexception) | Thrown if the stored item cannot be cast to `TType`. |
+| [`KeyNotFoundException`](https://learn.microsoft.com/dotnet/api/system.collections.generic.keynotfoundexception) | Nothing is stored under `key`. |
+| [`InvalidCastException`](https://learn.microsoft.com/dotnet/api/system.invalidcastexception) | The stored item is not a `TType`. |
 
 ### `Has(string)`
 
@@ -255,18 +229,17 @@ Never allocates the backing dictionary.
 public bool Has(string key)
 ```
 
-Checks whether an item with the specified key exists in the context.
-Never allocates the backing dictionary: an empty context answers `false`.
+Reports whether an item is stored under `key`.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key to check for existence. |
+| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key to look for. |
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` if an item with the given key exists; otherwise, `false`.
+[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when an item is stored under that key.
 
 ### `Set(string, object)`
 
@@ -274,15 +247,15 @@ Never allocates the backing dictionary: an empty context answers `false`.
 public void Set(string key, object item)
 ```
 
-Stores an item in the execution context under the specified key.
-If an item with the same key already exists, it will be overwritten.
+Stores `item` under `key`, replacing whatever was
+stored under that key.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The unique key to associate with the item. |
-| `item` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The object to store in the context. |
+| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key to store under. |
+| `item` | [`object`](https://learn.microsoft.com/dotnet/api/system.object) | The value to store. |
 
 ### `TryGet<TType>(string, out TType)`
 
@@ -290,22 +263,27 @@ If an item with the same key already exists, it will be overwritten.
 public bool TryGet<TType>(string key, out TType item)
 ```
 
-Attempts to retrieve an item of the specified type from the context using the
-given key. Never allocates the backing dictionary.
+Reads the item stored under `key` when there is one.
 
 **Type parameters**
 
 | Name | Description |
 | --- | --- |
-| `TType` | The type of the item expected. |
+| `TType` | The type to cast the stored item to. |
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key associated with the item. |
-| `item` | `TType` | When this method returns, contains the retrieved item if found and of the correct type; otherwise, the default value for `TType`. |
+| `key` | [`string`](https://learn.microsoft.com/dotnet/api/system.string) | The key to read. |
+| `item` | `TType` | The stored item when this method returns `true`; otherwise the default value of `TType`. |
 
 **Returns**
 
-[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` if an item with the given key exists and is of the correct type; otherwise, `false`.
+[`bool`](https://learn.microsoft.com/dotnet/api/system.boolean) — `true` when an item is stored under that key.
+
+**Exceptions**
+
+| Type | Condition |
+| --- | --- |
+| [`InvalidCastException`](https://learn.microsoft.com/dotnet/api/system.invalidcastexception) | An item is stored under `key` but is not a `TType`. A stored item of the wrong type is a failure, not a miss — this method returns `false` only when the key is absent. |

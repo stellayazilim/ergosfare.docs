@@ -1,6 +1,6 @@
 ---
 title: "IExceptionInterceptor<TMessage, TResult>"
-description: "Synchronous exception-interceptor contract for messages of type TMessage with results of type TResult."
+description: "Handles a failure raised while dispatching a TMessage, and supplies the result the caller receives instead."
 sidebar:
   label: "IExceptionInterceptor<TMessage, TResult>"
   order: 11
@@ -9,9 +9,8 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Handlers`](/ergosfare.docs/preview/api/core-abstractions-handlers)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Synchronous exception-interceptor contract for messages of type
-`TMessage` with results of type `TResult`.
-Executed when the pipeline throws; may observe the exception and replace the result.
+Handles a failure raised while dispatching a `TMessage`, and
+supplies the result the caller receives instead.
 
 ```csharp
 public interface IExceptionInterceptor<in TMessage, in TResult> : IExceptionInterceptor where TMessage : notnull
@@ -23,15 +22,16 @@ public interface IExceptionInterceptor<in TMessage, in TResult> : IExceptionInte
 
 | Name | Description |
 | --- | --- |
-| `TMessage` | The type of message this interceptor handles. |
-| `TResult` | The type of result produced by the handler. |
+| `TMessage` | The message type this interceptor accepts. |
+| `TResult` | The result type this interceptor accepts. |
 
 ## Remarks
 
-This is a standalone synchronous contract — asynchronous exception interceptors implement
-[`IAsyncExceptionInterceptor<TMessage>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-1) or
-[`IAsyncExceptionInterceptor<TMessage, TResult>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iasyncexceptioninterceptor-2) instead; the pipeline
-dispatches each through its own typed member with no object-typed bridge between them.
+Running is what marks the failure handled: once any exception interceptor runs, the
+dispatch returns a result rather than throwing. Implement
+[`IExceptionInterceptorFilter<TException>`](/ergosfare.docs/preview/api/core-abstractions-handlers/iexceptioninterceptorfilter-1) alongside this contract to accept
+only certain exceptions, or one of the asynchronous contracts when the work involves
+awaiting.
 
 ## Methods
 
@@ -41,17 +41,17 @@ dispatches each through its own typed member with no object-typed bridge between
 object? Handle(TMessage message, TResult? messageResult, Exception exception, ErgosfareContext context)
 ```
 
-Handles an exception thrown while processing the message.
+Handles `exception` and produces the result to continue with.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| `message` | `TMessage` | The message whose processing threw. |
-| `messageResult` | `TResult` | The result produced so far, if any. |
-| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The exception that was thrown. |
-| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The current execution context. |
+| `message` | `TMessage` | The message whose dispatch failed. |
+| `messageResult` | `TResult` | The result produced so far, which is the result type's default when the main handler itself failed. |
+| `exception` | [`Exception`](https://learn.microsoft.com/dotnet/api/system.exception) | The failure being handled. |
+| `context` | [`ErgosfareContext`](/ergosfare.docs/preview/api/core-abstractions/ergosfarecontext) | The execution context of this dispatch. |
 
 **Returns**
 
-[`object`](https://learn.microsoft.com/dotnet/api/system.object) — The (possibly replaced) result that continues through the pipeline, or `null` to keep the current result.
+[`object`](https://learn.microsoft.com/dotnet/api/system.object) — The result that continues through the pipeline. This value replaces the current result outright — returning `null` makes the result `null` rather than preserving what came before.

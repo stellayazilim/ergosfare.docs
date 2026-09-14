@@ -1,6 +1,6 @@
 ---
 title: "WeightAttribute"
-description: "Specifies a weight for a class, typically used to influence the execution order or priority of handlers or modules."
+description: "Sets the invocation order of a participant within its pipeline stage."
 sidebar:
   label: "WeightAttribute"
   order: 8
@@ -9,16 +9,22 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Core.Abstractions.Attributes`](/ergosfare.docs/preview/api/core-abstractions-attributes)  
 **Assembly:** `Stella.Ergosfare.Core.Abstractions.dll`
 
-Specifies a weight for a class, typically used to influence the execution order or priority of handlers or modules.
+Sets the invocation order of a participant within its pipeline stage.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public class WeightAttribute : Attribute
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/WeightAttribute.cs#L6)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Core.Abstractions/Attributes/WeightAttribute.cs#L11)
 
 **Inherits:** [`object`](https://learn.microsoft.com/dotnet/api/system.object), [`Attribute`](https://learn.microsoft.com/dotnet/api/system.attribute)
+
+## Remarks
+
+Participants in a stage run by descending weight, and participants of equal weight run
+in ordinal order of their full type name, so ordering is stable across runs. A
+participant without this attribute has weight zero.
 
 ## Constructors
 
@@ -28,13 +34,17 @@ public class WeightAttribute : Attribute
 public WeightAttribute(uint weight)
 ```
 
-Specifies a weight for a class, typically used to influence the execution order or priority of handlers or modules.
+Sets the invocation order of a participant within its pipeline stage.
 
 **Parameters**
 
 | Name | Type | Description |
 | --- | --- | --- |
 | `weight` | [`uint`](https://learn.microsoft.com/dotnet/api/system.uint32) |  |
+
+Participants in a stage run by descending weight, and participants of equal weight run
+in ordinal order of their full type name, so ordering is stable across runs. A
+participant without this attribute has weight zero.
 
 ## Properties
 
@@ -44,7 +54,7 @@ Specifies a weight for a class, typically used to influence the execution order 
 public uint Weight { get; }
 ```
 
-Gets the weight assigned to the class.
+The weight declared for this participant; higher runs earlier.
 
 **Returns**
 

@@ -1,6 +1,6 @@
 ---
 title: "ICommandFinalInterceptor"
-description: "Represents a final interceptor for commands that can be registered without specifying a particular command type."
+description: "Runs once the pipeline of any command has settled, whatever its type."
 sidebar:
   label: "ICommandFinalInterceptor"
   order: 9
@@ -9,23 +9,18 @@ sidebar:
 **Namespace:** [`Stella.Ergosfare.Commands.Abstractions`](/ergosfare.docs/preview/api/commands-abstractions)  
 **Assembly:** `Stella.Ergosfare.Commands.Abstractions.dll`
 
-Represents a final interceptor for commands that can be registered
-without specifying a particular command type.
+Runs once the pipeline of any command has settled, whatever its type.
 
 ```csharp
 public interface ICommandFinalInterceptor : ICommand, IMessage, IAsyncFinalInterceptor<ICommand>, IFinalInterceptor
 ```
 
-[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor.cs#L21)
+[View source](https://github.com/stellayazilim/Ergosfare/blob/preview/src/Stella.Ergosfare.Commands.Abstractions/FinalInterceptors/ICommandFinalInterceptor.cs#L16)
 
 ## Remarks
 
-This is a non-type-safe version of a command final interceptor.
-It allows intercepting the final stage of any command pipeline regardless of the concrete command type.
-
-Use this interface when you want to apply final logic (e.g., logging, cleanup) across multiple command types
-without requiring a strongly typed command.
-
-For scenarios requiring type safety, prefer using the generic version:
-[`ICommandFinalInterceptor<TCommand>`](/ergosfare.docs/preview/api/commands-abstractions/icommandfinalinterceptor-1) or
+Use this for work that applies across command types — logging, metrics, cleanup. It
+observes the outcome and cannot change it, and a pipeline stopped by
+`context.Abort()` runs no final interceptors. For a typed command or result,
+implement [`ICommandFinalInterceptor<TCommand>`](/ergosfare.docs/preview/api/commands-abstractions/icommandfinalinterceptor-1) or
 [`ICommandFinalInterceptor<TCommand, TResult>`](/ergosfare.docs/preview/api/commands-abstractions/icommandfinalinterceptor-2).
